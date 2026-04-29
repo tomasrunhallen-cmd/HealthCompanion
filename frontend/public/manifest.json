@@ -1,0 +1,39 @@
+{
+  "name": "HealthCompanion",
+  "short_name": "HealthComp",
+  "description": "Personlig stämnings- och hälsoanalys",
+  "start_url": "/diary",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Fyll i dagbok",
+      "short_name": "Dagbok",
+      "url": "/diary",
+      "description": "Öppna dagens dagboksifyllnad"
+    },
+    {
+      "name": "Översikt",
+      "short_name": "Översikt",
+      "url": "/dashboard",
+      "description": "Se översikt och grafer"
+    }
+  ]
+}
