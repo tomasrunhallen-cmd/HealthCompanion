@@ -306,6 +306,54 @@ function GarminSection() {
   );
 }
 
+// ── Export section ────────────────────────────────────────────────────────────
+
+function ExportSection() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleExport() {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("hc_token");
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiBase}/api/diary/export`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dagbok_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Export misslyckades");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <SettingsSection title="Exportera data">
+      <p className="text-sm text-muted-foreground">
+        Exportera all data i samma CSV-format som ursprungsappen — du är aldrig låst.
+      </p>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <button
+        onClick={handleExport}
+        disabled={loading}
+        className="w-full h-10 flex items-center justify-center gap-2 border border-border rounded-xl text-sm disabled:opacity-50"
+      >
+        <FileText className="w-4 h-4" />
+        {loading ? "Exporterar..." : "Exportera som CSV"}
+      </button>
+    </SettingsSection>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -327,18 +375,7 @@ export default function SettingsPage() {
         <GarminSection />
 
         {/* Export */}
-        <SettingsSection title="Exportera data">
-          <p className="text-sm text-muted-foreground">
-            Exportera all data i samma CSV-format som ursprungsappen (du är aldrig låst).
-          </p>
-          <a
-            href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/diary/export`}
-            className="w-full h-10 flex items-center justify-center gap-2 border border-border rounded-xl text-sm"
-          >
-            <FileText className="w-4 h-4" />
-            Exportera som CSV
-          </a>
-        </SettingsSection>
+        <ExportSection />
 
         {/* Logout */}
         <button
