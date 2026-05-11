@@ -27,19 +27,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <div class="pb-20">
 
     <!-- DAGBOK -->
-    <div x-show="tab==='diary'">
-      <div class="sticky top-6 bg-white border-b px-4 py-3 z-10">
-        <div class="flex items-center justify-between">
-          <button @click="prevDay()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-xl">←</button>
-          <div class="text-center">
-            <div class="font-semibold text-sm" x-text="formatDate(currentDate)"></div>
-            <div x-show="isToday" class="text-xs text-blue-500">Idag</div>
-          </div>
-          <button @click="nextDay()" :disabled="isToday" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-xl disabled:opacity-30">→</button>
-        </div>
-      </div>
-      <div class="px-4 py-4" x-html="diaryBody()"></div>
-    </div>
+    <div x-show="tab==='diary'" x-html="diaryHTML()"></div>
 
     <!-- ÖVERSIKT -->
     <div x-show="tab==='dashboard'" x-init="$watch('tab', v => v==='dashboard' && $nextTick(()=>initChart()))">
@@ -112,106 +100,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
     </div>
 
     <!-- ANALYS -->
-    <div x-show="tab==='analysis'">
-      <div class="sticky top-6 bg-white border-b px-4 py-3 z-10 flex items-center gap-2">
-        <span class="text-xl">🧠</span><h1 class="font-bold text-lg">AI-analys</h1>
-      </div>
-      <div class="px-4 py-4 space-y-4">
-        <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <p class="text-sm font-medium text-gray-600">Välj period</p>
-          <div class="flex gap-2">
-            <button class="flex-1 h-9 rounded-lg text-sm bg-blue-600 text-white">30 dagar</button>
-            <button class="flex-1 h-9 rounded-lg text-sm bg-gray-100 text-gray-500">90 dagar</button>
-            <button class="flex-1 h-9 rounded-lg text-sm bg-gray-100 text-gray-500">365 dagar</button>
-          </div>
-          <button class="w-full h-12 bg-blue-600 text-white rounded-xl font-medium text-sm">
-            🧠 Analysera mönster
-          </button>
-        </div>
-        <!-- Mocked report -->
-        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p class="text-sm leading-relaxed text-gray-700">
-            Under de senaste 30 dagarna syns ett tydligt mönster med två hypomana episoder (7–9 april och 24–26 april), separerade av en kortvarig depressiv period (13–15 april). Båda episoderna föregicks av sömnavvikelse 1–2 dagar tidigare, och följdes av snabba kraschar. Balanserade perioder korrelerar starkt med regelbunden träning och mindfulness.
-          </p>
-        </div>
-        <div class="border-2 border-orange-400 bg-orange-50 rounded-xl p-3">
-          <div class="flex items-start gap-2">
-            <span class="mt-0.5">⚠️</span>
-            <div>
-              <p class="text-sm font-semibold">Potentiellt mönster för ny episod</p>
-              <p class="text-xs text-gray-600 mt-1">Mani-score steg till 11/17 den 26 april. Om trenden fortsätter rekommenderas kontakt med psykiater.</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b font-semibold text-sm">Tidiga varningssignaler <span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">3</span></div>
-          <div class="px-4 pb-4 pt-3 space-y-3">
-            <div class="bg-gray-50 rounded-lg p-3">
-              <p class="font-medium text-sm">Sömnavvikelse föregår episoder</p>
-              <p class="text-sm text-gray-500 mt-1">Registrerades 2 dagar innan båda hypomana episoderna startade.</p>
-              <div class="flex gap-1 mt-2"><span class="text-xs bg-white border px-1.5 py-0.5 rounded">2025-04-05</span><span class="text-xs bg-white border px-1.5 py-0.5 rounded">2025-04-22</span></div>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-3">
-              <p class="font-medium text-sm">Hög energi + Många idéer = risk</p>
-              <p class="text-sm text-gray-500 mt-1">Kombinationen på samma dag föregick alltid mani-score ≥ 6 de kommande dagarna.</p>
-            </div>
-            <div class="bg-gray-50 rounded-lg p-3">
-              <p class="font-medium text-sm">Minskat medicin-fokus = röd flagga</p>
-              <p class="text-sm text-gray-500 mt-1">Vid båda episoderna minskade registrerat medicin 3–4 dagar innan peak-fasen.</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b font-semibold text-sm">Skyddande faktorer <span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">2</span></div>
-          <div class="px-4 pb-4 pt-3 space-y-3">
-            <div class="bg-gray-50 rounded-lg p-3"><p class="font-medium text-sm">✅ Träning stabiliserar</p><p class="text-sm text-gray-500 mt-1">Dagar med träning hade i genomsnitt 40% lägre mani-score dagen efter.</p></div>
-            <div class="bg-gray-50 rounded-lg p-3"><p class="font-medium text-sm">✅ 30-min timer + SORK</p><p class="text-sm text-gray-500 mt-1">Perioden 16–22 april med konsekventa strategier var den stabilaste i hela perioden.</p></div>
-          </div>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b font-semibold text-sm">Rekommendationer <span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">4</span></div>
-          <div class="px-4 pb-4 pt-3 space-y-3">
-            <div class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><p class="text-sm">Prioritera sömn som episod-markör — sätt alarm om du sover under 6h tre nätter i rad.</p></div>
-            <div class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><p class="text-sm">Fortsätt med träning minst 3 dagar/vecka — din starkaste stabiliserande faktor.</p></div>
-            <div class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><p class="text-sm">Dela varningssignalerna med din psykiater vid nästa besök.</p></div>
-            <div class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><p class="text-sm">Använd 30-min timer och SORK aktivt när mani-score > 3.</p></div>
-          </div>
-        </div>
-        <p class="text-xs text-gray-400 italic p-3 bg-gray-50 rounded-xl">⚕️ Denna analys är mönsterhittning, inte medicinsk rådgivning. Vid varningstecken — kontakta din psykiater eller psykiatrisk akutvård.</p>
-      </div>
-    </div>
+    <div x-show="tab==='analysis'" x-html="analysisHTML()"></div>
 
     <!-- INSTÄLLNINGAR -->
-    <div x-show="tab==='settings'">
-      <div class="sticky top-6 bg-white border-b px-4 py-3 z-10"><h1 class="font-bold text-lg">Inställningar</h1></div>
-      <div class="px-4 py-4 space-y-4">
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b font-semibold text-sm">CSV-import av historik</div>
-          <div class="p-4">
-            <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
-              <div class="text-4xl mb-2">📂</div>
-              <p class="text-sm font-medium">Dra och släpp CSV-fil</p>
-              <p class="text-xs text-gray-400 mt-1">Stöder ditt befintliga format med svenska månadsnamn</p>
-            </div>
-          </div>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b font-semibold text-sm">Garmin Connect</div>
-          <div class="p-4 space-y-3">
-            <div class="flex items-center gap-3"><span class="text-3xl">⌚</span><div><p class="text-sm font-medium">Ej ansluten</p><p class="text-xs text-gray-400">Sömn, HRV, stress, Body Battery</p></div></div>
-            <button class="w-full h-10 border border-gray-200 rounded-xl text-sm text-gray-600">Konfigurera Garmin</button>
-          </div>
-        </div>
-        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b font-semibold text-sm">Exportera data</div>
-          <div class="p-4 space-y-2">
-            <p class="text-sm text-gray-500">Exporterar i exakt samma format som din ursprungsapp.</p>
-            <button class="w-full h-10 border border-gray-200 rounded-xl text-sm flex items-center justify-center gap-2">📄 Exportera som CSV</button>
-          </div>
-        </div>
-        <button class="w-full h-12 border border-red-200 text-red-500 rounded-xl text-sm">🚪 Logga ut</button>
-      </div>
-    </div>
+    <div x-show="tab==='settings'" x-html="settingsHTML()"></div>
 
   </div><!-- end screens -->
 
@@ -231,7 +123,401 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/gh/tomasrunhallen-cmd/HealthCompanion@claude/mood-health-pwa-zLJP3/mock-data.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/tomasrunhallen-cmd/HealthCompanion@claude/mood-health-pwa-zLJP3/app.js"></script>
+<script>
+// ── Mock data ─────────────────────────────────────────────────────────────────
+// 30 days of realistic bipolar episode data
+// Pattern: stable → hypomanic ep.1 (7-9 apr) → balanced → depressed (13-15) → stable (16-22) → hypomanic ep.2 (24-26) → crash (27-30)
+const MOCK_ENTRIES = [
+  {date:'2025-04-01',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Lugn dag. Promenerade på lunchen.'},
+  {date:'2025-04-02',mh:'Balanserad',ml:null,med:1,min:1,tra:0,bad:0,ute:0,tid:1,t30:1,sork:0,nbra:0,ndal:0,oro:0,av:0,alk:0,soc:0,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Sov bra. Jobbet OK.'},
+  {date:'2025-04-03',mh:'Balanserad',ml:null,med:1,min:0,tra:1,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:1,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Bra möte idag.'},
+  {date:'2025-04-04',mh:'Balanserad',ml:null,med:1,min:0,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:1,oro:0,av:0,alk:0,soc:0,ang:0,ss:1,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Lite tröttare mot fredagen.'},
+  {date:'2025-04-05',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:1,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Kallbad på morgonen! Tränade sen.'},
+  {date:'2025-04-06',mh:'Balanserad',ml:null,med:1,min:1,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:0,oro:0,av:0,alk:0,soc:0,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Vilsam söndag.'},
+  // Hypomanic ep 1
+  {date:'2025-04-07',mh:'Lite',ml:null,med:1,min:0,tra:0,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:0,ndal:0,oro:0,av:1,alk:0,soc:0,ang:0,ss:0,eng:1,funkar:0,hoe:1,ideer:1,eflo:0,brom:0,sam:1,vant:0,musik:1,brad:1,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:1,hmv:0,ant:'Vaknade tidigt med massa energi. Massor av idéer. Sov bara 5h.'},
+  {date:'2025-04-08',mh:'Lite',ml:null,med:1,min:0,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:1,alk:0,soc:1,ang:0,ss:0,eng:1,funkar:1,hoe:1,ideer:1,eflo:1,brom:1,sam:1,vant:1,musik:1,brad:1,mag:1,dof:0,ovan:0,smart:0,inn:1,kmi:0,hojs:1,hmv:1,ant:'Allt flödar. Otroligt produktiv. Köpte saker spontant.'},
+  {date:'2025-04-09',mh:'Lite',ml:null,med:1,min:0,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:1,alk:0,soc:0,ang:0,ss:0,eng:1,funkar:1,hoe:1,ideer:1,eflo:1,brom:1,sam:1,vant:1,musik:1,brad:1,mag:1,dof:1,ovan:1,smart:1,inn:1,kmi:0,hojs:1,hmv:1,ant:'Svårt bromsa tankarna. Spontana inlägg på sociala medier. Dofter intensivare.'},
+  // Recovery
+  {date:'2025-04-10',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:1,funkar:0,hoe:1,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Energin lagt sig lite. Tränade. Mådde bra.'},
+  {date:'2025-04-11',mh:'Balanserad',ml:null,med:1,min:1,tra:0,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Bra fredag. Lunchpromenad.'},
+  {date:'2025-04-12',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:1,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Kallbad och träning. Mådde fantastiskt.'},
+  // Depressive period
+  {date:'2025-04-13',mh:null,ml:'Lite',med:1,min:0,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:1,oro:1,av:0,alk:0,soc:0,ang:1,ss:1,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Krash. Trött och nere. Orolig inför veckan.'},
+  {date:'2025-04-14',mh:null,ml:'Lite',med:1,min:1,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:0,oro:1,av:0,alk:0,soc:0,ang:1,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Tung måndag. Ångest på morgonen.'},
+  {date:'2025-04-15',mh:null,ml:'Lite',med:1,min:0,tra:0,bad:0,ute:0,tid:1,t30:0,sork:0,nbra:0,ndal:1,oro:1,av:0,alk:0,soc:0,ang:1,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Psykolog idag. Pratade om sömn och rutiner. Hjälpsamt.'},
+  // Stable period
+  {date:'2025-04-16',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Bättre idag. Lunchpromenad och träning.'},
+  {date:'2025-04-17',mh:'Balanserad',ml:null,med:1,min:1,tra:0,bad:0,ute:1,tid:1,t30:1,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:0,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Stabil dag. Mindfulness på morgonen.'},
+  {date:'2025-04-18',mh:'Balanserad',ml:null,med:1,min:0,tra:1,bad:0,ute:0,tid:1,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:1,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Jobbade bra.'},
+  {date:'2025-04-19',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:1,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Kallbad och lång promenad.'},
+  {date:'2025-04-20',mh:'Balanserad',ml:null,med:1,min:1,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:0,oro:0,av:0,alk:0,soc:0,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Lugn söndag. Läste.'},
+  {date:'2025-04-21',mh:'Balanserad',ml:null,med:1,min:0,tra:1,bad:0,ute:1,tid:1,t30:1,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:0,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Produktiv måndag. 30-min timer hela dagen.'},
+  {date:'2025-04-22',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:0,ute:1,tid:1,t30:0,sork:0,nbra:0,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Bra dag generellt.'},
+  {date:'2025-04-23',mh:'Balanserad',ml:null,med:1,min:0,tra:0,bad:0,ute:1,tid:1,t30:1,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:0,ang:0,ss:0,eng:1,funkar:0,hoe:1,ideer:1,eflo:0,brom:0,sam:1,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Energin stiger lite. Idéer men håller mig i check.'},
+  // Hypomanic ep 2
+  {date:'2025-04-24',mh:'Lite',ml:null,med:1,min:0,tra:1,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:1,alk:0,soc:0,ang:0,ss:0,eng:1,funkar:1,hoe:1,ideer:1,eflo:1,brom:1,sam:1,vant:1,musik:1,brad:1,mag:1,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:1,hmv:1,ant:'Sov 4,5h men pigg. Hög energi. Tankar om att bromsa.'},
+  {date:'2025-04-25',mh:'Lite',ml:null,med:1,min:0,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:1,alk:0,soc:1,ang:0,ss:0,eng:1,funkar:1,hoe:1,ideer:1,eflo:1,brom:1,sam:1,vant:1,musik:1,brad:1,mag:1,dof:1,ovan:0,smart:0,inn:1,kmi:0,hojs:1,hmv:1,ant:'Klarsynt. Ser kopplingar överallt. Pratade väldigt mycket.'},
+  {date:'2025-04-26',mh:'Lite',ml:null,med:1,min:0,tra:1,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:1,ndal:0,oro:0,av:1,alk:0,soc:1,ang:0,ss:0,eng:1,funkar:1,hoe:1,ideer:1,eflo:1,brom:1,sam:1,vant:1,musik:1,brad:1,mag:1,dof:1,ovan:1,smart:1,inn:1,kmi:0,hojs:1,hmv:1,ant:'Shoppade saker jag inte behöver. Energin flödar. Svårt sitta still.'},
+  // Crash
+  {date:'2025-04-27',mh:'Balanserad',ml:null,med:1,min:1,tra:0,bad:0,ute:0,tid:0,t30:0,sork:0,nbra:0,ndal:1,oro:1,av:0,alk:0,soc:0,ang:0,ss:1,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Kraschen igen. Orolig. Sov länge men trött.'},
+  {date:'2025-04-28',mh:null,ml:'Lite',med:1,min:1,tra:0,bad:0,ute:0,tid:1,t30:0,sork:0,nbra:0,ndal:1,oro:1,av:0,alk:0,soc:0,ang:1,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Depressiv. Svårt ta sig för saker. Ångest.'},
+  {date:'2025-04-29',mh:null,ml:'Lite',med:1,min:0,tra:0,bad:0,ute:0,tid:1,t30:0,sork:0,nbra:0,ndal:0,oro:1,av:0,alk:0,soc:0,ang:1,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:0,hojs:0,hmv:0,ant:'Psykolog. Pratade om mönstret med upp- och nedgångar.'},
+  {date:'2025-04-30',mh:'Balanserad',ml:null,med:1,min:1,tra:1,bad:0,ute:1,tid:1,t30:1,sork:0,nbra:1,ndal:0,oro:0,av:0,alk:0,soc:1,ang:0,ss:0,eng:0,funkar:0,hoe:0,ideer:0,eflo:0,brom:0,sam:0,vant:0,musik:0,brad:0,mag:0,dof:0,ovan:0,smart:0,inn:0,kmi:1,hojs:0,hmv:0,ant:'Bättre dag. Träning och mindfulness hjälpte.'},
+];
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const STATE_COLORS = { balanced:'#22c55e', manic:'#f59e0b', depressed:'#6366f1', mixed:'#ec4899', nodata:'#e5e7eb' };
+const STATE_LABELS = { balanced:'Balanserad', manic:'Hypoman tendens', depressed:'Depressiv tendens', mixed:'Blandtillstånd', nodata:'Ingen data' };
+
+const DIARY_SECTIONS = [
+  { title: 'Skyddande beteenden', fields: [
+    {key:'med',  label:'Medicin'},
+    {key:'tra',  label:'Träning'},
+    {key:'min',  label:'Mindfulness'},
+    {key:'bad',  label:'Bad / Kallbad'},
+    {key:'ute',  label:'Utomhus på lunchen'},
+    {key:'tid',  label:'Sluta jobb i tid'},
+    {key:'t30',  label:'Jobba med 30 min timer'},
+    {key:'sork', label:'Använt SORK'},
+    {key:'kmi',  label:'Känner mig mindful'},
+  ]},
+  { title: 'Risk & avvikelse', fields: [
+    {key:'av',  label:'Sömnavvikelse'},
+    {key:'alk', label:'Alkohol'},
+    {key:'hmv', label:'Handlat mer än vanligt'},
+  ]},
+  { title: 'Depression & ångest', fields: [
+    {key:'ss',  label:'Stress-symptom'},
+    {key:'ang', label:'Ångest'},
+    {key:'oro', label:'Stor oro'},
+  ]},
+  { title: 'Mani-indikatorer', fields: [
+    {key:'hoe',   label:'Hög Energi'},
+    {key:'funkar',label:'Allt Bara Funkar'},
+    {key:'eng',   label:'Högt Engagemang'},
+    {key:'eflo',  label:'Energi flödar i kroppen'},
+    {key:'ideer', label:'Många ideer på jobbet'},
+    {key:'hojs',  label:'Högt självförtroende'},
+    {key:'sam',   label:'Ser sammanhang tydligt'},
+    {key:'vant',  label:'Svårt att vänta när andra pratar'},
+    {key:'musik', label:'Lyssnar på hetsig och hög musik'},
+    {key:'brad',  label:'Upplevd brådska för något'},
+    {key:'mag',   label:'Upplevt starkt magstöd vid prat och sång'},
+    {key:'dof',   label:'Dofter och färger är tydligare'},
+    {key:'brom',  label:'Upplever att jag måste bromsa hjärnan'},
+    {key:'ovan',  label:'Handlat något ovanligt'},
+    {key:'inn',   label:'Spontan ex inlägg på sociala medier'},
+    {key:'smart', label:'Jag är smartare än andra'},
+  ]},
+  { title: 'Kontext', fields: [
+    {key:'nbra', label:'Nåt BRA har hänt'},
+    {key:'ndal', label:'Nåt DÅLIGT har hänt'},
+    {key:'soc',  label:'Social Aktivitet'},
+  ]},
+];
+
+const MANIA_KEYS = ['hoe','funkar','eng','eflo','ideer','hojs','sam','vant','musik','brad','mag','dof','brom','ovan','inn','smart','hmv'];
+
+// ── Alpine app ────────────────────────────────────────────────────────────────
+
+function app() {
+  const entries = MOCK_ENTRIES
+    .map(r => Object.assign({}, r))
+    .sort((a,b) => b.date.localeCompare(a.date));
+
+  const entryMap = {};
+  entries.forEach(e => entryMap[e.date] = e);
+
+  return {
+    tab: 'diary',
+    currentDate: '2025-04-30',
+    entries,
+    entryMap,
+    chart: null,
+    STATE_COLORS,
+    STATE_LABELS,
+    TABS: [
+      {id:'diary',    icon:'📖', label:'Dagbok'},
+      {id:'dashboard',icon:'📊', label:'Översikt'},
+      {id:'analysis', icon:'🧠', label:'Analys'},
+      {id:'settings', icon:'⚙️', label:'Inst.'},
+    ],
+
+    // ── Scoring ──────────────────────────────────────────────────────────────
+
+    maniaScore(e) {
+      if (!e) return 0;
+      return MANIA_KEYS.filter(k => e[k] === 1 || e[k] === true).length;
+    },
+
+    depressionScore(e) {
+      if (!e) return 0;
+      let s = 0;
+      if (e.ang) s++;
+      if (e.oro) s++;
+      if (e.ss)  s++;
+      if (e.ml === 'Lite' || e.ml === 'Mycket') s++;
+      return s;
+    },
+
+    dayState(e) {
+      if (!e) return 'nodata';
+      const m = this.maniaScore(e) >= 4;
+      const d = this.depressionScore(e) >= 2;
+      if (m && d) return 'mixed';
+      if (m) return 'manic';
+      if (d) return 'depressed';
+      return 'balanced';
+    },
+
+    stateColor(s) { return STATE_COLORS[s] || STATE_COLORS.nodata; },
+    stateLabel(s) { return STATE_LABELS[s] || '–'; },
+
+    // ── Heatmap ──────────────────────────────────────────────────────────────
+
+    heatmapWeeks() {
+      const today = new Date('2025-04-30');
+      const dates = [];
+      for (let i = 83; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().slice(0,10));
+      }
+      const first = new Date(dates[0]).getDay();
+      const pad = first === 0 ? 6 : first - 1;
+      const padded = [...Array(pad).fill(null), ...dates];
+      const weeks = [];
+      for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i+7));
+      return weeks;
+    },
+
+    // ── Chart ────────────────────────────────────────────────────────────────
+
+    initChart() {
+      const ctx = document.getElementById('moodChart');
+      if (!ctx) return;
+      if (this.chart) { this.chart.destroy(); this.chart = null; }
+      const last30 = [...this.entries].slice(0,30).reverse();
+      this.chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: last30.map(e => e.date.slice(5)),
+          datasets: [
+            { label:'Mani-score',      data: last30.map(e => this.maniaScore(e)),      borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.08)', tension:0.35, fill:true, pointRadius:2 },
+            { label:'Depression-score',data: last30.map(e => this.depressionScore(e)), borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,0.08)',  tension:0.35, fill:true, pointRadius:2 },
+          ],
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          interaction:{ mode:'index', intersect:false },
+          plugins:{ legend:{ position:'top', labels:{ boxWidth:10, font:{size:10}, padding:8 } } },
+          scales:{
+            y:{ min:0, max:17, ticks:{ stepSize:4, font:{size:9} }, grid:{ color:'#f3f4f6' } },
+            x:{ ticks:{ font:{size:9}, maxRotation:0, maxTicksLimit:10 }, grid:{ display:false } },
+          },
+        },
+      });
+    },
+
+    // ── Diary helpers ─────────────────────────────────────────────────────────
+
+    get currentEntry() {
+      if (!this.entryMap[this.currentDate]) {
+        const e = { date: this.currentDate, mh:null, ml:null, ant:'' };
+        this.entryMap[this.currentDate] = e;
+        this.entries.unshift(e);
+      }
+      return this.entryMap[this.currentDate];
+    },
+
+    get isToday() { return this.currentDate === '2025-04-30'; },
+
+    prevDay() {
+      const d = new Date(this.currentDate); d.setDate(d.getDate()-1);
+      this.currentDate = d.toISOString().slice(0,10);
+    },
+    nextDay() {
+      if (this.isToday) return;
+      const d = new Date(this.currentDate); d.setDate(d.getDate()+1);
+      this.currentDate = d.toISOString().slice(0,10);
+    },
+
+    formatDate(ds) {
+      return new Date(ds+'T12:00:00').toLocaleDateString('sv-SE',{weekday:'long',day:'numeric',month:'long'});
+    },
+
+    cycleBool(key) {
+      const e = this.currentEntry;
+      const v = e[key];
+      e[key] = (v === null || v === undefined) ? 1 : v === 1 ? 0 : null;
+    },
+
+    cycleMood(field, val) {
+      const e = this.currentEntry;
+      e[field] = e[field] === val ? null : val;
+    },
+
+    boolLabel(v) { return v === 1 ? 'JA' : v === 0 ? 'NEJ' : '–'; },
+    boolBg(v)    { return v === 1 ? 'bg-green-500 text-white' : v === 0 ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-400'; },
+    rowBg(v)     { return v === 1 ? 'bg-green-50 border-green-300' : v === 0 ? 'bg-red-50 border-red-200 opacity-60' : 'bg-white border-gray-200'; },
+
+    // ── HTML generators ────────────────────────────────────────────────────────
+
+    diaryHTML() {
+      const e = this.currentEntry;
+      const ms = this.maniaScore(e);
+      const ds = this.depressionScore(e);
+
+      const moodOpts = (field) => ['–','Balanserad','Lite','Mycket'].map(opt => {
+        const val = opt === '–' ? null : opt;
+        const active = e[field] === val;
+        const cls = active ? 'bg-blue-600 text-white border-blue-600' : 'bg-gray-100 text-gray-500 border-transparent';
+        return `<button onclick="document.querySelector('[x-data]').__x.$data.cycleMood('${field}','${val}')" class="flex-1 h-10 rounded-lg text-xs font-medium border transition-colors ${cls}">${opt}</button>`;
+      }).join('');
+
+      const sections = DIARY_SECTIONS.map(sec => {
+        const rows = sec.fields.map(f => {
+          const v = e[f.key];
+          const rowCls = this.rowBg(v);
+          const dotCls = this.boolBg(v);
+          return `<button onclick="document.querySelector('[x-data]').__x.$data.cycleBool('${f.key}')" class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors min-h-[48px] text-left ${rowCls}">
+            <span class="text-sm font-medium flex-1 pr-2">${f.label}</span>
+            <span class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${dotCls}">${this.boolLabel(v)}</span>
+          </button>`;
+        }).join('');
+        return `<div class="mb-6"><h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">${sec.title}</h3><div class="space-y-2">${rows}</div></div>`;
+      }).join('');
+
+      return `
+      <div class="sticky top-6 bg-white border-b px-4 py-3 z-10">
+        <div class="flex items-center justify-between">
+          <button onclick="document.querySelector('[x-data]').__x.$data.prevDay()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-xl">←</button>
+          <div class="text-center">
+            <div class="font-semibold text-sm">${this.formatDate(this.currentDate)}</div>
+            ${this.isToday ? '<div class="text-xs text-blue-500">Idag</div>' : ''}
+          </div>
+          <button onclick="document.querySelector('[x-data]').__x.$data.nextDay()" ${this.isToday?'disabled':''} class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-xl disabled:opacity-30">→</button>
+        </div>
+      </div>
+      <div class="px-4 py-4">
+        <div class="mb-6">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Humör</h3>
+          <div class="mb-3"><div class="text-xs text-gray-500 mb-1.5">Högt Humör</div><div class="flex gap-2">${moodOpts('mh')}</div></div>
+          <div><div class="text-xs text-gray-500 mb-1.5">Lågt Humör</div><div class="flex gap-2">${moodOpts('ml')}</div></div>
+        </div>
+        ${sections}
+        <div class="mb-6">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Anteckningar</h3>
+          <textarea rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Hur var dagen?">${e.ant||''}</textarea>
+        </div>
+        <div class="flex gap-3 mb-8">
+          <div class="flex-1 bg-amber-50 rounded-xl p-3 text-center">
+            <div class="text-xs text-gray-400">Mani-score</div>
+            <div class="text-3xl font-bold text-amber-500">${ms}<span class="text-base text-gray-300">/17</span></div>
+          </div>
+          <div class="flex-1 bg-indigo-50 rounded-xl p-3 text-center">
+            <div class="text-xs text-gray-400">Depression-score</div>
+            <div class="text-3xl font-bold text-indigo-500">${ds}<span class="text-base text-gray-300">/4</span></div>
+          </div>
+        </div>
+      </div>`;
+    },
+
+    analysisHTML() {
+      const warn = (title, items) => {
+        const cards = items.map(([t,d,dates]) => {
+          const chips = (dates||[]).map(d => `<span class="text-xs bg-white border px-1.5 py-0.5 rounded">${d}</span>`).join('');
+          return `<div class="bg-gray-50 rounded-lg p-3"><div class="font-medium text-sm">${t}</div><p class="text-sm text-gray-500 mt-1">${d}</p>${chips?`<div class="flex flex-wrap gap-1 mt-2">${chips}</div>`:''}</div>`;
+        }).join('');
+        return `<div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b font-semibold text-sm">${title} <span class="ml-1 text-xs bg-gray-100 px-1.5 rounded-full">${items.length}</span></div>
+          <div class="px-4 pb-4 pt-3 space-y-3">${cards}</div>
+        </div>`;
+      };
+
+      return `
+      <div class="sticky top-6 bg-white border-b px-4 py-3 z-10 flex items-center gap-2">
+        <span class="text-xl">🧠</span><h1 class="font-bold text-lg">AI-analys</h1>
+      </div>
+      <div class="px-4 py-4 space-y-4">
+        <div class="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+          <p class="text-sm font-medium">Välj period</p>
+          <div class="flex gap-2">
+            <button class="flex-1 h-9 rounded-lg text-sm bg-blue-600 text-white">30 dagar</button>
+            <button class="flex-1 h-9 rounded-lg text-sm bg-gray-100 text-gray-500">90 dagar</button>
+            <button class="flex-1 h-9 rounded-lg text-sm bg-gray-100 text-gray-500">365 dagar</button>
+          </div>
+          <button class="w-full h-12 bg-blue-600 text-white rounded-xl font-medium text-sm">🧠 Analysera mönster</button>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p class="text-sm leading-relaxed text-gray-700">Under de senaste 30 dagarna syns ett tydligt mönster med två hypomana episoder (7–9 april och 24–26 april), separerade av en kortvarig depressiv period (13–15 april). Båda episoderna föregicks av sömnavvikelse och minskad användning av skyddande beteenden.</p>
+        </div>
+        <div class="border-2 border-orange-400 bg-orange-50 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <span>⚠️</span>
+            <div>
+              <p class="text-sm font-semibold">Potentiellt mönster för ny episod</p>
+              <p class="text-xs text-gray-600 mt-1">Mani-score steg till 11/17 den 26 april. Om trenden fortsätter bör du kontakta din psykiater.</p>
+            </div>
+          </div>
+        </div>
+        ${warn('Tidiga varningssignaler', [
+          ['Sömnavvikelse föregår episoder', 'Registrerades 2 dagar innan båda episoderna startade.', ['2025-04-05','2025-04-22']],
+          ['Hög energi + Många idéer = risk', 'Kombinationen föregick alltid mani-score ≥ 6 de kommande dagarna.', []],
+          ['Minskat medicin-fokus = röd flagga', 'Vid båda episoderna minskade registrerat medicin 3–4 dagar innan peak.', []],
+        ])}
+        ${warn('Skyddande faktorer', [
+          ['✅ Träning stabiliserar', 'Dagar med träning hade i genomsnitt 40% lägre mani-score dagen efter.', []],
+          ['✅ 30-min timer + SORK', 'Perioden 16–22 april med konsekventa strategier var den stabilaste.', []],
+        ])}
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b font-semibold text-sm">Rekommendationer <span class="ml-1 text-xs bg-gray-100 px-1.5 rounded-full">4</span></div>
+          <div class="px-4 pb-4 pt-3 space-y-3">
+            ${['Prioritera sömn — sätt alarm om du sover under 6h tre nätter i rad.','Fortsätt med träning minst 3 dagar/vecka — din starkaste stabiliserande faktor.','Dela varningssignalerna med din psykiater vid nästa besök.','Använd 30-min timer och SORK aktivt när mani-score > 3.'].map(r=>`<div class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span><p class="text-sm">${r}</p></div>`).join('')}
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 italic p-3 bg-gray-50 rounded-xl">⚕️ Denna analys är mönsterhittning, inte medicinsk rådgivning. Vid varningstecken — kontakta din psykiater eller psykiatrisk akutvård.</p>
+      </div>`;
+    },
+
+    settingsHTML() {
+      return `
+      <div class="sticky top-6 bg-white border-b px-4 py-3 z-10"><h1 class="font-bold text-lg">Inställningar</h1></div>
+      <div class="px-4 py-4 space-y-4">
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b font-semibold text-sm">CSV-import av historik</div>
+          <div class="p-4">
+            <div class="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
+              <div class="text-4xl mb-2">📂</div>
+              <p class="text-sm font-medium">Dra och släpp CSV-fil</p>
+              <p class="text-xs text-gray-400 mt-1">Stöder ditt befintliga format med svenska månadsnamn</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b font-semibold text-sm">Garmin Connect</div>
+          <div class="p-4 space-y-3">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">⌚</span>
+              <div><p class="text-sm font-medium">Ej ansluten</p><p class="text-xs text-gray-400">Sömn, HRV, stress, Body Battery</p></div>
+            </div>
+            <button class="w-full h-10 border border-gray-200 rounded-xl text-sm text-gray-600">Konfigurera Garmin</button>
+          </div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b font-semibold text-sm">Exportera data</div>
+          <div class="p-4 space-y-2">
+            <p class="text-sm text-gray-500">Exporterar i exakt samma format som din ursprungsapp.</p>
+            <button class="w-full h-10 border border-gray-200 rounded-xl text-sm flex items-center justify-center gap-2">📄 Exportera som CSV</button>
+          </div>
+        </div>
+        <button class="w-full h-12 border border-red-200 text-red-500 rounded-xl text-sm flex items-center justify-center gap-2">🚪 Logga ut</button>
+      </div>`;
+    },
+  };
+}
+</script>
 </body>
 </html>
