@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "analys",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["matches", "sentence"],
+  "properties": {
+    "matches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sign_id", "quote"],
+        "properties": {
+          "sign_id": { "type": "integer", "minimum": 1 },
+          "quote": { "type": "string", "maxLength": 200 }
+        }
+      }
+    },
+    "sentence": { "type": "string", "minLength": 1, "maxLength": 300 }
+  }
+}

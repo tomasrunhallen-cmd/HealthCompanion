@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "krisplan-import",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rows"],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "text"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["tidigt", "allvarligt", "atgard-gult", "atgard-rott", "anhorig", "normallage"]
+          },
+          "text": { "type": "string", "minLength": 1, "maxLength": 400 }
+        }
+      }
+    }
+  }
+}
