@@ -53,6 +53,25 @@ export interface Entry {
   stressAvg: number | null;
 }
 
+/** One day of measured values from the user's own Garmin account. */
+export interface GarminDay {
+  /** Garmin's calendar date. Sleep belongs to the morning the user woke up. */
+  date: DateKey;
+  sleepHours: number | null;
+  deepMinutes: number | null;
+  remMinutes: number | null;
+  /** Local wall-clock time "HH:MM" when the user fell asleep and woke up. */
+  sleepStart: string | null;
+  sleepEnd: string | null;
+  /** Garmin's overall stress level for the day, 0-100. */
+  stressAvg: number | null;
+  /** Minutes in Garmin's high stress band. */
+  stressHighMinutes: number | null;
+  /** Body Battery at the first reading after waking. */
+  bodyBatteryWake: number | null;
+  fetchedAt: string;
+}
+
 export type SignalKind =
   | 'early_sign'
   | 'serious_sign'

@@ -3,8 +3,9 @@
 import { buildHistory, type HistoryDay } from '../analysis/scoring';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS,
-  type AppSettings, type Assessment, type DateKey, type Entry, type PlanItem, type PlanItemKind, type PlanSettings,
+  type AppSettings, type Assessment, type DateKey, type Entry, type GarminDay, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
+import { addDays } from '../analysis/dates';
 import type { SentRequest, Usage } from '../adapter/types';
 import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
 import type { DocBackend, Snapshot, StorageInfo } from './backend';
@@ -20,6 +21,17 @@ export interface ExportData {
 }
 
 type Listener = () => void;
+
+export interface GarminStatus {
+  /** True once the user has connected a key. The key itself is in Keychain/Keystore. */
+  connected: boolean;
+  lastSyncAt: string | null;
+  lastError: string | null;
+}
+
+export const DEFAULT_GARMIN_STATUS: GarminStatus = { connected: false, lastSyncAt: null, lastError: null };
+
+const GARMIN_KEEP_DAYS = 120;
 
 export class Repository {
   private snap!: Snapshot;
@@ -106,6 +118,39 @@ export class Repository {
   async setLastSent(req: SentRequest): Promise<void> {
     this.snap.kv.lastSent = req;
     await this.backend.put('kv', 'lastSent', req);
+  }
+
+  // ---- Garmin ----
+  garminStatus(): GarminStatus {
+    return { ...DEFAULT_GARMIN_STATUS, ...(this.snap.kv.garminStatus as Partial<GarminStatus> | undefined) };
+  }
+
+  async updateGarminStatus(patch: Partial<GarminStatus>): Promise<GarminStatus> {
+    const next = { ...this.garminStatus(), ...patch };
+    this.snap.kv.garminStatus = next;
+    await this.backend.put('kv', 'garminStatus', next);
+    this.changed();
+    return next;
+  }
+
+  /** Measured days keyed by Garmin's calendar date. */
+  garminDays(): Record<DateKey, GarminDay> {
+    return (this.snap.kv.garmin as Record<DateKey, GarminDay> | undefined) ?? {};
+  }
+
+  garminDay(date: DateKey): GarminDay | null {
+    return this.garminDays()[date] ?? null;
+  }
+
+  /** Replaces the given days (Garmin revises recent days) and keeps 120 days. */
+  async saveGarminDays(days: GarminDay[], today: DateKey): Promise<void> {
+    const cutoff = addDays(today, -GARMIN_KEEP_DAYS);
+    const next: Record<DateKey, GarminDay> = {};
+    for (const [d, v] of Object.entries(this.garminDays())) if (d > cutoff) next[d] = v;
+    for (const day of days) if (day.date > cutoff) next[day.date] = day;
+    this.snap.kv.garmin = next;
+    await this.backend.put('kv', 'garmin', next);
+    this.changed();
   }
 
   // ---- crisis plan ----
