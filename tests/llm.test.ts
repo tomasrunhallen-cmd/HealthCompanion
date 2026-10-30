@@ -135,7 +135,7 @@ describe('Mistral and OpenAI-compatible adapter', () => {
     const completer = createCompleter(chatCompletionsAdapter({ provider: 'mistral', model: 'm', apiKey: 'k', fetch: f }), {
       onUsage: (u) => usage.push(u.inputTokens + u.outputTokens),
     });
-    const res = await completer.complete(loadPrompt('analys'), { normallage: '', tecken: '', anteckning: '' });
+    const res = await completer.complete(loadPrompt('analys'), { normallage: '', matvarden: '', tecken: '', anteckning: '' });
     expect(res.json).toEqual(JSON.parse(ANSWER));
     expect(usage).toEqual([10]);
   });

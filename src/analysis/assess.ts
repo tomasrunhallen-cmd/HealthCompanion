@@ -2,10 +2,11 @@
 // score in code, and pick the plan's own actions for the level.
 
 import type {
-  Assessment, Entry, Level, MatchMethod, PlanItem, PlanSettings, Signal, SignMatch,
+  Assessment, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Signal, SignMatch,
 } from '../domain/types';
+import { formatMeasurements, measuredDays } from './measurements';
 import { matchSigns } from './wordmatch';
-import { score, type HistoryDay } from './scoring';
+import { computeBaseline, score, type HistoryDay } from './scoring';
 
 export const NOTHING_STANDS_OUT = 'Inget i anteckningen avviker från ditt normalläge.';
 
@@ -19,8 +20,13 @@ export interface MatchResult {
   promptVersion: string | null;
 }
 
+export interface MatchContext {
+  /** Today's and the past week's measured sleep and stress, as text for the model. */
+  measurements: string;
+}
+
 export interface SignMatcher {
-  match(note: string, signs: PlanItem[], planSettings: PlanSettings): Promise<MatchResult>;
+  match(note: string, signs: PlanItem[], planSettings: PlanSettings, context?: MatchContext): Promise<MatchResult>;
 }
 
 export const wordMatcher: SignMatcher = {
@@ -68,18 +74,25 @@ export async function assessEntry(args: {
   planSettings: PlanSettings;
   history: HistoryDay[];
   matcher: SignMatcher;
+  /** Measured days from Garmin, keyed by calendar date. */
+  garmin?: Record<DateKey, GarminDay>;
   now?: Date;
 }): Promise<Assessment> {
-  const { entry, plan, planSettings, history, matcher } = args;
+  const { entry, plan, planSettings, history, matcher, garmin } = args;
   const signs = plan.filter((p) => p.kind === 'early' || p.kind === 'serious');
+  const earlier = history.filter((h) => h.entry.date < entry.date);
+  const measurements = formatMeasurements(
+    measuredDays(entry, earlier, garmin),
+    computeBaseline(entry.date, earlier).stressAvg,
+  );
   let result: MatchResult;
   try {
-    result = await matcher.match(entry.transcript, signs, planSettings);
+    result = await matcher.match(entry.transcript, signs, planSettings, { measurements });
   } catch {
     // Any failure falls back to word matching, and the method shows it.
     result = { ...(await wordMatcher.match(entry.transcript, signs, planSettings)), method: 'llm_fallback' };
   }
-  const scored = score({ entry, matches: result.matches, plan, planSettings, history });
+  const scored = score({ entry, matches: result.matches, plan, planSettings, history, garmin });
   const sentence = result.sentence?.trim() || templateSentence(scored.signals);
   return {
     id: newId('a'),

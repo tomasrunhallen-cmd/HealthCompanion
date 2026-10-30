@@ -5,6 +5,7 @@ import { eveningDateKey } from '../analysis/dates';
 import { parseSleepHours } from '../analysis/sleep';
 import type { Assessment, Entry } from '../domain/types';
 import type { Repository } from '../storage/repository';
+import { refreshForCheckin, type GarminOptions } from './garmin';
 import { currentMatcher, type AdapterOptions } from './llm';
 
 export interface CheckinInput {
@@ -20,9 +21,15 @@ export async function saveCheckin(
   input: CheckinInput,
   now = new Date(),
   adapterOptions: AdapterOptions = {},
+  garminOptions: GarminOptions = {},
 ): Promise<{ entry: Entry; assessment: Assessment }> {
   const date = eveningDateKey(now);
-  const sleep = parseSleepHours(input.transcript);
+  // Fresh numbers for today's stress; on failure the stored values are used.
+  await refreshForCheckin(repo, { ...garminOptions, now });
+  const g = repo.garminDay(date);
+  // Garmin first; "sov X timmar" in the note is the fallback, marked as estimated.
+  const sleep = g?.sleepHours ?? parseSleepHours(input.transcript);
+  const sleepSource = g?.sleepHours != null ? 'garmin' : sleep != null ? 'transcript' : null;
   const entry: Entry = {
     id: newId('e'),
     date,
@@ -32,10 +39,9 @@ export async function saveCheckin(
     mood: input.mood,
     energy: input.energy,
     wordsPerMinute: input.wordsPerMinute,
-    // Garmin fills this from step 3; until then the note is the fallback, marked as estimated.
     sleepHours: sleep,
-    sleepSource: sleep == null ? null : 'transcript',
-    stressAvg: null,
+    sleepSource,
+    stressAvg: g?.stressAvg ?? null,
   };
   const assessment = await assessEntry({
     entry,
@@ -44,6 +50,7 @@ export async function saveCheckin(
     history: repo.history(),
     // The configured language model when there is one; word matching otherwise.
     matcher: await currentMatcher(repo, adapterOptions),
+    garmin: repo.garminDays(),
     now,
   });
   await repo.saveEntry(entry, assessment);
@@ -51,6 +58,8 @@ export async function saveCheckin(
 }
 
 export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{ entry: Entry; assessment: Assessment }> {
+  // No network here: the button must answer at once. Stored Garmin values are used.
+  const g = repo.garminDay(eveningDateKey(now));
   const entry: Entry = {
     id: newId('e'),
     date: eveningDateKey(now),
@@ -60,9 +69,9 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     mood: null,
     energy: null,
     wordsPerMinute: null,
-    sleepHours: null,
-    sleepSource: null,
-    stressAvg: null,
+    sleepHours: g?.sleepHours ?? null,
+    sleepSource: g?.sleepHours != null ? 'garmin' : null,
+    stressAvg: g?.stressAvg ?? null,
   };
   const assessment = await assessEntry({
     entry,
@@ -70,6 +79,7 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     planSettings: repo.planSettings(),
     history: repo.history(),
     matcher: wordMatcher,
+    garmin: repo.garminDays(),
     now,
   });
   await repo.saveEntry(entry, assessment);

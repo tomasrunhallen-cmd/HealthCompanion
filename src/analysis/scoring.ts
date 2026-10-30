@@ -2,7 +2,7 @@
 // compute signals, points and level. Pure and fully testable.
 
 import type {
-  Assessment, Baseline, DateKey, Entry, Level, PlanItem, PlanSettings, Signal, SignMatch,
+  Assessment, Baseline, DateKey, Entry, GarminDay, Level, PlanItem, PlanSettings, Signal, SignMatch,
 } from '../domain/types';
 import { addDays, daysBetween } from './dates';
 import { RULES } from './rules';
@@ -20,6 +20,8 @@ export interface ScoreInput {
   planSettings: PlanSettings;
   /** Earlier entries with their levels. Entries on or after entry.date are ignored. */
   history: HistoryDay[];
+  /** Measured days from Garmin, keyed by calendar date. Optional. */
+  garmin?: Record<DateKey, GarminDay>;
 }
 
 export interface ScoreResult {
@@ -98,6 +100,7 @@ function entryHour(entry: Entry): number {
 
 export function score(input: ScoreInput): ScoreResult {
   const { entry, matches, plan, planSettings } = input;
+  const garmin = input.garmin ?? {};
   const history = input.history.filter((h) => h.entry.date < entry.date && h.entry.id !== entry.id);
   const signals: Signal[] = [];
   const byId = new Map(plan.map((p) => [p.id, p]));
@@ -126,11 +129,10 @@ export function score(input: ScoreInput): ScoreResult {
       label: `Sömn ${entry.sleepHours} h, under din gräns på ${planSettings.sleepThresholdHours} h${src}`,
       measured: true,
     });
-    const yesterday = history.find((h) => h.entry.date === addDays(entry.date, -1));
-    if (
-      yesterday?.entry.sleepHours != null &&
-      yesterday.entry.sleepHours < planSettings.sleepThresholdHours
-    ) {
+    // Yesterday's sleep from Garmin when there is no entry, so a silent day still counts.
+    const yDate = addDays(entry.date, -1);
+    const ySleep = garmin[yDate]?.sleepHours ?? history.find((h) => h.entry.date === yDate)?.entry.sleepHours ?? null;
+    if (ySleep != null && ySleep < planSettings.sleepThresholdHours) {
       signals.push({
         kind: 'sleep_low_consecutive',
         points: RULES.points.measured,
@@ -169,6 +171,21 @@ export function score(input: ScoreInput): ScoreResult {
       label: 'Inlägget gjordes mitt i natten',
       measured: true,
     });
+  }
+
+  // Fell asleep after 02:00 by the watch, and no entry the evening before: two signs.
+  const start = garmin[entry.date]?.sleepStart;
+  if (start) {
+    const hour = Number(start.slice(0, 2));
+    const noEntryBefore = !history.some((h) => h.entry.date === addDays(entry.date, -1));
+    if (hour >= RULES.lateSleepHour && hour < RULES.lateSleepLatestHour && noEntryBefore) {
+      signals.push({
+        kind: 'late_sleep_no_entry',
+        points: RULES.points.lateSleepNoEntry,
+        label: `Somnade ${start} enligt klockan, utan inlägg kvällen innan`,
+        measured: true,
+      });
+    }
   }
 
   const silent = silentDaysBefore(entry.date, history);

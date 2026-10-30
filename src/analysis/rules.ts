@@ -9,6 +9,8 @@ export const RULES = {
     silence: 1,
     jump: 1,
     heavyDay: 1,
+    /** "Insomning efter 02:00 samtidigt som inget inlägg gjorts räknas som två tecken." */
+    lateSleepNoEntry: 2,
   },
   /** Words per minute more than this fraction above baseline is a sign. */
   speechFastFraction: 0.25,
@@ -25,8 +27,10 @@ export const RULES = {
   /** Baselines are computed on green days within this window. */
   baselineWindowDays: 28,
   baselineMinSamples: 3,
-  /** Sleep onset after this hour together with no entry gives two signs (step 3, Garmin). */
+  /** Sleep onset from this hour (Garmin) together with no entry the evening before gives two signs. */
   lateSleepHour: 2,
+  /** Onsets from this hour on are daytime sleep, not a late night. */
+  lateSleepLatestHour: 12,
   level: {
     yellowAt: 1,
     redAt: 4,

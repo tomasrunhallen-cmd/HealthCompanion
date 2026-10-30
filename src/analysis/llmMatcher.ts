@@ -7,6 +7,7 @@ import type { PlanItem, PlanSettings, SignMatch } from '../domain/types';
 import { loadPrompt } from '../prompts/loader';
 import { scrub } from '../privacy/scrub';
 import type { MatchResult, SignMatcher } from './assess';
+import { NO_MEASUREMENTS } from './measurements';
 import { normalize } from './wordmatch';
 
 interface AnalysAnswer {
@@ -27,11 +28,13 @@ export function createLlmMatcher(opts: {
   names: () => string[];
 }): SignMatcher {
   return {
-    async match(note: string, signs: PlanItem[], planSettings: PlanSettings): Promise<MatchResult> {
+    async match(note, signs, planSettings, context): Promise<MatchResult> {
       const prompt = loadPrompt('analys');
       const cleanNote = scrub(note, opts.names()).text;
       const res = await opts.completer.complete(prompt, {
         normallage: scrub(planSettings.normalState || '(inte ifyllt)', opts.names()).text,
+        // Numbers and dates only, but everything sent to a model goes through scrub().
+        matvarden: scrub(context?.measurements ?? NO_MEASUREMENTS, opts.names()).text,
         tecken: signList(signs),
         anteckning: cleanNote,
       });
