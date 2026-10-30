@@ -4,17 +4,17 @@ En stämningsdagbok för iOS och Android för en person med bipolär sjukdom. Va
 
 Specen finns i uppdraget *Dagsljus – byggprompt för Claude Code*. Den här filen beskriver vad som är byggt, hur du kör det och vad som återstår.
 
-## Status: steg 1 av 3
+## Status: steg 2 av 3
 
 Bygget görs i tre steg som verifieras ett i taget.
 
 | Steg | Innehåll | Status |
 | --- | --- | --- |
-| 1. Gränssnitt och funktion | Krisplan, kvällens avstämning, bedömning, Orkar bara trycka, tystnadsregel, påminnelse, applås, export och radering. Ordmatchning i stället för språkmodell. | **Klart för verifiering** |
-| 2. Koppling till språkmodell | LLM-inställningar, egen nyckel, Anthropic och OpenAI-kompatibel adress, Testa modellen, kostnadsuppskattning, krisplansimport med modell. | Inte påbörjat |
+| 1. Gränssnitt och funktion | Krisplan, kvällens avstämning, bedömning, Orkar bara trycka, tystnadsregel, påminnelse, applås, export och radering. Ordmatchning i stället för språkmodell. | Godkänt |
+| 2. Koppling till språkmodell | LLM-inställningar, egen nyckel, Mistral, Anthropic och OpenAI-kompatibel adress, Testa modellen, kostnadsuppskattning, krisplansimport med modell. | **Klart för verifiering** |
 | 3. Garmin | Sömn och stress från Garmin Health API med egen Personal-nyckel. | Inte påbörjat |
 
-Det som redan finns för steg 2 är adaptergränssnittet, promptladdaren, schemavalideringen, rensningen av personuppgifter och en fejkad modell. Allt det är testat men inte kopplat till någon riktig leverantör.
+Specens första leverans är funktion 1–6 med minst Anthropic och OpenAI-kompatibel adress. Med steg 2 är den komplett. Mistral är med eftersom det är den nyckel du har.
 
 ## Verifiera steg 1
 
@@ -57,14 +57,31 @@ npx eas-cli@latest build --profile development --platform android
 6. Under *Inställningar*: slå på påminnelsen, prova applåset, lägg till namn i rensningslistan, exportera med lösenord, radera allt och återställ från exporten.
 7. Säg till om något i krisplansimporten blev fel, till exempel en rubrik som inte känns igen.
 
+## Verifiera steg 2
+
+Du behöver en Mistral-nyckel från console.mistral.ai. Steg 2 fungerar i Expo Go, så du kan prova det innan utvecklingsbuilden finns. Nyckeln sparas då i Expo Gos nyckelring på telefonen.
+
+1. Öppna *Inställningar* och tryck *Koppla en språkmodell*.
+2. Välj *Mistral*, klistra in nyckeln och låt modellen stå på *mistral-small-latest*.
+3. Tryck *Testa modellen*. Läs rutan om vart texten går och godkänn. Testet skickar bara appens påhittade testfall.
+4. Se hur många av de fyra testfallen som gick igenom. Tryck *Spara*.
+5. Gör *Kvällens avstämning* med samma text som i steg 1. Bedömningen ska säga att din språkmodell tolkade tecknen, och visa modell och promptversion längst ner.
+6. Lägg in en krisplan med *Sortera med Mistral*. Kontrollera den rensade texten innan du skickar. Namn och nummer ska komma tillbaka i raderna.
+7. Fyll i priser under *Kostnad* för att se en månadsuppskattning.
+8. Prova *Använd ingen språkmodell*. Appen ska gå tillbaka till ordmatchning.
+
+Säg till om något av testfallen inte går igenom med Mistral, och vilket.
+
 ### Automatiska tester
 
 ```bash
-npm test          # 69 tester: ampel, rensning, promptladdare, adapter, lagring, backup
+npm test          # 91 tester: ampel, rensning, promptladdare, adaptrar, lagring, backup, Testa modellen
 npm run typecheck
 ```
 
-Specens fyra obligatoriska testfall ligger i `prompts/testfall.md` och körs både med ordmatchning och genom hela LLM-vägen med en fejkad modell.
+Specens fyra obligatoriska testfall ligger i `prompts/testfall.md` och körs både med ordmatchning och genom hela LLM-vägen med en fejkad modell. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
+
+Inget anrop har gjorts mot Mistrals eller Anthropics riktiga tjänst, eftersom det kräver din nyckel. Det är det som steg 2-verifieringen på telefonen visar.
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 
@@ -75,6 +92,11 @@ Specens fyra obligatoriska testfall ligger i `prompts/testfall.md` och körs bå
 - **Ingen inspelning i steg 1.** Whisper kräver en utvecklingsbuild och kan inte provas i Expo Go. I steg 1 skriver man, eller använder tangentbordets diktering. Appen varnar för att dikteringen kan skicka ljud till Apple eller Google. Talhastigheten mäts därför inte ännu.
 - **Fotografera krisplanen.** Textigenkänning i appen kräver en utvecklingsbuild. Till dess hänvisar appen till telefonens egen funktion: Live Text på iPhone och Google Lens på Android.
 - **iCloud-backup på iOS.** Android-backup är avstängd via `allowBackup: false`. På iOS hittade jag inget sätt i Expo att utesluta databasfilen från iCloud-backup utan egen nativekod. Databasen är krypterad i en utvecklingsbuild och nyckeln följer inte med backupen, men filen kan hamna i iCloud. Det behöver en liten config plugin, som jag föreslår till utvecklingsbuilden.
+- **Anthropic använder API-versionen 2023-06-01.** Den nyaste versionen, 2026-10-21, tar bort temperatur helt. Appen vill ha temperatur 0 för stabila svar och använder därför den äldre versionen, som fortfarande stöds. Om en modell ändå avvisar temperatur görs ett nytt anrop utan.
+- **Mistral använder JSON-läge, inte schemaläge.** JSON-läget är dokumenterat och verifierat. Schemaläget finns men jag hittade inte det exakta fältformatet i dokumentationen. Appen kontrollerar ändå varje svar mot schemat och ber om ett nytt svar en gång vid fel.
+- **Spara trots underkänt test.** Specen säger att en modell godkänns när alla fyra testfall ger rätt nivå. Appen låter dig spara en modell som klarat färre, efter en varning, men inte en som klarat noll. Säg till om du vill att alla fyra ska krävas.
+- **Testanrop räknas i kostnaden.** Testa modellen kostar tokens och räknas därför in i månadsuppskattningen.
+- **Rader som inte står i planen markeras.** När modellen sorterar krisplanen kontrollerar appen att varje rad finns i den inklistrade texten. Rader som inte gör det får en röd varning. Alla rader måste fortfarande godkännas en och en.
 - **Navigering.** Projektmallen rekommenderar Expo Router. Jag använder en enkel egen stack i stället, så att samma build fungerar i Expo Go, i en utvecklingsbuild och som webbförhandsvisning utan URL-hantering.
 
 ## Verifierat inför kod
@@ -91,11 +113,22 @@ Webbdokumentationen för Expo var blockerad i den här miljön. API:erna är dä
 | Svensk modell | KBLab publicerar svenska Whisper-modeller i storlekarna tiny till large, i whisper.cpp-format, med kvantiserade varianter. Filstorlek och hastighet på mellanklasstelefon är **inte verifierade ännu**. | [KBLab/kb-whisper-small](https://huggingface.co/KBLab/kb-whisper-small), [KBLab/kb-whisper-base](https://huggingface.co/KBLab/kb-whisper-base) |
 | Påminnelse | Lokal daglig notis med `expo-notifications` | expo-notifications 58.1.7 |
 
-Leverantörernas API-format och priser verifieras i steg 2. Garmins fält och Personal-nivåns villkor verifieras i steg 3.
+### Språkmodeller, kontrollerat 30 oktober 2026
+
+| Punkt | Resultat | Källa |
+| --- | --- | --- |
+| Mistral | `POST https://api.mistral.ai/v1/chat/completions` med `Authorization: Bearer`. JSON-läge med `response_format: {"type":"json_object"}`, och prompten måste själv be om JSON. Modellnamn som `mistral-small-latest` och `mistral-large-latest` finns i dokumentationens exempel. | [docs.mistral.ai/api](https://docs.mistral.ai/api/) |
+| Anthropic | `POST https://api.anthropic.com/v1/messages` med `x-api-key` och `anthropic-version`. Strukturerat svar med `output_config.format` av typen `json_schema`, utan beta-huvud. Schemat får inte innehålla längd-, tal- eller listgränser, så appen tar bort dem innan schemat skickas och kontrollerar dem själv efteråt. Svaret ligger i innehållsblocket av typen `text`. | [API overview](https://platform.claude.com/docs/en/api/overview), [Versions](https://platform.claude.com/docs/en/api/versioning), [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) |
+| OpenAI-kompatibel adress | Samma format som Mistral. Om servern avvisar JSON-läget skickas anropet igen utan. | Följer Mistrals och OpenAIs format |
+| Webbläsare | Anthropic kräver huvudet `anthropic-dangerous-direct-browser-access` för anrop från en webbläsare. Appen skickar det bara i webbförhandsvisningen. På telefonen gäller inga CORS-regler. | Anthropics dokumentation |
+
+Garmins fält och Personal-nivåns villkor verifieras i steg 3.
 
 ## Kostnader
 
-Utan server finns ingen driftkostnad. Siffrorna nedan kommer från specen och är **inte verifierade ännu**. De kontrolleras mot aktuella prislistor i steg 2.
+Utan server finns ingen driftkostnad. Appen har inga inbyggda priser. Du skriver in leverantörens pris i kronor per miljon tokens, och appen räknar på de tokens som faktiskt använts de senaste 30 dagarna.
+
+Uppskattningen nedan räknar med specens 2 500 tokens in och 400 ut per kväll, 30 kvällar och 10 kr per USD. Testanrop och nya försök tillkommer.
 
 | Post | Vem betalar | Kostnad |
 | --- | --- | --- |
@@ -103,7 +136,12 @@ Utan server finns ingen driftkostnad. Siffrorna nedan kommer från specen och ä
 | Apple Developer Program (TestFlight och App Store) | Utvecklaren | cirka 99 USD per år |
 | Google Play-konto | Utvecklaren | cirka 25 USD en gång |
 | Transkribering | Ingen | 0 kr, körs på telefonen |
-| Språkmodell i molnet | Användaren, med egen nyckel | Uppskattning görs i steg 2 |
+| Mistral Large | Användaren, med egen nyckel | 0,50 USD per miljon in och 1,50 ut. Cirka 0,60 kr i månaden. Källa: [mistral.ai/pricing](https://mistral.ai/pricing) |
+| Mistral Small | Användaren, med egen nyckel | Mistrals prissida visar inget pris. Tredjepartslistor anger 0,15 USD in och 0,60 ut, vilket ger cirka 0,20 kr i månaden. **Inte verifierat**, kontrollera i Mistrals konsol. |
+| Claude Haiku 5.5 | Användaren, med egen nyckel | 0,10 USD per miljon in och 0,50 ut. Cirka 0,15 kr i månaden. Källa: [Anthropics prislista](https://platform.claude.com/docs/en/about-claude/pricing) |
+| Claude Sonnet 5.5 | Användaren, med egen nyckel | 2 USD per miljon in och 10 ut. Cirka 3 kr i månaden. Samma källa. |
+| Egen dator via OpenAI-kompatibel adress | Användaren | 0 kr per anrop |
+| Krisplansimport | Användaren | Engångsanrop, under 1 kr med alla modellerna ovan |
 | Garmin Health API, Personal-nivån | Ingen | 0 kr enligt specen |
 
 ## Varför Expo och inte Flutter
@@ -119,16 +157,31 @@ scripts/            build-prompts.js buntar prompts/ och schemas/ in i appen
 src/analysis/       Poäng och nivå, ordmatchning, sömn ur text, testfall
 src/privacy/        Rensning av personuppgifter
 src/prompts/        Promptladdare: frontmatter, # System, # User, {{variabler}}
-src/adapter/        LLM-gränssnittet, schemavalidering, nytt försök, fejkad modell
+src/adapter/        LLM-gränssnittet, Mistral, Anthropic, OpenAI-kompatibel, schemavalidering, fejkad modell
+src/llm/            Modellinställningar, samtycke per leverantör, tokenräkning och kostnad
 src/plan/           Sortering av inklistrad krisplan
 src/storage/        Krypterad SQLite på telefonen, webbvariant, repository
 src/backup/         Lösenordsskyddad export (PBKDF2 och AES-256-GCM)
-src/platform/       Applås, påminnelse, filer, med webbvarianter
-src/services/       Kvällens avstämning och Orkar bara trycka
+src/platform/       Applås, påminnelse, filer, nycklar i Keychain/Keystore, med webbvarianter
+src/services/       Kvällens avstämning, Orkar bara trycka, Testa modellen, krisplansimport med modell
 src/ui/             Skärmar och komponenter
 tests/              Jest-tester
 ```
 
 ## Nästa steg
 
-När steg 1 är godkänt börjar steg 2. Jag behöver då veta vilka leverantörer du har nycklar till. Inför steg 3 behöver jag veta om du har en Garmin Personal-nyckel. Whisper och SQLCipher kräver en utvecklingsbuild, och då behöver jag veta om du börjar med iPhone eller Android.
+Efter att du verifierat steg 2 på telefonen återstår tre saker. Ordningen är ditt val.
+
+1. **Utvecklingsbuild för iPhone.** Den slår på SQLCipher och behövs för Whisper. Den byggs i molnet med ditt Apple Developer-konto:
+
+   ```bash
+   npx eas-cli@latest login
+   npx eas-cli@latest device:create          # registrera din iPhone
+   npx eas-cli@latest build --profile development --platform ios
+   ```
+
+   Samtidigt bör iCloud-backupen av databasen stängas av med en liten config plugin.
+2. **Inspelning med Whisper** och mätning av ord per minut.
+3. **Steg 3, Garmin**, med din Personal-nyckel.
+
+Andra leveransen enligt specen är trend, återbesök, historikimport, promptbiblioteket och modell på telefonen. Promptbiblioteket har redan sitt underlag: appen sparar den exakta text som skickades vid senaste anropet.

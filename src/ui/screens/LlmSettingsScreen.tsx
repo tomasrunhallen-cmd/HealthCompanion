@@ -29,7 +29,7 @@ export function LlmSettingsScreen() {
   const saved = repo.llmConfig();
 
   const [provider, setProvider] = useState<ProviderId>(saved.provider ?? 'mistral');
-  const [model, setModel] = useState(saved.model);
+  const [model, setModel] = useState(saved.model || (PROVIDERS[saved.provider ?? 'mistral'].modelSuggestions[0] ?? ''));
   const [baseUrl, setBaseUrl] = useState(saved.baseUrl);
   const [keyInput, setKeyInput] = useState('');
   const [savedKey, setSavedKey] = useState(false);

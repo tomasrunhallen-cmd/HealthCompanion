@@ -8,7 +8,8 @@ Dagsljus hanterar uppgifter om psykisk hälsa. Det är den känsligaste kategori
 | --- | --- | --- |
 | Krisplan, anteckningar, bedömningar, inställningar | Bara på telefonen, i en SQLite-databas | Krypterad med SQLCipher i utvecklingsbuild och butiksversion. Nyckeln ligger i iOS Keychain eller Android Keystore och följer inte med backup. |
 | Ljud (när inspelning finns) | Telefonen, tillfälligt | Raderas i samma steg som texten sparas |
-| Språkmodellens nyckel (steg 2) | Keychain eller Keystore | Visas aldrig i klartext igen |
+| Språkmodellens nyckel | Keychain eller Keystore, bara på den här enheten | Visas aldrig i klartext igen. Följer inte med backup eller export. Raderas med *Radera allt* och *Använd ingen språkmodell*. |
+| Tokenräkning och senast skickade text | Databasen på telefonen | Används för kostnadsuppskattningen och promptbiblioteket |
 | Garmin-nyckel (steg 3) | Keychain eller Keystore | |
 | Backup | Där användaren själv sparar exportfilen | Krypterad med AES-256-GCM, nyckel från lösenordet med PBKDF2-SHA256 |
 
@@ -18,9 +19,9 @@ Android-backup är avstängd. På iOS kan databasfilen hamna i iCloud-backup til
 
 ## Vad som lämnar telefonen
 
-I steg 1 lämnar ingenting telefonen. Bedömningen görs med ordmatchning på telefonen.
+Utan språkmodell lämnar ingenting telefonen. Bedömningen görs då med ordmatchning på telefonen.
 
-Från steg 2 skickas **rensad text** till den språkmodell användaren själv har valt, med användarens egen nyckel. Rensningen tar alltid bort:
+Med en språkmodell kopplad skickas **rensad text** till den leverantör användaren själv har valt, med användarens egen nyckel. Det gäller kvällens anteckning, normalläget, planens tecken och, vid import, den inklistrade krisplanen. Rensningen tar alltid bort:
 
 - personnummer, telefonnummer, e-postadresser, gatuadresser, postnummer och länkar
 - namn från användarens egen lista och namn som hittas i krisplanen
@@ -28,7 +29,11 @@ Från steg 2 skickas **rensad text** till den språkmodell användaren själv ha
 
 Rensningen körs på telefonen, också när modellen är lokal. Den är en ren funktion med egna tester i `tests/scrub.test.ts`.
 
-Före första anropet visas vilken leverantör texten går till, att leverantörens villkor för lagring och träning gäller, och en länk till dem. Appen påstår inget om leverantörens lagring som den inte kan visa. Med en modell på en egen dator eller på telefonen lämnar texten aldrig användarens enheter.
+Vid krisplansimport får varje namn och nummer en numrerad platshållare, till exempel [NAMN1]. Användaren ser den rensade texten med markeringar och godkänner den innan den skickas. När svaret kommer sätts originalen tillbaka på telefonen. Kopplingen mellan platshållare och original lämnar aldrig telefonen.
+
+Före första anropet till en leverantör visas vart texten går, att leverantörens villkor för lagring och träning gäller, och en länk till villkoren. Samtycket gäller exakt den leverantören och adressen. Byts något av dem frågar appen igen. Appen påstår inget om leverantörens lagring som den inte kan visa. Med en OpenAI-kompatibel adress på det egna nätverket, till exempel Ollama på en hemdator, säger appen att texten inte lämnar användarens enheter.
+
+Om modellen inte svarar, eller svarar fel två gånger, gör appen bedömningen med ordmatchning och visar att det skedde.
 
 Från steg 3 hämtar appen sömn och stress från användarens eget Garmin-konto.
 
@@ -42,7 +47,7 @@ Från steg 3 hämtar appen sömn och stress från användarens eget Garmin-konto
 
 ## Tangentbordets diktering
 
-I steg 1 finns ingen inspelning i appen. Den som använder tangentbordets mikrofon ska veta att dikteringen kan skicka ljud till Apple eller Google, beroende på telefonens inställningar. Det ligger utanför appens kontroll, och appen visar en varning.
+Än så länge finns ingen inspelning i appen. Den som använder tangentbordets mikrofon ska veta att dikteringen kan skicka ljud till Apple eller Google, beroende på telefonens inställningar. Det ligger utanför appens kontroll, och appen visar en varning.
 
 ## Användarens rättigheter
 
