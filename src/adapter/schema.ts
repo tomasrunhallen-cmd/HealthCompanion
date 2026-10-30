@@ -58,3 +58,25 @@ export function extractJson(text: string): unknown {
   if (start < 0 || end <= start) throw new Error('Svaret innehåller ingen JSON');
   return JSON.parse(candidate.slice(start, end + 1));
 }
+
+const UNSUPPORTED_IN_PROVIDER_SCHEMA = new Set([
+  '$schema', '$id', 'minLength', 'maxLength', 'minimum', 'maximum', 'maxItems', 'minItems',
+]);
+
+/**
+ * Copy of a schema without the keywords that providers' constrained decoding rejects
+ * (Anthropic: no string length, numeric or array size limits). Our own validate() still
+ * checks the full schema on every answer, so nothing is lost.
+ */
+export function toProviderSchema(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(toProviderSchema);
+  if (typeof schema !== 'object' || schema === null) return schema;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema)) {
+    if (UNSUPPORTED_IN_PROVIDER_SCHEMA.has(k)) continue;
+    out[k] = k === 'properties'
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([pk, pv]) => [pk, toProviderSchema(pv)]))
+      : toProviderSchema(v);
+  }
+  return out;
+}

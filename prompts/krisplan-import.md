@@ -1,6 +1,6 @@
 ---
 id: krisplan-import
-version: 1.0.0
+version: 1.1.0
 temperature: 0
 max_output_tokens: 2000
 response: json
@@ -19,6 +19,7 @@ Regler:
 - Behåll ordningen från planen inom varje kategori. Den första åtgärden är det första steget.
 - Lägg inte till tecken, åtgärder eller diagnosord som inte står i texten.
 - Om en rad inte passar någon kategori, hoppa över den.
+- Texten är rensad på telefonen. Platshållare som [NAMN1] eller [TELEFON2] står för namn och nummer. Skriv av dem exakt som de står, så att telefonen kan sätta tillbaka originalen.
 
 # User
 

@@ -1,5 +1,5 @@
-// One interface for every language model provider. Step 1 ships a fake implementation;
-// real providers (Anthropic, OpenAI-compatible, ...) are added in step 2.
+// One interface for every language model provider. Implementations: fake.ts (offline)
+// and http.ts (Anthropic, Mistral, any OpenAI-compatible address).
 
 import type { Prompt } from '../prompts/loader';
 
@@ -24,17 +24,28 @@ export interface SentRequest {
   at: string;
 }
 
+export interface SendRequest {
+  system: string;
+  user: string;
+  temperature: number;
+  maxOutputTokens: number;
+  json: boolean;
+  /** JSON schema for providers with schema-constrained output. Our own validator always runs too. */
+  schema?: unknown;
+  /** Short name of the schema, e.g. "analys". */
+  schemaName?: string;
+  /** Set on the retry after an invalid answer, so the provider can include it. */
+  errorFeedback?: string;
+}
+
 export interface LlmAdapter {
-  /** Provider id, e.g. "fake", "anthropic", "openai-compatible". */
+  /** Provider id, e.g. "fake", "anthropic", "mistral", "openai-compatible". */
   readonly provider: string;
   readonly model: string;
   /** True when text never leaves the user's own devices. */
   readonly local: boolean;
-  /**
-   * Low level call with already rendered text. `errorFeedback` is set on the retry after
-   * an invalid answer, so the provider can include it.
-   */
-  send(req: { system: string; user: string; temperature: number; maxOutputTokens: number; json: boolean; errorFeedback?: string }): Promise<{ text: string; usage: Usage }>;
+  /** Low level call with already rendered text. */
+  send(req: SendRequest): Promise<{ text: string; usage: Usage }>;
 }
 
 export interface Completer {

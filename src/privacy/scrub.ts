@@ -140,3 +140,42 @@ export function namesFromPlanText(text: string): string[] {
   }
   return Array.from(result);
 }
+
+export interface ReversibleScrub extends ScrubResult {
+  /** Numbered placeholder, e.g. "[NAMN1]", to the original text. Never leaves the phone. */
+  map: Record<string, string>;
+}
+
+/**
+ * Like scrub(), but numbers each distinct value ("[NAMN1]", "[TELEFON2]") so the
+ * originals can be put back on the phone after the model has answered. Used for the
+ * crisis plan import, where "Ring Kim" must come back as "Ring Kim", not "Ring [NAMN]".
+ */
+export function scrubReversible(text: string, names: string[] = []): ReversibleScrub {
+  const findings = collect(text, [...PATTERNS, ...namePatterns(names)]);
+  const map: Record<string, string> = {};
+  const byOriginal = new Map<string, string>();
+  const counters: Partial<Record<string, number>> = {};
+  let out = '';
+  let pos = 0;
+  for (const f of findings) {
+    const key = `${f.kind}:${f.original.toLowerCase()}`;
+    let ph = byOriginal.get(key);
+    if (!ph) {
+      const base = REPLACEMENT[f.kind].slice(1, -1);
+      counters[base] = (counters[base] ?? 0) + 1;
+      ph = `[${base}${counters[base]}]`;
+      byOriginal.set(key, ph);
+      map[ph] = f.original;
+    }
+    out += text.slice(pos, f.start) + ph;
+    pos = f.end;
+  }
+  out += text.slice(pos);
+  return { text: out, findings, map };
+}
+
+/** Puts the originals back in place of numbered placeholders. Unknown placeholders stay. */
+export function restorePlaceholders(text: string, map: Record<string, string>): string {
+  return text.replace(/\[[A-ZÅÄÖ-]+\d+\]/g, (ph) => map[ph] ?? ph);
+}

@@ -4,7 +4,7 @@
 
 import { loadSchema, render, type Prompt } from '../prompts/loader';
 import { extractJson, validate, type SchemaNode } from './schema';
-import type { CompletionResult, Completer, LlmAdapter, SentRequest } from './types';
+import type { CompletionResult, Completer, LlmAdapter, SentRequest, Usage } from './types';
 
 export class InvalidAnswerError extends Error {
   constructor(message: string, readonly errors: string[]) {
@@ -13,7 +13,15 @@ export class InvalidAnswerError extends Error {
   }
 }
 
-export function createCompleter(adapter: LlmAdapter, onSent?: (req: SentRequest) => void): Completer {
+export interface CompleterHooks {
+  /** Called once per complete() with the rendered text, before anything is sent. */
+  onSent?: (req: SentRequest) => void;
+  /** Called after every provider call (also failed retries), so token use can be counted. */
+  onUsage?: (usage: Usage) => void;
+}
+
+export function createCompleter(adapter: LlmAdapter, hooks: CompleterHooks = {}): Completer {
+  const { onSent, onUsage } = hooks;
   return {
     async complete(prompt: Prompt, variables: Record<string, string>): Promise<CompletionResult> {
       const rendered = render(prompt, variables);
@@ -25,6 +33,8 @@ export function createCompleter(adapter: LlmAdapter, onSent?: (req: SentRequest)
         temperature: Number(prompt.meta.temperature ?? 0),
         maxOutputTokens: Number(prompt.meta.max_output_tokens ?? 400),
         json: wantsJson,
+        schema: schema ?? undefined,
+        schemaName: prompt.meta.id,
       };
       onSent?.({
         promptId: prompt.meta.id, promptVersion: prompt.meta.version, model: adapter.model,
@@ -36,6 +46,7 @@ export function createCompleter(adapter: LlmAdapter, onSent?: (req: SentRequest)
       let lastErrors: string[] = [];
       for (let attempt = 0; attempt < 2; attempt++) {
         const res = await adapter.send({ ...base, errorFeedback: feedback });
+        onUsage?.(res.usage);
         usage = { inputTokens: usage.inputTokens + res.usage.inputTokens, outputTokens: usage.outputTokens + res.usage.outputTokens };
         if (!wantsJson) return { text: res.text, usage };
         try {

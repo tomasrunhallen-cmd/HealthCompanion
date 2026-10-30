@@ -5,6 +5,8 @@ import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS,
   type AppSettings, type Assessment, type DateKey, type Entry, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
+import type { SentRequest, Usage } from '../adapter/types';
+import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
 import type { DocBackend, Snapshot, StorageInfo } from './backend';
 
 export const EXPORT_FORMAT = 'dagsljus-export';
@@ -69,6 +71,41 @@ export class Repository {
     this.snap.kv.planSettings = next;
     await this.backend.put('kv', 'planSettings', next);
     this.changed();
+  }
+
+  // ---- language model ----
+  llmConfig(): LlmConfig {
+    return { ...DEFAULT_LLM_CONFIG, ...(this.snap.kv.llm as Partial<LlmConfig> | undefined) };
+  }
+
+  async updateLlmConfig(patch: Partial<LlmConfig>): Promise<LlmConfig> {
+    const next = { ...this.llmConfig(), ...patch };
+    this.snap.kv.llm = next;
+    await this.backend.put('kv', 'llm', next);
+    this.changed();
+    return next;
+  }
+
+  usageLog(): UsageLog {
+    return (this.snap.kv.usage as UsageLog | undefined) ?? {};
+  }
+
+  async recordUsage(date: DateKey, usage: Usage): Promise<void> {
+    if (!usage.inputTokens && !usage.outputTokens) return;
+    const next = pruneUsage(addUsage(this.usageLog(), date, usage), date);
+    this.snap.kv.usage = next;
+    await this.backend.put('kv', 'usage', next);
+    this.changed();
+  }
+
+  /** The exact text sent with the latest request, for the prompt library. */
+  lastSent(): SentRequest | null {
+    return (this.snap.kv.lastSent as SentRequest | undefined) ?? null;
+  }
+
+  async setLastSent(req: SentRequest): Promise<void> {
+    this.snap.kv.lastSent = req;
+    await this.backend.put('kv', 'lastSent', req);
   }
 
   // ---- crisis plan ----

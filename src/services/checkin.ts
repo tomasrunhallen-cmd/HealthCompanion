@@ -1,10 +1,11 @@
 // Evening check-in and "Orkar bara trycka": build the entry, assess it, save both.
 
-import { assessEntry, newId, wordMatcher, type SignMatcher } from '../analysis/assess';
+import { assessEntry, newId, wordMatcher } from '../analysis/assess';
 import { eveningDateKey } from '../analysis/dates';
 import { parseSleepHours } from '../analysis/sleep';
 import type { Assessment, Entry } from '../domain/types';
 import type { Repository } from '../storage/repository';
+import { currentMatcher, type AdapterOptions } from './llm';
 
 export interface CheckinInput {
   transcript: string;
@@ -14,15 +15,11 @@ export interface CheckinInput {
   wordsPerMinute: number | null;
 }
 
-/** Step 1 always uses word matching. Step 2 swaps in the configured language model. */
-export function currentMatcher(_repo: Repository): SignMatcher {
-  return wordMatcher;
-}
-
 export async function saveCheckin(
   repo: Repository,
   input: CheckinInput,
   now = new Date(),
+  adapterOptions: AdapterOptions = {},
 ): Promise<{ entry: Entry; assessment: Assessment }> {
   const date = eveningDateKey(now);
   const sleep = parseSleepHours(input.transcript);
@@ -45,7 +42,8 @@ export async function saveCheckin(
     plan: repo.plan(),
     planSettings: repo.planSettings(),
     history: repo.history(),
-    matcher: currentMatcher(repo),
+    // The configured language model when there is one; word matching otherwise.
+    matcher: await currentMatcher(repo, adapterOptions),
     now,
   });
   await repo.saveEntry(entry, assessment);
