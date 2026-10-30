@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { PROVIDERS } from '../../adapter/providers';
+import type { LlmAdapter } from '../../adapter/types';
 import { newId } from '../../analysis/assess';
 import type { PlanItemKind } from '../../domain/types';
 import { KIND_LABEL, KIND_ORDER, parsePlanText, type DraftKind, type DraftRow } from '../../plan/parsePlan';
-import { namesFromPlanText } from '../../privacy/scrub';
+import { namesFromPlanText, scrubReversible } from '../../privacy/scrub';
+import { activeAdapter, structurePlanWithModel, trackedCompleter } from '../../services/llm';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -30,9 +33,26 @@ Anhöriga
 
 Normalläge: sover sju timmar, jobbar dagtid`;
 
-function DraftEditor({ row, onChange }: { row: DraftRow; onChange: (r: DraftRow) => void }) {
+/** The scrubbed text with every placeholder highlighted, so the user sees what is removed. */
+function MarkedText({ text }: { text: string }) {
+  const parts = text.split(/(\[[A-ZÅÄÖ-]+\d+\])/g);
+  return (
+    <Text style={type.body}>
+      {parts.map((part, i) =>
+        /^\[[A-ZÅÄÖ-]+\d+\]$/.test(part) ? (
+          <Text key={i} style={{ backgroundColor: colors.accentSoft, color: colors.accent, fontWeight: '700' }}>{part}</Text>
+        ) : (
+          <Text key={i}>{part}</Text>
+        ),
+      )}
+    </Text>
+  );
+}
+
+function DraftEditor({ row, onChange, warning }: { row: DraftRow; onChange: (r: DraftRow) => void; warning?: string }) {
   return (
     <Card style={{ borderColor: row.approved ? colors.green : colors.border, borderWidth: row.approved ? 2 : 1 }}>
+      {warning ? <Text style={[type.small, { color: colors.danger, marginBottom: space.xs }]}>{warning}</Text> : null}
       <TextInput
         value={row.text}
         onChangeText={(text) => onChange({ ...row, text, approved: false })}
@@ -72,11 +92,62 @@ export function PlanImportScreen() {
   const [text, setText] = useState('');
   const [rows, setRows] = useState<DraftRow[] | null>(null);
   const [names, setNames] = useState<{ name: string; add: boolean }[]>([]);
+  const [reviewScrub, setReviewScrub] = useState(false);
+  const [adapter, setAdapter] = useState<LlmAdapter | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notInPlan, setNotInPlan] = useState<Set<string>>(new Set());
+  const [usedModel, setUsedModel] = useState<string | null>(null);
+
+  useEffect(() => {
+    activeAdapter(repo, { browser: Platform.OS === 'web' }).then(setAdapter);
+  }, [repo]);
+
+  const providerLabel = adapter ? PROVIDERS[adapter.provider as keyof typeof PROVIDERS]?.label ?? adapter.provider : '';
+
+  const findNames = () => {
+    const known = new Set(repo.settings().scrubNames.map((n) => n.toLowerCase()));
+    setNames(namesFromPlanText(text).filter((n) => !known.has(n.toLowerCase())).map((name) => ({ name, add: true })));
+  };
 
   const structure = () => {
     setRows(parsePlanText(text));
-    const known = new Set(repo.settings().scrubNames.map((n) => n.toLowerCase()));
-    setNames(namesFromPlanText(text).filter((n) => !known.has(n.toLowerCase())).map((name) => ({ name, add: true })));
+    setNotInPlan(new Set());
+    setUsedModel(null);
+    findNames();
+  };
+
+  // Names from the user's list plus the ones they kept ticked in the plan.
+  const scrubbed = useMemo(
+    () => scrubReversible(text, [...repo.settings().scrubNames, ...names.filter((n) => n.add).map((n) => n.name)]),
+    [text, names, repo],
+  );
+
+  const startModel = () => {
+    findNames();
+    setReviewScrub(true);
+  };
+
+  const sendToModel = async () => {
+    if (!adapter) return;
+    setBusy(true);
+    try {
+      const result = await structurePlanWithModel(trackedCompleter(repo, adapter), scrubbed.text, scrubbed.map, text);
+      setRows(result);
+      setNotInPlan(new Set(result.filter((r) => !r.inOriginal).map((r) => r.key)));
+      setUsedModel(adapter.model);
+      setReviewScrub(false);
+    } catch (e) {
+      await dialog.info(
+        'Språkmodellen kunde inte sortera planen',
+        `${(e as Error).message} Raderna sorteras på telefonen i stället.`,
+      );
+      setReviewScrub(false);
+      setRows(parsePlanText(text));
+      setNotInPlan(new Set());
+      setUsedModel(null);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const visible = rows?.filter((r) => r.text.trim()) ?? [];
@@ -98,12 +169,55 @@ export function PlanImportScreen() {
     nav.replace({ name: 'plan' });
   };
 
+  if (reviewScrub && !rows) {
+    return (
+      <Screen
+        title="Kontrollera rensningen"
+        back
+        footer={<Button big title={`Skicka till ${providerLabel}`} onPress={sendToModel} busy={busy} />}
+      >
+        <P muted>
+          Så här ser texten ut när den skickas. Markerade ord har bytts ut på telefonen och sätts tillbaka när svaret
+          kommer. Står det ett namn kvar? Lägg till det i rensningslistan under Inställningar, eller bocka i det nedan.
+        </P>
+        {names.length > 0 && (
+          <Section title="Namn i planen">
+            <Row style={{ gap: 6 }}>
+              {names.map((n) => (
+                <Chip key={n.name} label={n.name} selected={n.add} color={colors.green}
+                  onPress={() => setNames((all) => all.map((x) => (x.name === n.name ? { ...x, add: !x.add } : x)))} />
+              ))}
+            </Row>
+          </Section>
+        )}
+        <Section title={`${scrubbed.findings.length} saker rensade`}>
+          <Card><MarkedText text={scrubbed.text} /></Card>
+        </Section>
+        <Button kind="ghost" title="‹ Tillbaka till texten" onPress={() => setReviewScrub(false)} />
+      </Screen>
+    );
+  }
+
   if (!rows) {
     return (
-      <Screen title="Lägg in krisplan" back footer={<Button big title="Sortera raderna" disabled={!text.trim()} onPress={structure} />}>
+      <Screen
+        title="Lägg in krisplan"
+        back
+        footer={
+          adapter ? (
+            <>
+              <Button big title={`Sortera med ${providerLabel}`} disabled={!text.trim()} onPress={startModel} />
+              <Button kind="ghost" title="Sortera på telefonen i stället" disabled={!text.trim()} onPress={structure} />
+            </>
+          ) : (
+            <Button big title="Sortera raderna" disabled={!text.trim()} onPress={structure} />
+          )
+        }
+      >
         <P muted>
-          Klistra in din krisplan som text. Appen sorterar raderna efter rubriker som ”Tidiga tecken”, ”Vid gult” och
-          ”Vid rött”. Du godkänner varje rad innan den sparas. Inget lämnar telefonen.
+          {adapter
+            ? `Klistra in din krisplan som text. ${providerLabel} sorterar raderna i tidiga tecken, allvarliga tecken och åtgärder. Texten rensas på telefonen först, och du ser resultatet innan något skickas. Du godkänner varje rad innan den sparas.`
+            : 'Klistra in din krisplan som text. Appen sorterar raderna efter rubriker som ”Tidiga tecken”, ”Vid gult” och ”Vid rött”. Du godkänner varje rad innan den sparas. Inget lämnar telefonen.'}
         </P>
         <P muted style={{ marginTop: space.s }}>
           Har du planen på papper? Fotografera den och använd telefonens egen textigenkänning (Live Text på iPhone, Google
@@ -124,14 +238,25 @@ export function PlanImportScreen() {
       <P muted>
         Kontrollera kategorin och godkänn varje rad. Rader du inte godkänner sparas inte. Ändrar du texten behöver du godkänna igen.
       </P>
-      <Button kind="ghost" title="‹ Tillbaka till texten" onPress={() => setRows(null)} />
+      {usedModel ? (
+        <P muted style={{ marginTop: space.s }}>
+          Sorterat av {usedModel}. Namn och nummer är tillbakasatta på telefonen.
+          {notInPlan.size ? ` ${notInPlan.size} rader står inte ordagrant i din plan och är markerade.` : ''}
+        </P>
+      ) : null}
+      <Button kind="ghost" title="‹ Tillbaka till texten" onPress={() => { setRows(null); setReviewScrub(false); }} />
       {(['early', 'serious', 'action_yellow', 'action_red', 'relatives', 'normal', 'unsorted'] as DraftKind[]).map((k) => {
         const group = visible.filter((r) => r.kind === k);
         if (!group.length) return null;
         return (
           <Section key={k} title={KIND_LABEL[k]}>
             {group.map((r) => (
-              <DraftEditor key={r.key} row={r} onChange={(next) => setRows((all) => all!.map((x) => (x.key === r.key ? next : x)))} />
+              <DraftEditor
+                key={r.key}
+                row={r}
+                warning={notInPlan.has(r.key) ? 'Står inte ordagrant i din plan. Kontrollera att raden stämmer.' : undefined}
+                onChange={(next) => setRows((all) => all!.map((x) => (x.key === r.key ? next : x)))}
+              />
             ))}
           </Section>
         );
@@ -141,7 +266,7 @@ export function PlanImportScreen() {
         <Section title="Namn i planen">
           <Card>
             <P muted>
-              Namnen tas bort ur text innan den skickas till en språkmodell (från steg 2). Bocka ur ord som inte är namn.
+              Namnen tas bort ur text innan den skickas till en språkmodell. Bocka ur ord som inte är namn.
             </P>
             <Row style={{ marginTop: space.s, gap: 6 }}>
               {names.map((n) => (
