@@ -1,6 +1,7 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
+import { eveningDateKey } from '../../analysis/dates';
 import { parseSleepHours } from '../../analysis/sleep';
 import { saveCheckin } from '../../services/checkin';
 import { Button, Card, Field, P, Row, Screen } from '../components';
@@ -51,6 +52,8 @@ export function CheckinScreen() {
   const [energy, setEnergy] = useState(5);
   const [busy, setBusy] = useState(false);
   const sleep = useMemo(() => parseSleepHours(text), [text]);
+  const garmin = repo.garminDay(eveningDateKey(new Date()));
+  const garminSleep = garmin?.sleepHours ?? null;
 
   const save = async () => {
     setBusy(true);
@@ -84,14 +87,30 @@ export function CheckinScreen() {
         placeholder="Skriv eller prata in några meningar…"
         autoCorrect
         hint={
-          sleep != null
-            ? `Sömn: ${sleep} h (skattat ur anteckningen)`
-            : 'Tips: skriv till exempel ”sov sex timmar” så räknas sömnen med.'
+          garminSleep != null
+            ? undefined
+            : sleep != null
+              ? `Sömn: ${sleep} h (skattat ur anteckningen)`
+              : 'Tips: skriv till exempel ”sov sex timmar” så räknas sömnen med.'
         }
       />
+      {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
+        <Card>
+          <Text style={type.label}>FRÅN GARMIN</Text>
+          <P style={{ marginTop: space.xs }}>
+            {[
+              garminSleep != null
+                ? `Sömn i natt ${String(garminSleep).replace('.', ',')} h${garmin.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`
+                : null,
+              garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg}` : null,
+            ].filter(Boolean).join(', ') + '.'}
+          </P>
+          <P muted>Uppdateras när du sparar. Dagens och veckans värden följer med till bedömningen.</P>
+        </Card>
+      ) : null}
       <Card tone="accent">
         <P muted>
-          Inspelning med taligenkänning på telefonen (Whisper) kräver en utvecklingsbuild och läggs till efter steg 1.
+          Inspelning med taligenkänning på telefonen (Whisper) kräver en utvecklingsbuild och läggs till senare.
           Till dess kan du skriva, eller använda tangentbordets mikrofon. Observera att tangentbordets diktering kan
           skicka ljud till Apple eller Google, beroende på telefonens inställningar.
         </P>

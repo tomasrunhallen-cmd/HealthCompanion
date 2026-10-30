@@ -12,6 +12,7 @@ export type Route =
   | { name: 'planImport' }
   | { name: 'settings' }
   | { name: 'llm' }
+  | { name: 'garmin' }
   | { name: 'privacy' }
   | { name: 'history' };
 

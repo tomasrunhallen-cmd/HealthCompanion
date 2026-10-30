@@ -40,6 +40,11 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+/** Swedish decimal comma for labels shown to the user. */
+function sv(n: number): string {
+  return String(round1(n)).replace('.', ',');
+}
+
 /** Baselines from green days in the last 28 days before `date`. */
 export function computeBaseline(date: DateKey, history: HistoryDay[]): Baseline {
   const from = addDays(date, -RULES.baselineWindowDays);
@@ -126,7 +131,7 @@ export function score(input: ScoreInput): ScoreResult {
     signals.push({
       kind: 'sleep_low',
       points: RULES.points.measured,
-      label: `Sömn ${entry.sleepHours} h, under din gräns på ${planSettings.sleepThresholdHours} h${src}`,
+      label: `Sömn ${sv(entry.sleepHours)} h, under din gräns på ${sv(planSettings.sleepThresholdHours)} h${src}`,
       measured: true,
     });
     // Yesterday's sleep from Garmin when there is no entry, so a silent day still counts.

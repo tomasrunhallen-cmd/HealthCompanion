@@ -10,7 +10,8 @@ Dagsljus hanterar uppgifter om psykisk hälsa. Det är den känsligaste kategori
 | Ljud (när inspelning finns) | Telefonen, tillfälligt | Raderas i samma steg som texten sparas |
 | Språkmodellens nyckel | Keychain eller Keystore, bara på den här enheten | Visas aldrig i klartext igen. Följer inte med backup eller export. Raderas med *Radera allt* och *Använd ingen språkmodell*. |
 | Tokenräkning och senast skickade text | Databasen på telefonen | Används för kostnadsuppskattningen och promptbiblioteket |
-| Garmin-nyckel (steg 3) | Keychain eller Keystore | |
+| Garmin-nyckel | Keychain eller Keystore, bara på den här enheten | Sparas bara om Garmin godtar den. Raderas med *Koppla bort Garmin* och *Radera allt*. |
+| Sömn, stress och Body Battery från Garmin | Databasen på telefonen | De senaste 120 dagarna sparas |
 | Backup | Där användaren själv sparar exportfilen | Krypterad med AES-256-GCM, nyckel från lösenordet med PBKDF2-SHA256 |
 
 I Expo Go går SQLCipher inte att använda. Databasen är då okrypterad och appen säger det på skärmen *Data och integritet*. Webbförhandsvisningen sparar okrypterat i webbläsaren och är bara till för att titta på gränssnittet.
@@ -35,7 +36,9 @@ Före första anropet till en leverantör visas vart texten går, att leverantö
 
 Om modellen inte svarar, eller svarar fel två gånger, gör appen bedömningen med ordmatchning och visar att det skedde.
 
-Från steg 3 hämtar appen sömn och stress från användarens eget Garmin-konto.
+Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery från användarens eget konto med användarens egen Personal API-nyckel. Hämtningen sker från telefonen direkt till Garmin. Appen skickar bara nyckeln och vilka datum den vill ha. Inget av det användaren skriver skickas till Garmin. Garmins Personal API är avsett för personligt bruk av den egna datan.
+
+Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
 ## Vad som aldrig händer
 

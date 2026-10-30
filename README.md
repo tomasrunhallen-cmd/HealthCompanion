@@ -4,7 +4,7 @@ En stämningsdagbok för iOS och Android för en person med bipolär sjukdom. Va
 
 Specen finns i uppdraget *Dagsljus – byggprompt för Claude Code*. Den här filen beskriver vad som är byggt, hur du kör det och vad som återstår.
 
-## Status: steg 2 av 3
+## Status: steg 3 av 3
 
 Bygget görs i tre steg som verifieras ett i taget.
 
@@ -12,36 +12,48 @@ Bygget görs i tre steg som verifieras ett i taget.
 | --- | --- | --- |
 | 1. Gränssnitt och funktion | Krisplan, kvällens avstämning, bedömning, Orkar bara trycka, tystnadsregel, påminnelse, applås, export och radering. Ordmatchning i stället för språkmodell. | Godkänt |
 | 2. Koppling till språkmodell | LLM-inställningar, egen nyckel, Mistral, Anthropic och OpenAI-kompatibel adress, Testa modellen, kostnadsuppskattning, krisplansimport med modell. | **Klart för verifiering** |
-| 3. Garmin | Sömn och stress från Garmin Health API med egen Personal-nyckel. | Inte påbörjat |
+| 3. Garmin | Sömn, stress och Body Battery från Garmin Personal API med egen nyckel. Dagens och veckans värden följer med till språkmodellen vid bedömningen. | **Klart för verifiering** |
 
 Specens första leverans är funktion 1–6 med minst Anthropic och OpenAI-kompatibel adress. Med steg 2 är den komplett. Mistral är med eftersom det är den nyckel du har.
 
 ## Verifiera steg 1
 
-### På telefonen med Expo Go
+### På iPhone: utvecklingsbuild (rekommenderas)
 
-Du behöver en dator med Node.js 22 och appen **Expo Go** på telefonen. Telefon och dator ska vara på samma wifi.
+Expo Go i App Store stöder bara SDK 54, och Dagsljus använder SDK 58. På iPhone behövs därför antingen en utvecklingsbuild eller en egen Expo Go via TestFlight. Båda kräver Apple Developer-kontot. Utvecklingsbuilden slår dessutom på krypteringen av databasen, så då kan du använda din riktiga krisplan.
+
+Kör på din egen dator med Node.js 22. Bygget görs i Expos moln, så ingen Xcode behövs.
 
 ```bash
-git clone <repot> && cd HealthCompanion
+git clone https://github.com/tomasrunhallen-cmd/healthcompanion.git
+cd healthcompanion
+git checkout claude/mood-health-pwa-zLJP3
 npm install
-npm start
+npx eas-cli@latest login          # gratis Expo-konto
+npx eas-cli@latest device:create  # välj "Website" och öppna länken på iPhonen
+npx eas-cli@latest build --profile development --platform ios
 ```
 
-Skanna QR-koden med kameran (iPhone) eller i Expo Go (Android). Appen öppnas i Expo Go.
+1. Installera profilen från länken under Inställningar på iPhonen.
+2. Slå på Utvecklarläge under Inställningar, Integritet och säkerhet.
+3. Installera appen via länken eller QR-koden när bygget är klart.
+4. Kör `npm start` och öppna Dagsljus. Telefon och dator ska vara på samma wifi. Annars fungerar `npx expo start --tunnel`.
 
-I Expo Go är databasen **okrypterad**, eftersom SQLCipher kräver en utvecklingsbuild. Skärmen *Data och integritet* visar det. Använd därför testdata och inte din riktiga krisplan förrän du kör en utvecklingsbuild.
+Har Apple-medlemskapet nyligen startats eller förnyats kan Apple behöva 24 till 72 timmar innan en ny telefon kan ingå i ett bygge.
 
-### Utvecklingsbuild med kryptering
-
-En utvecklingsbuild aktiverar SQLCipher via `app.json`. Den behövs också för Whisper senare.
+### På iPhone: Expo Go via TestFlight
 
 ```bash
-npx expo run:android      # kräver Android Studio
-npx expo run:ios          # kräver Mac med Xcode
-# eller i molnet, utan Xcode/Android Studio (kräver gratis Expo-konto):
-npx eas-cli@latest build --profile development --platform android
+npx eas-cli@latest go       # bygger Expo Go för SDK 58 och lägger den i TestFlight
+npx expo login              # samma Expo-konto som i Expo Go på telefonen
+npx expo start --go         # --go behövs eftersom projektet har utvecklingsklienten
 ```
+
+Installera Expo Go från TestFlight och logga in i appen med samma Expo-konto. I Expo Go är databasen **okrypterad**, eftersom SQLCipher kräver en utvecklingsbuild. Skärmen *Data och integritet* visar det. Använd därför testdata där.
+
+### Android
+
+Hämta Expo Go för SDK 58 från [expo.dev/go](https://expo.dev/go) och kör `npx expo start --go`, eller bygg en utvecklingsbuild med `npx eas-cli@latest build --profile development --platform android`.
 
 ### I webbläsaren
 
@@ -72,16 +84,29 @@ Du behöver en Mistral-nyckel från console.mistral.ai. Steg 2 fungerar i Expo G
 
 Säg till om något av testfallen inte går igenom med Mistral, och vilket.
 
+## Verifiera steg 3
+
+Du behöver en Personal API-nyckel från Garmin Connect på webben, under Inställningar och Personal API Key. Garmin visar nyckeln bara en gång.
+
+1. Öppna *Inställningar* och tryck *Anslut Garmin*. Klistra in nyckeln och tryck *Anslut*.
+2. Appen hämtar de senaste två veckorna. Kontrollera under *Senaste veckan* att sömn, insomningstid och stress stämmer med Garmin Connect.
+3. Gör *Kvällens avstämning*. Rutan *Från Garmin* ska visa nattens sömn och dagens stress.
+4. Efter att du sparat ska bedömningen visa sömnen märkt *(Garmin)* och dagens stress.
+5. Med språkmodell kopplad finns texten som skickades kvar på telefonen. Den innehåller avsnittet *Mätvärden* med dagens värden och veckan dag för dag.
+6. Prova en felaktig nyckel. Appen ska säga att Garmin inte godtog den, och inget ska sparas.
+
+Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect. Fältnamnen i Garmins svar är inte officiellt dokumenterade, så det är det viktigaste att kontrollera. Webbförhandsvisningen kan troligen inte nå Garmin, eftersom Garmin inte tillåter anrop från webbläsare. Prova Garmin på telefonen.
+
 ### Automatiska tester
 
 ```bash
-npm test          # 91 tester: ampel, rensning, promptladdare, adaptrar, lagring, backup, Testa modellen
+npm test          # 108 tester: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, backup, Testa modellen
 npm run typecheck
 ```
 
 Specens fyra obligatoriska testfall ligger i `prompts/testfall.md` och körs både med ordmatchning och genom hela LLM-vägen med en fejkad modell. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
 
-Inget anrop har gjorts mot Mistrals eller Anthropics riktiga tjänst, eftersom det kräver din nyckel. Det är det som steg 2-verifieringen på telefonen visar.
+Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster, eftersom det kräver dina nycklar. Det är det som verifieringen på telefonen visar. Garmin-flödet är provkört i webbförhandsvisningen med fejkade svar: fel nyckel, rätt nyckel, veckovyn, avstämningen och texten till modellen.
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 
@@ -97,6 +122,13 @@ Inget anrop har gjorts mot Mistrals eller Anthropics riktiga tjänst, eftersom d
 - **Spara trots underkänt test.** Specen säger att en modell godkänns när alla fyra testfall ger rätt nivå. Appen låter dig spara en modell som klarat färre, efter en varning, men inte en som klarat noll. Säg till om du vill att alla fyra ska krävas.
 - **Testanrop räknas i kostnaden.** Testa modellen kostar tokens och räknas därför in i månadsuppskattningen.
 - **Rader som inte står i planen markeras.** När modellen sorterar krisplanen kontrollerar appen att varje rad finns i den inklistrade texten. Rader som inte gör det får en röd varning. Alla rader måste fortfarande godkännas en och en.
+- **Garmins fältnamn kommer inte från Garmin.** Garmins egna sidor och deras Python-klient anger värd, token och sökvägar. Fältnamnen i svaren, som `sleepTimeSeconds` och `overallStressLevel`, kommer från två oberoende öppna klienter för samma API. Garmin publicerar dem bara i sin Swagger-dokumentation, som jag inte kunde läsa. Appen tolkar svaren försiktigt och hoppar över fält som saknas.
+- **Minuter med hög stress i stället för högsta stress.** Specen vill spara högsta stress per dag. Garmins stressendpoint ger snitt och tid i varje stressnivå, men inget maxvärde som jag kunnat bekräfta. Appen sparar därför minuter med hög stress.
+- **Sen insomning ger två poäng som ett tecken.** Specen säger att insomning efter 02:00 utan inlägg räknas som två tecken. Appen ger ett tecken värt två poäng. *Utan inlägg* tolkas som inget inlägg kvällen innan natten. Insomning från 12:00 räknas som dagsömn och ger inget.
+- **Kort sömn två nätter i rad räknas även utan inlägg.** Gårdagens sömn tas från Garmin när det inte finns något inlägg den dagen.
+- **Ingen hämtning i bakgrunden.** Specen vill hämta en gång per morgon i bakgrunden. Det kräver en ny modul och en utvecklingsbuild, och iOS bestämmer själv när det sker. Appen hämtar i stället när den öppnas, högst var trettionde minut, och alltid precis före kvällens avstämning.
+- **Apple Hälsa som reserv är inte byggd.** Specen föreslår att läsa sömn från Apple Hälsa utan Garmin-nyckel. Det kräver en ny modul och en utvecklingsbuild, och Garmin skriver troligen ingen stress dit. Utan Garmin tas sömnen ur anteckningen som förut.
+- **Modellen får mätvärdena som bakgrund, inte som tecken.** Prompten säger att tecken bara får matchas på det som står i anteckningen, och appen kontrollerar att citatet finns där. Om inget matchar får meningen nämna sömn eller stress som avviker från veckan. Poängen för sömn och stress räknas alltid i appen.
 - **Navigering.** Projektmallen rekommenderar Expo Router. Jag använder en enkel egen stack i stället, så att samma build fungerar i Expo Go, i en utvecklingsbuild och som webbförhandsvisning utan URL-hantering.
 
 ## Verifierat inför kod
@@ -122,7 +154,19 @@ Webbdokumentationen för Expo var blockerad i den här miljön. API:erna är dä
 | OpenAI-kompatibel adress | Samma format som Mistral. Om servern avvisar JSON-läget skickas anropet igen utan. | Följer Mistrals och OpenAIs format |
 | Webbläsare | Anthropic kräver huvudet `anthropic-dangerous-direct-browser-access` för anrop från en webbläsare. Appen skickar det bara i webbförhandsvisningen. På telefonen gäller inga CORS-regler. | Anthropics dokumentation |
 
-Garmins fält och Personal-nivåns villkor verifieras i steg 3.
+### Garmin, kontrollerat 30 oktober 2026
+
+| Punkt | Resultat | Källa |
+| --- | --- | --- |
+| Nyckel | Skapas på Garmin Connect på webben, visas en gång, gäller 30, 90 eller 180 dagar eller ett år. Ingen ansökan. Garmin mejlar en vecka innan den går ut. | [Garmins FAQ för Personal API](https://developer.garmin.com/gc-developer-program/personal/personal-faq/) |
+| Villkor | Personal API är för personligt bruk av den egna datan, inte för kommersiella appar med många användare. Dagsljus följer det eftersom varje användare har sin egen nyckel. | Samma FAQ |
+| Token | `POST https://personal.connectapi.garmin.com/personalapitoken-service/personal-api/personal-api-key/token` med `Authorization: ApiKey <nyckel>`. Svaret är en JWT som ren text. Den gäller högst 24 timmar och kan inte förnyas, så appen byter nyckeln mot en ny token vid behov. | [Personal API](https://developer.garmin.com/gc-developer-program/personal/personal-api), Garmins Python-klient `garmin-connect-personal-api-python` 1.0.0 |
+| Sömn | `/sleep-service/sleep/dailySleepSummariesByDate?startDate=&endDate=`, högst 31 dagar. Datumet är morgonen man vaknade. | Garmins Python-klient, gränsen från tredjepartsklienter |
+| Stress | `/usersummary-service/stats/stress/daily/{start}/{end}`, högst 28 dagar. Negativa värden betyder för lite data. | Samma |
+| Body Battery | `/wellness-service/wellness/bodyBattery/reports/daily?startDate=&endDate=`. Appen tar första värdet efter uppvaknandet. | Samma |
+| Fältnamn | `calendarDate`, `sleepTimeSeconds`, `deepSleepSeconds`, `remSleepSeconds`, `sleepStartTimestampLocal`, `sleepEndTimestampLocal`, `sleepEndTimestampGMT`, `overallStressLevel`, `highStressDuration`, `bodyBatteryValuesArray`. Tidsstämplar som slutar på *Local* är väggklockans tid kodad som UTC. **Inte bekräftat av Garmin**, se avvikelserna ovan. | [garmin-health-mcp](https://github.com/jonpojonpo/garmin-health-mcp), [garmin-personal-mcp](https://github.com/Mason-Levyy/garmin-personal-mcp) |
+| Historik och gränser för antal anrop | Står inte i Garmins dokumentation. Appen hämtar två veckor vid anslutning och därefter en vecka i taget. | Garmins FAQ |
+| Lansering | Personal API lanserades omkring 21 oktober 2026. Ett tidigt test rapporterade att tjänsten ännu inte var helt i drift. | [the5krunner](https://the5krunner.com/2026/10/22/garmin-personal-api/) |
 
 ## Kostnader
 
@@ -142,7 +186,7 @@ Uppskattningen nedan räknar med specens 2 500 tokens in och 400 ut per kväll, 
 | Claude Sonnet 5.5 | Användaren, med egen nyckel | 2 USD per miljon in och 10 ut. Cirka 3 kr i månaden. Samma källa. |
 | Egen dator via OpenAI-kompatibel adress | Användaren | 0 kr per anrop |
 | Krisplansimport | Användaren | Engångsanrop, under 1 kr med alla modellerna ovan |
-| Garmin Health API, Personal-nivån | Ingen | 0 kr enligt specen |
+| Garmin Personal API | Ingen | Inget pris anges av Garmin. Ingen ansökan krävs. |
 
 ## Varför Expo och inte Flutter
 
@@ -159,29 +203,21 @@ src/privacy/        Rensning av personuppgifter
 src/prompts/        Promptladdare: frontmatter, # System, # User, {{variabler}}
 src/adapter/        LLM-gränssnittet, Mistral, Anthropic, OpenAI-kompatibel, schemavalidering, fejkad modell
 src/llm/            Modellinställningar, samtycke per leverantör, tokenräkning och kostnad
+src/garmin/         Garmin Personal API: token, sömn, stress, Body Battery
 src/plan/           Sortering av inklistrad krisplan
 src/storage/        Krypterad SQLite på telefonen, webbvariant, repository
 src/backup/         Lösenordsskyddad export (PBKDF2 och AES-256-GCM)
 src/platform/       Applås, påminnelse, filer, nycklar i Keychain/Keystore, med webbvarianter
-src/services/       Kvällens avstämning, Orkar bara trycka, Testa modellen, krisplansimport med modell
+src/services/       Kvällens avstämning, Orkar bara trycka, Testa modellen, krisplansimport med modell, Garmin-synk
 src/ui/             Skärmar och komponenter
 tests/              Jest-tester
 ```
 
 ## Nästa steg
 
-Efter att du verifierat steg 2 på telefonen återstår tre saker. Ordningen är ditt val.
+Efter att du verifierat steg 2 och 3 på telefonen återstår två saker från första leveransen. Ordningen är ditt val.
 
-1. **Utvecklingsbuild för iPhone.** Den slår på SQLCipher och behövs för Whisper. Den byggs i molnet med ditt Apple Developer-konto:
+1. **Stäng av iCloud-backup av databasen** med en liten config plugin. Det spelar störst roll när du kör utvecklingsbuilden med riktiga uppgifter.
+2. **Inspelning med Whisper** och mätning av ord per minut. Det kräver utvecklingsbuilden.
 
-   ```bash
-   npx eas-cli@latest login
-   npx eas-cli@latest device:create          # registrera din iPhone
-   npx eas-cli@latest build --profile development --platform ios
-   ```
-
-   Samtidigt bör iCloud-backupen av databasen stängas av med en liten config plugin.
-2. **Inspelning med Whisper** och mätning av ord per minut.
-3. **Steg 3, Garmin**, med din Personal-nyckel.
-
-Andra leveransen enligt specen är trend, återbesök, historikimport, promptbiblioteket och modell på telefonen. Promptbiblioteket har redan sitt underlag: appen sparar den exakta text som skickades vid senaste anropet.
+Andra leveransen enligt specen är trend, återbesök, historikimport, promptbiblioteket och modell på telefonen. Promptbiblioteket har redan sitt underlag: appen sparar den exakta text som skickades vid senaste anropet. Trenden har sitt: Garmin-värden sparas för 120 dagar.

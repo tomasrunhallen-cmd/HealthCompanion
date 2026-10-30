@@ -41,6 +41,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
     );
   }
 
+  const garminDay = repo.garminDay(entry.date);
   const plan = repo.plan();
   const actions = actionsForLevel(a.level, plan);
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
@@ -113,8 +114,11 @@ export function ResultScreen({ entryId }: { entryId: string }) {
                 entry.mood != null ? `Stämning ${entry.mood}` : null,
                 entry.energy != null ? `energi ${entry.energy}` : null,
                 entry.sleepHours != null
-                  ? `sömn ${entry.sleepHours} h${entry.sleepSource === 'transcript' ? ' (skattat)' : ''}`
+                  ? `sömn ${String(entry.sleepHours).replace('.', ',')} h${entry.sleepSource === 'transcript' ? ' (skattat)' : entry.sleepSource === 'garmin' ? ' (Garmin)' : ''}`
                   : 'sömn saknas',
+                garminDay?.sleepStart && entry.sleepSource === 'garmin' ? `somnade ${garminDay.sleepStart}` : null,
+                entry.stressAvg != null ? `stress ${entry.stressAvg}` : null,
+                garminDay?.bodyBatteryWake != null ? `Body Battery ${garminDay.bodyBatteryWake} vid uppvaknandet` : null,
                 entry.wordsPerMinute != null ? `${entry.wordsPerMinute} ord/min` : 'talhastighet ej mätt',
               ].filter(Boolean).join(', ')}
             </P>

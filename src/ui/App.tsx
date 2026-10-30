@@ -3,12 +3,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { lockSupport, unlock } from '../platform/lock';
+import { syncOnOpen } from '../services/garmin';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
 import { Button } from './components';
 import { NavProvider, type Route } from './nav';
 import { CheckinScreen } from './screens/CheckinScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
+import { GarminScreen } from './screens/GarminScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LlmSettingsScreen } from './screens/LlmSettingsScreen';
 import { PlanImportScreen } from './screens/PlanImportScreen';
@@ -28,9 +30,22 @@ function renderRoute(route: Route) {
     case 'planImport': return <PlanImportScreen />;
     case 'settings': return <SettingsScreen />;
     case 'llm': return <LlmSettingsScreen />;
+    case 'garmin': return <GarminScreen />;
     case 'privacy': return <PrivacyScreen />;
     case 'history': return <HistoryScreen />;
   }
+}
+
+/** Fetches missing Garmin days when the unlocked app opens or comes back to the front. */
+function GarminAutoSync(props: { repo: Repository }) {
+  useEffect(() => {
+    syncOnOpen(props.repo);
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') syncOnOpen(props.repo);
+    });
+    return () => sub.remove();
+  }, [props.repo]);
+  return null;
 }
 
 function Centered(props: { children: React.ReactNode }) {
@@ -73,7 +88,7 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
     return () => sub.remove();
   }, [tryUnlock]);
 
-  if (!locked) return <>{props.children}</>;
+  if (!locked) return <><GarminAutoSync repo={props.repo} />{props.children}</>;
   return (
     <Centered>
       <Text style={[type.title, { marginBottom: space.m }]}>Dagsljus</Text>

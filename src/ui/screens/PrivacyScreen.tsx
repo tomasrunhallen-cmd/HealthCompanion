@@ -11,7 +11,7 @@ const FLOW: { title: string; text: string }[] = [
   { title: 'Ljud', text: 'Spelas in lokalt och raderas i samma steg som texten sparas (när inspelning finns, efter steg 1).' },
   { title: 'Bedömningen', text: 'Nivån räknas alltid i appen på telefonen. Utan språkmodell används ordmatchning och ingen text lämnar telefonen.' },
   { title: 'Språkmodell', text: 'Om du kopplar en språkmodell skickas bara rensad text, utan namn, telefonnummer, personnummer, adresser och länkar, till den leverantör du själv väljer, med din egen nyckel. Leverantörens egna villkor gäller. Du får se vart texten går innan första anropet. Nyckeln ligger i telefonens nyckelring.' },
-  { title: 'Garmin (från steg 3)', text: 'Appen hämtar din sömn och stress från ditt eget Garmin-konto med din egen nyckel.' },
+  { title: 'Garmin', text: 'Om du ansluter Garmin hämtar appen sömn, stress och Body Battery från ditt eget konto med din egen nyckel. Inget av det du skriver skickas till Garmin. Med en språkmodell kopplad följer dagens och veckans sömn och stress med till bedömningen, som siffror utan namn.' },
   { title: 'Ingen annan', text: 'Appen skickar aldrig meddelanden, notiser eller data till någon annan person. Inga analysverktyg, ingen reklam, ingen kraschrapportering.' },
   { title: 'Backup', text: 'Bara som lösenordsskyddad exportfil som du själv sparar.' },
 ];

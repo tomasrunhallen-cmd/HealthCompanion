@@ -10,6 +10,7 @@ import { PROVIDERS } from '../../adapter/providers';
 import { hasConsent } from '../../llm/config';
 import { deleteSecret } from '../../platform/secrets';
 import { LLM_KEY_NAME } from '../../services/llm';
+import { GARMIN_KEY_NAME } from '../../services/garmin';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -40,6 +41,7 @@ export function SettingsScreen() {
   const dialog = useDialog();
   const s = repo.settings();
   const llm = repo.llmConfig();
+  const garmin = repo.garminStatus();
   const [lock, setLock] = useState<LockSupport | null>(null);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
@@ -112,13 +114,14 @@ export function SettingsScreen() {
   const doWipe = async () => {
     const ok = await dialog.confirm({
       title: 'Radera allt?',
-      message: 'Krisplan, anteckningar, bedömningar, inställningar och nyckeln till språkmodellen raderas från telefonen. Det går inte att ångra.',
+      message: 'Krisplan, anteckningar, bedömningar, inställningar, Garmin-värden och nycklarna till språkmodellen och Garmin raderas från telefonen. Det går inte att ångra.',
       confirmLabel: 'Radera allt',
       danger: true,
     });
     if (!ok) return;
     await cancelReminder();
     await deleteSecret(LLM_KEY_NAME);
+    await deleteSecret(GARMIN_KEY_NAME);
     await repo.wipe();
     nav.reset();
   };
@@ -166,6 +169,17 @@ export function SettingsScreen() {
               : 'Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.'}
           </P>
           <Button kind="secondary" title={llm.provider ? 'Ändra språkmodell' : 'Koppla en språkmodell'} onPress={() => nav.push({ name: 'llm' })} />
+        </Card>
+      </Section>
+
+      <Section title="Garmin">
+        <Card>
+          <P>
+            {garmin.connected
+              ? `Ansluten. Sömn och stress hämtas från ditt Garmin-konto.${garmin.lastError ? ` Senaste hämtningen misslyckades: ${garmin.lastError}` : ''}`
+              : 'Inte ansluten. Sömnen tas ur anteckningen och stress mäts inte.'}
+          </P>
+          <Button kind="secondary" title={garmin.connected ? 'Ändra Garmin' : 'Anslut Garmin'} onPress={() => nav.push({ name: 'garmin' })} />
         </Card>
       </Section>
 
@@ -225,7 +239,7 @@ export function SettingsScreen() {
 
       <Section title="Radera allt">
         <Card>
-          <P muted>Tar bort all data, databasnyckeln och nyckeln till språkmodellen från telefonen.</P>
+          <P muted>Tar bort all data, databasnyckeln och nycklarna till språkmodellen och Garmin från telefonen.</P>
           <Button kind="danger" title="Radera allt" onPress={doWipe} />
         </Card>
       </Section>
