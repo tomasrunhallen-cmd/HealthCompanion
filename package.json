@@ -1,0 +1,59 @@
+{
+  "name": "dagsljus",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "dependencies": {
+    "@expo/metro-runtime": "~58.0.15",
+    "@noble/ciphers": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@react-native-community/slider": "^5.2.1",
+    "expo": "~58.0.21",
+    "expo-clipboard": "~58.0.4",
+    "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.17",
+    "expo-document-picker": "~58.0.4",
+    "expo-file-system": "~58.0.13",
+    "expo-local-authentication": "~58.0.2",
+    "expo-notifications": "~58.1.7",
+    "expo-secure-store": "~58.0.2",
+    "expo-sharing": "~58.0.21",
+    "expo-sqlite": "~58.0.14",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-dom": "^19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-web": "^0.21.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/react": "~19.3.0",
+    "jest": "^30.5.2",
+    "jest-expo": "~58.0.13",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "prompts": "node scripts/build-prompts.js",
+    "postinstall": "node scripts/build-prompts.js",
+    "prestart": "node scripts/build-prompts.js",
+    "start": "expo start",
+    "android": "node scripts/build-prompts.js && expo start --android",
+    "ios": "node scripts/build-prompts.js && expo start --ios",
+    "web": "node scripts/build-prompts.js && expo start --web",
+    "pretest": "node scripts/build-prompts.js",
+    "test": "jest",
+    "typecheck": "node scripts/build-prompts.js && tsc --noEmit",
+    "export:web": "node scripts/build-prompts.js && expo export --platform web"
+  },
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.ts",
+      "<rootDir>/tests/**/*.test.tsx"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@noble/.*)"
+    ]
+  }
+}

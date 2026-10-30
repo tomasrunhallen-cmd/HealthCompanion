@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Dagsljus",
+    "slug": "dagsljus",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "se.dagsljus.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Dagsljus använder Face ID för att låsa appen."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FBF8F3",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "se.dagsljus.app",
+      "allowBackup": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Dagsljus",
+      "backgroundColor": "#FBF8F3"
+    },
+    "scheme": "dagsljus",
+    "plugins": [
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Dagsljus använder Face ID för att låsa appen."
+        }
+      ],
+      [
+        "expo-notifications",
+        {}
+      ]
+    ]
+  }
+}
