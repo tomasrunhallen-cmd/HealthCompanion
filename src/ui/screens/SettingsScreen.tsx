@@ -6,6 +6,10 @@ import { lockSupport, type LockSupport } from '../../platform/lock';
 import { cancelReminder, reminderSupported, scheduleReminder } from '../../platform/reminder';
 import type { ExportData } from '../../storage/repository';
 import { toDateKey } from '../../analysis/dates';
+import { PROVIDERS } from '../../adapter/providers';
+import { hasConsent } from '../../llm/config';
+import { deleteSecret } from '../../platform/secrets';
+import { LLM_KEY_NAME } from '../../services/llm';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -35,6 +39,7 @@ export function SettingsScreen() {
   const nav = useNav();
   const dialog = useDialog();
   const s = repo.settings();
+  const llm = repo.llmConfig();
   const [lock, setLock] = useState<LockSupport | null>(null);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
@@ -107,12 +112,13 @@ export function SettingsScreen() {
   const doWipe = async () => {
     const ok = await dialog.confirm({
       title: 'Radera allt?',
-      message: 'Krisplan, anteckningar, bedömningar och inställningar raderas från telefonen. Det går inte att ångra.',
+      message: 'Krisplan, anteckningar, bedömningar, inställningar och nyckeln till språkmodellen raderas från telefonen. Det går inte att ångra.',
       confirmLabel: 'Radera allt',
       danger: true,
     });
     if (!ok) return;
     await cancelReminder();
+    await deleteSecret(LLM_KEY_NAME);
     await repo.wipe();
     nav.reset();
   };
@@ -154,8 +160,12 @@ export function SettingsScreen() {
 
       <Section title="Språkmodell">
         <Card>
-          <P>Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.</P>
-          <P muted style={{ marginTop: space.s }}>Koppling till en språkmodell med egen nyckel kommer i steg 2.</P>
+          <P>
+            {llm.provider && hasConsent(llm)
+              ? `${PROVIDERS[llm.provider].label}, ${llm.model}. Rensad text skickas dit vid kvällens bedömning.`
+              : 'Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.'}
+          </P>
+          <Button kind="secondary" title={llm.provider ? 'Ändra språkmodell' : 'Koppla en språkmodell'} onPress={() => nav.push({ name: 'llm' })} />
         </Card>
       </Section>
 
@@ -215,7 +225,7 @@ export function SettingsScreen() {
 
       <Section title="Radera allt">
         <Card>
-          <P muted>Tar bort all data och databasnyckeln från telefonen.</P>
+          <P muted>Tar bort all data, databasnyckeln och nyckeln till språkmodellen från telefonen.</P>
           <Button kind="danger" title="Radera allt" onPress={doWipe} />
         </Card>
       </Section>

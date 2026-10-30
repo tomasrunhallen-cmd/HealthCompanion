@@ -1,6 +1,6 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { parseSleepHours } from '../../analysis/sleep';
 import { saveCheckin } from '../../services/checkin';
 import { Button, Card, Field, P, Row, Screen } from '../components';
@@ -55,7 +55,7 @@ export function CheckinScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null });
+      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null }, new Date(), { browser: Platform.OS === 'web' });
       nav.replace({ name: 'result', entryId: entry.id, fresh: true });
     } finally {
       setBusy(false);

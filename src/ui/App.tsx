@@ -10,6 +10,7 @@ import { NavProvider, type Route } from './nav';
 import { CheckinScreen } from './screens/CheckinScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { LlmSettingsScreen } from './screens/LlmSettingsScreen';
 import { PlanImportScreen } from './screens/PlanImportScreen';
 import { PlanScreen } from './screens/PlanScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
@@ -26,6 +27,7 @@ function renderRoute(route: Route) {
     case 'plan': return <PlanScreen />;
     case 'planImport': return <PlanImportScreen />;
     case 'settings': return <SettingsScreen />;
+    case 'llm': return <LlmSettingsScreen />;
     case 'privacy': return <PrivacyScreen />;
     case 'history': return <HistoryScreen />;
   }

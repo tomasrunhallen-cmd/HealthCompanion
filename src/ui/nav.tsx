@@ -11,6 +11,7 @@ export type Route =
   | { name: 'plan' }
   | { name: 'planImport' }
   | { name: 'settings' }
+  | { name: 'llm' }
   | { name: 'privacy' }
   | { name: 'history' };
 

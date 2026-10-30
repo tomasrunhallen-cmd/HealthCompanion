@@ -137,6 +137,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
 
       <P muted style={{ marginTop: space.l }}>
         {METHOD_TEXT[a.method]} Poäng: {a.points}.
+        {a.method === 'llm' && a.model ? ` Modell ${a.model}, prompt ${a.promptId} ${a.promptVersion}.` : ''}
       </P>
     </Screen>
   );
