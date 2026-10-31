@@ -194,6 +194,8 @@ export function mergeDays(
 
 export interface GarminClientOptions {
   apiKey: string;
+  /** Defaults to Garmin itself. The web version goes through its own /api/garmin hop. */
+  baseUrl?: string;
   fetch?: GarminFetch;
   timeoutMs?: number;
   now?: () => number;
@@ -202,9 +204,11 @@ export interface GarminClientOptions {
 export class GarminClient {
   private token: { value: string; expiresAt: number } | null = null;
   private readonly doFetch: GarminFetch;
+  private readonly base: string;
 
   constructor(private readonly opts: GarminClientOptions) {
     this.doFetch = opts.fetch ?? ((u, i) => fetch(u, i));
+    this.base = (opts.baseUrl ?? GARMIN_BASE_URL).replace(/\/+$/, '');
   }
 
   private async request(url: string, init: { method: string; headers: Record<string, string> }): Promise<{ status: number; ok: boolean; body: string }> {
@@ -234,7 +238,7 @@ export class GarminClient {
   async accessToken(force = false): Promise<string> {
     const now = (this.opts.now ?? Date.now)();
     if (!force && this.token && this.token.expiresAt - now > 60 * 60 * 1000) return this.token.value;
-    const res = await this.request(GARMIN_BASE_URL + GARMIN_TOKEN_PATH, {
+    const res = await this.request(this.base + GARMIN_TOKEN_PATH, {
       method: 'POST',
       headers: { Accept: '*/*', Authorization: `ApiKey ${this.opts.apiKey.trim()}` },
     });
@@ -249,7 +253,7 @@ export class GarminClient {
     const qs = params ? `?${Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}` : '';
     for (let attempt = 0; attempt < 2; attempt++) {
       const token = await this.accessToken(attempt > 0);
-      const res = await this.request(GARMIN_BASE_URL + path + qs, {
+      const res = await this.request(this.base + path + qs, {
         method: 'GET',
         headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
       });

@@ -41,7 +41,7 @@
     "ios": "node scripts/build-prompts.js && expo start --ios",
     "web": "node scripts/build-prompts.js && expo start --web",
     "pretest": "node scripts/build-prompts.js",
-    "test": "jest",
+    "test": "jest && node --test tests/functions/*.test.mjs",
     "typecheck": "node scripts/build-prompts.js && tsc --noEmit",
     "export:web": "node scripts/build-prompts.js && expo export --platform web"
   },

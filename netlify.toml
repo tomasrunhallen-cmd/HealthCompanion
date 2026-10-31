@@ -1,11 +1,13 @@
-# Web preview of Dagsljus on Netlify. Only the static app is hosted; all data stays
-# in the visitor's own browser. Not for real health data: the browser copy is unencrypted.
+# Web version of Dagsljus on Netlify: the static app plus one function that forwards
+# Garmin calls (Garmin refuses calls from browsers). See README, "Webbversionen".
 [build]
   command = "npm run export:web"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
+  # The web build sends Garmin calls through netlify/functions/garmin.mjs.
+  EXPO_PUBLIC_GARMIN_PROXY = "1"
 
 # Keep the preview out of search engines.
 [[headers]]

@@ -49,7 +49,7 @@ export async function saveCheckin(
     planSettings: repo.planSettings(),
     history: repo.history(),
     // The configured language model when there is one; word matching otherwise.
-    matcher: await currentMatcher(repo, adapterOptions),
+    matcher: await currentMatcher(repo, { now: () => now, ...adapterOptions }),
     garmin: repo.garminDays(),
     now,
   });

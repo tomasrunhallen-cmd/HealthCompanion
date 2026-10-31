@@ -23,6 +23,8 @@ export const LLM_KEY_NAME = 'dagsljus.llmkey.v1';
 export interface AdapterOptions {
   fetch?: FetchLike;
   browser?: boolean;
+  /** Clock for dating token use; the check-in passes its own time. */
+  now?: () => Date;
 }
 
 /** Names removed before text is sent: the user's own list plus names found in the plan. */
@@ -71,7 +73,7 @@ export async function activeAdapter(repo: Repository, opts: AdapterOptions = {})
 export async function currentMatcher(repo: Repository, opts: AdapterOptions = {}): Promise<SignMatcher> {
   const adapter = await activeAdapter(repo, opts);
   if (!adapter) return wordMatcher;
-  return createLlmMatcher({ completer: trackedCompleter(repo, adapter), model: adapter.model, names: () => namesToScrub(repo) });
+  return createLlmMatcher({ completer: trackedCompleter(repo, adapter, opts.now), model: adapter.model, names: () => namesToScrub(repo) });
 }
 
 // ---- "Testa modellen" ----

@@ -4,6 +4,7 @@
 import { addDays, toDateKey } from '../analysis/dates';
 import type { DateKey, GarminDay } from '../domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
+import { garminBaseUrl } from '../platform/endpoints';
 import { deleteSecret, getSecret, setSecret } from '../platform/secrets';
 import type { Repository } from '../storage/repository';
 
@@ -26,8 +27,9 @@ export interface GarminOptions {
 let cached: { key: string; client: GarminClient } | null = null;
 
 function clientFor(key: string, opts: GarminOptions): GarminClient {
-  if (opts.fetch) return new GarminClient({ apiKey: key, fetch: opts.fetch, timeoutMs: opts.timeoutMs });
-  if (!cached || cached.key !== key) cached = { key, client: new GarminClient({ apiKey: key, timeoutMs: opts.timeoutMs }) };
+  const baseUrl = garminBaseUrl();
+  if (opts.fetch) return new GarminClient({ apiKey: key, baseUrl, fetch: opts.fetch, timeoutMs: opts.timeoutMs });
+  if (!cached || cached.key !== key) cached = { key, client: new GarminClient({ apiKey: key, baseUrl, timeoutMs: opts.timeoutMs }) };
   return cached.client;
 }
 
