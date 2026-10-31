@@ -58,7 +58,7 @@ Webbversionen på Netlify avviker från principen att allt stannar på telefonen
 
 | Data | Var | Skydd |
 | --- | --- | --- |
-| Krisplan, anteckningar, bedömningar, inställningar, Garmin-värden | Användarens eget Firebase-projekt (Firestore hos Google), plus en kopia i webbläsaren | Inloggning med e-post och lösenord. Reglerna i `firestore.rules` låter bara det egna kontot läsa och skriva. Google krypterar lagringen, men inte med en nyckel som bara användaren har. |
+| Krisplan, anteckningar, bedömningar, inställningar, Garmin-värden | Användarens eget Firebase-projekt (Firestore hos Google), plus en kopia i webbläsaren | Inloggning med e-post och lösenord för ett konto som lagts upp i Firebase-konsolen. Reglerna i `firestore.rules` låter bara det egna kontot läsa och skriva. Google krypterar lagringen, men inte med en nyckel som bara användaren har. |
 | Nycklar till språkmodell och Garmin | Webbläsarens lagring på enheten | Okrypterade. Följer inte med till Firebase. |
 | Applåsets kod | Webbläsarens lagring | Bara som saltad hash (PBKDF2) |
 

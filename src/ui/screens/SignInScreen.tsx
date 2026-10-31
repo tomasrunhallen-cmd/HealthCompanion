@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { authErrorText } from '../../cloud/errors';
-import { resetPassword, signIn, signUp } from '../../cloud/firebase';
+import { resetPassword, signIn } from '../../cloud/firebase';
 import { Button, Card, Field, P } from '../components';
 import { colors, space, type } from '../theme';
 
@@ -11,15 +11,14 @@ export function SignInScreen() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState<'in' | 'up' | 'reset' | null>(null);
+  const [busy, setBusy] = useState<'in' | 'reset' | null>(null);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
 
-  const run = async (kind: 'in' | 'up' | 'reset') => {
+  const run = async (kind: 'in' | 'reset') => {
     setBusy(kind);
     setMessage(null);
     try {
       if (kind === 'in') await signIn(email, password);
-      if (kind === 'up') await signUp(email, password);
       if (kind === 'reset') {
         await resetPassword(email);
         setMessage({ text: 'Ett mejl för att välja nytt lösenord är skickat, om kontot finns.', error: false });
@@ -52,10 +51,9 @@ export function SignInScreen() {
           </Card>
         ) : null}
         <Button big title="Logga in" onPress={() => run('in')} busy={busy === 'in'} disabled={!ready || !password} />
-        <Button kind="secondary" title="Skapa konto" onPress={() => run('up')} busy={busy === 'up'} disabled={!ready || password.length < 8} />
         <Button kind="ghost" title="Glömt lösenordet" onPress={() => run('reset')} busy={busy === 'reset'} disabled={!ready} />
         <P muted style={{ marginTop: space.l }}>
-          Skapa kontot en gång. Stäng sedan av nya konton i Firebase, så att ingen annan kan registrera sig här.
+          Kontot läggs upp i Firebase-konsolen, under Authentication och Users. Appen kan inte skapa nya konton.
         </P>
       </View>
     </ScrollView>

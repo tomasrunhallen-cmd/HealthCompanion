@@ -113,7 +113,7 @@ describe('sign-in errors', () => {
   it('explains the common Firebase errors in Swedish', () => {
     expect(authErrorText({ code: 'auth/invalid-credential' })).toBe('Fel e-post eller lösenord.');
     expect(authErrorText({ code: 'auth/operation-not-allowed' })).toContain('Authentication');
-    expect(authErrorText({ code: 'auth/admin-restricted-operation' })).toContain('Nya konton är avstängda');
+    expect(authErrorText({ code: 'auth/user-not-found' })).toBe('Fel e-post eller lösenord.');
     expect(authErrorText(new Error('x'))).toBe('Inloggningen misslyckades. Försök igen.');
   });
 });

@@ -1,10 +1,10 @@
-// Web version only: sign-in and storage in the user's own Firebase project. Configured
-// at build time from EXPO_PUBLIC_FIREBASE_CONFIG (Netlify environment variable). Only
-// Auth and Firestore are loaded: no Analytics or other Firebase services.
+// Web version only: sign-in and storage in the user's own Firebase project, configured in
+// projectConfig.ts. Accounts are added in the Firebase console; the app has no sign-up.
+// Only Auth and Firestore are loaded: no Analytics or other Firebase services.
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import {
-  browserLocalPersistence, createUserWithEmailAndPassword, indexedDBLocalPersistence, initializeAuth,
+  browserLocalPersistence, indexedDBLocalPersistence, initializeAuth,
   onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, type Auth,
 } from 'firebase/auth';
 import {
@@ -13,13 +13,14 @@ import {
 } from 'firebase/firestore';
 import type { CloudDoc, CloudDocs } from '../storage/cloudBackend';
 import { parseFirebaseConfig } from './config';
+import { FIREBASE_WEB_CONFIG } from './projectConfig';
 
 export interface CloudUser {
   uid: string;
   email: string | null;
 }
 
-const config = parseFirebaseConfig(process.env.EXPO_PUBLIC_FIREBASE_CONFIG);
+const config = parseFirebaseConfig(process.env.EXPO_PUBLIC_FIREBASE_CONFIG || FIREBASE_WEB_CONFIG);
 
 export const cloudConfigured = config != null;
 
@@ -48,10 +49,6 @@ export function onUserChanged(cb: (u: CloudUser | null) => void): () => void {
 
 export async function signIn(email: string, password: string): Promise<void> {
   await signInWithEmailAndPassword(init().auth, email.trim(), password);
-}
-
-export async function signUp(email: string, password: string): Promise<void> {
-  await createUserWithEmailAndPassword(init().auth, email.trim(), password);
 }
 
 export async function resetPassword(email: string): Promise<void> {

@@ -68,28 +68,27 @@ Webbversionen är samma app i webbläsaren. Allt fungerar där utom inspelning, 
 
 Mistral och Anthropic anropas direkt från webbläsaren. Ingen text passerar Netlify.
 
-### Ställ in Firebase (från telefonen)
+### Ställ in Firebase (från telefonen, som för Veckopeng)
 
-1. Gå till console.firebase.google.com och skapa ett projekt. Stäng av Google Analytics när du får frågan.
-2. Lägg till en webbapp med ikonen `</>`. Hoppa över Firebase Hosting. Kopiera hela blocket `firebaseConfig` som visas.
-3. Öppna **Authentication**, starta det och slå på inloggningsmetoden **Email/Password**.
-4. Öppna **Firestore Database** och skapa en databas i produktionsläge. Välj en plats i Europa.
-5. Öppna fliken **Rules** i Firestore. Ersätt allt med innehållet i filen `firestore.rules` i repot och publicera.
+1. Gå till console.firebase.google.com och lägg till ett nytt projekt, till exempel `dagsljus`. Stäng av Google Analytics.
+2. **Firestore Database:** skapa en databas i produktionsläge, i samma region som Veckopeng (`europe-west1`).
+3. **Authentication:** starta, slå på **Email/Password** under Sign-in method och lägg upp ditt konto under **Users** med *Add user*.
+4. **Firestore, fliken Rules:** ersätt allt med innehållet i `firestore.rules` i repot och publicera.
+5. **Project settings, Your apps:** lägg till en webbapp med ikonen `</>`. Kopiera blocket `firebaseConfig` och skicka det till mig, eller klistra in det i `src/cloud/projectConfig.ts`. Blocket är ingen hemlighet. Det pekar bara ut projektet, och reglerna skyddar datan.
 
 ### Ställ in Netlify
 
-1. Koppla repot och välj branchen `claude/mood-health-pwa-zLJP3`, om du inte redan gjort det.
-2. Lägg till miljövariabeln `EXPO_PUBLIC_FIREBASE_CONFIG` under projektets miljövariabler. Klistra in hela blocket från Firebase som värde.
-3. Starta ett nytt bygge med rensad cache, så att variabeln kommer med.
+Lägg till ett nytt projekt från GitHub, välj repot och branchen `claude/mood-health-pwa-zLJP3`. Allt annat står i `netlify.toml`. Netlify bygger om av sig själv när konfigurationen hamnar i repot.
 
 ### Första gången
 
-1. Öppna webbplatsen i Safari och tryck **Skapa konto** med din e-post och ett lösenord på minst 8 tecken.
-2. Gå tillbaka till Firebase, till **Authentication** och sedan **Settings**. Stäng av att nya användare kan registrera sig, så att ingen annan kan skapa konto i ditt projekt.
-3. Lägg till sidan på hemskärmen med Dela-knappen i Safari. Logga in en gång till där, eftersom hemskärmsappen har egen lagring.
-4. I appen: välj en kod under *Applås*, tryck *Lägg till i kalendern* under *Påminnelse*, koppla Mistral och anslut Garmin.
+1. Öppna webbplatsen i Safari och logga in med kontot från steg 3.
+2. Lägg till sidan på hemskärmen med Dela-knappen. Logga in en gång till där, eftersom hemskärmsappen har egen lagring.
+3. I appen: välj en kod under *Applås*, tryck *Lägg till i kalendern* under *Påminnelse*, koppla Mistral och anslut Garmin.
 
-Utan miljövariabeln fungerar webbversionen också, men då sparas allt bara i webbläsaren och kan försvinna om Safari rensar webbplatsdata. Data som sparats så flyttas automatiskt till Firebase första gången du loggar in, om Firebase är tomt.
+Appen kan inte skapa konton själv. Vill du vara säker på att ingen annan kan registrera sig i projektet kan du dessutom stänga av nya användare under Authentication och Settings.
+
+Utan Firebase-konfiguration fungerar webbversionen också, men då sparas allt bara i webbläsaren och kan försvinna om Safari rensar webbplatsdata. Data som sparats så flyttas automatiskt till Firebase första gången du loggar in, om Firebase är tomt.
 
 `npm run web` på en dator startar samma app lokalt. Där når appen inte Garmin, eftersom funktionen på Netlify saknas.
 

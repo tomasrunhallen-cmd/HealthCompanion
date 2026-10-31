@@ -14,7 +14,6 @@ export function onUserChanged(cb: (u: CloudUser | null) => void): () => void {
 }
 
 export async function signIn(_email: string, _password: string): Promise<void> {}
-export async function signUp(_email: string, _password: string): Promise<void> {}
 export async function resetPassword(_email: string): Promise<void> {}
 export async function signOutUser(): Promise<void> {}
 
