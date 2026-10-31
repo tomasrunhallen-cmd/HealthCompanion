@@ -52,6 +52,25 @@ Med en språkmodell kopplad följer dagens och veckans sömn och stress med till
 
 Än så länge finns ingen inspelning i appen. Den som använder tangentbordets mikrofon ska veta att dikteringen kan skicka ljud till Apple eller Google, beroende på telefonens inställningar. Det ligger utanför appens kontroll, och appen visar en varning.
 
+## Webbversionen
+
+Webbversionen på Netlify avviker från principen att allt stannar på telefonen. Användaren har valt det för att kunna använda appen utan dator.
+
+| Data | Var | Skydd |
+| --- | --- | --- |
+| Krisplan, anteckningar, bedömningar, inställningar, Garmin-värden | Användarens eget Firebase-projekt (Firestore hos Google), plus en kopia i webbläsaren | Inloggning med e-post och lösenord. Reglerna i `firestore.rules` låter bara det egna kontot läsa och skriva. Google krypterar lagringen, men inte med en nyckel som bara användaren har. |
+| Nycklar till språkmodell och Garmin | Webbläsarens lagring på enheten | Okrypterade. Följer inte med till Firebase. |
+| Applåsets kod | Webbläsarens lagring | Bara som saltad hash (PBKDF2) |
+
+Två funktioner körs på användarens egen Netlify:
+
+- **Garmin-vidarekopplingen** skickar appens fyra Garmin-anrop vidare, eftersom Garmin inte tar emot anrop från webbläsare. Nyckel, token och svar passerar igenom utan att sparas eller loggas. Inga andra adresser släpps igenom.
+- **Kalenderhändelsen** tar emot klockslaget och dagens datum och svarar med en återkommande händelse. Inget annat skickas dit.
+
+Text till språkmodellen går direkt från webbläsaren till leverantören, rensad på samma sätt som i appen. Den passerar inte Netlify eller Firebase.
+
+Firebase-projektet ska inte ha Google Analytics påslaget. Appen laddar bara inloggning och Firestore.
+
 ## Användarens rättigheter
 
 - *Exportera allt* skapar en krypterad fil med all data.

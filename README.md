@@ -14,6 +14,8 @@ Bygget görs i tre steg som verifieras ett i taget.
 | 2. Koppling till språkmodell | LLM-inställningar, egen nyckel, Mistral, Anthropic och OpenAI-kompatibel adress, Testa modellen, kostnadsuppskattning, krisplansimport med modell. | **Klart för verifiering** |
 | 3. Garmin | Sömn, stress och Body Battery från Garmin Personal API med egen nyckel. Dagens och veckans värden följer med till språkmodellen vid bedömningen. | **Klart för verifiering** |
 
+Det finns också en **webbversion** på Netlify med data i ditt eget Firebase-projekt. Den går att använda helt utan dator. Se *Webbversionen* nedan.
+
 Specens första leverans är funktion 1–6 med minst Anthropic och OpenAI-kompatibel adress. Med steg 2 är den komplett. Mistral är med eftersom det är den nyckel du har.
 
 ## Verifiera steg 1
@@ -55,11 +57,43 @@ Installera Expo Go från TestFlight och logga in i appen med samma Expo-konto. I
 
 Hämta Expo Go för SDK 58 från [expo.dev/go](https://expo.dev/go) och kör `npx expo start --go`, eller bygg en utvecklingsbuild med `npx eas-cli@latest build --profile development --platform android`.
 
-### I webbläsaren
+## Webbversionen (Netlify och Firebase)
 
-`npm run web` startar samma app i webbläsaren. Data sparas då okrypterat i webbläsaren. Det är bara till för att se gränssnittet.
+Webbversionen är samma app i webbläsaren. Allt fungerar där utom inspelning, som inte är byggd än. Den avviker från specen på fyra sätt. Du har valt det medvetet:
 
-### Testlista för steg 1
+- **Data sparas i ditt eget Firebase-projekt** hos Google, bakom din inloggning, och inte bara på telefonen. Den är inte krypterad med en nyckel som bara du har.
+- **Två små funktioner körs på din Netlify.** Den ena skickar Garmin-anropen vidare, eftersom Garmin inte tar emot anrop från webbläsare. Den andra skapar kalenderhändelsen för påminnelsen. Ingen av dem sparar något.
+- **Nycklarna till Mistral och Garmin sparas okrypterade** i webbläsaren.
+- **Applåset är en sifferkod**, inte Face ID. **Påminnelsen är en återkommande händelse i telefonens kalender**, eftersom en webbapp inte kan schemalägga notiser.
+
+Mistral och Anthropic anropas direkt från webbläsaren. Ingen text passerar Netlify.
+
+### Ställ in Firebase (från telefonen)
+
+1. Gå till console.firebase.google.com och skapa ett projekt. Stäng av Google Analytics när du får frågan.
+2. Lägg till en webbapp med ikonen `</>`. Hoppa över Firebase Hosting. Kopiera hela blocket `firebaseConfig` som visas.
+3. Öppna **Authentication**, starta det och slå på inloggningsmetoden **Email/Password**.
+4. Öppna **Firestore Database** och skapa en databas i produktionsläge. Välj en plats i Europa.
+5. Öppna fliken **Rules** i Firestore. Ersätt allt med innehållet i filen `firestore.rules` i repot och publicera.
+
+### Ställ in Netlify
+
+1. Koppla repot och välj branchen `claude/mood-health-pwa-zLJP3`, om du inte redan gjort det.
+2. Lägg till miljövariabeln `EXPO_PUBLIC_FIREBASE_CONFIG` under projektets miljövariabler. Klistra in hela blocket från Firebase som värde.
+3. Starta ett nytt bygge med rensad cache, så att variabeln kommer med.
+
+### Första gången
+
+1. Öppna webbplatsen i Safari och tryck **Skapa konto** med din e-post och ett lösenord på minst 8 tecken.
+2. Gå tillbaka till Firebase, till **Authentication** och sedan **Settings**. Stäng av att nya användare kan registrera sig, så att ingen annan kan skapa konto i ditt projekt.
+3. Lägg till sidan på hemskärmen med Dela-knappen i Safari. Logga in en gång till där, eftersom hemskärmsappen har egen lagring.
+4. I appen: välj en kod under *Applås*, tryck *Lägg till i kalendern* under *Påminnelse*, koppla Mistral och anslut Garmin.
+
+Utan miljövariabeln fungerar webbversionen också, men då sparas allt bara i webbläsaren och kan försvinna om Safari rensar webbplatsdata. Data som sparats så flyttas automatiskt till Firebase första gången du loggar in, om Firebase är tomt.
+
+`npm run web` på en dator startar samma app lokalt. Där når appen inte Garmin, eftersom funktionen på Netlify saknas.
+
+## Testlista för steg 1
 
 1. Tryck *Lägg in krisplan*, sedan *Fyll i ett exempel* eller klistra in din egen plan, och *Sortera raderna*.
 2. Kontrollera kategorin på varje rad, godkänn raderna och spara. Inget sparas utan godkännande.
@@ -95,12 +129,12 @@ Du behöver en Personal API-nyckel från Garmin Connect på webben, under Instä
 5. Med språkmodell kopplad finns texten som skickades kvar på telefonen. Den innehåller avsnittet *Mätvärden* med dagens värden och veckan dag för dag.
 6. Prova en felaktig nyckel. Appen ska säga att Garmin inte godtog den, och inget ska sparas.
 
-Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect. Fältnamnen i Garmins svar är inte officiellt dokumenterade, så det är det viktigaste att kontrollera. Webbförhandsvisningen kan troligen inte nå Garmin, eftersom Garmin inte tillåter anrop från webbläsare. Prova Garmin på telefonen.
+Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect. Fältnamnen i Garmins svar är inte officiellt dokumenterade, så det är det viktigaste att kontrollera. I webbversionen går Garmin via funktionen på Netlify. Med `npm run web` lokalt når appen inte Garmin.
 
 ### Automatiska tester
 
 ```bash
-npm test          # 108 tester: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, backup, Testa modellen
+npm test          # 117 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -204,6 +238,8 @@ src/prompts/        Promptladdare: frontmatter, # System, # User, {{variabler}}
 src/adapter/        LLM-gränssnittet, Mistral, Anthropic, OpenAI-kompatibel, schemavalidering, fejkad modell
 src/llm/            Modellinställningar, samtycke per leverantör, tokenräkning och kostnad
 src/garmin/         Garmin Personal API: token, sömn, stress, Body Battery
+src/cloud/          Webbversionen: inloggning och Firestore i ditt eget Firebase-projekt
+netlify/functions/  Webbversionen: vidarekoppling till Garmin och kalenderhändelse för påminnelsen
 src/plan/           Sortering av inklistrad krisplan
 src/storage/        Krypterad SQLite på telefonen, webbvariant, repository
 src/backup/         Lösenordsskyddad export (PBKDF2 och AES-256-GCM)
