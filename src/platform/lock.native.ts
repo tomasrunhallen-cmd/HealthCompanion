@@ -19,7 +19,18 @@ export async function lockSupport(): Promise<LockSupport> {
   }
 }
 
-export async function unlock(): Promise<boolean> {
+/** The phone asks with Face ID, fingerprint or its own code. */
+export const usesPin = false;
+
+export async function hasPin(): Promise<boolean> {
+  return false;
+}
+
+export async function setPin(_pin: string): Promise<void> {}
+
+export async function clearPin(): Promise<void> {}
+
+export async function unlock(_pin?: string): Promise<boolean> {
   const res = await LocalAuthentication.authenticateAsync({
     promptMessage: 'Lås upp Dagsljus',
     cancelLabel: 'Avbryt',

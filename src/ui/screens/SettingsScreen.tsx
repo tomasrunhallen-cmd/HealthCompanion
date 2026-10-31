@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { decryptBackup, encryptBackup, type BackupFile } from '../../backup/crypto';
 import { pickImportFile, randomBytes, saveExportFile } from '../../platform/files';
-import { lockSupport, type LockSupport } from '../../platform/lock';
-import { cancelReminder, reminderSupported, scheduleReminder } from '../../platform/reminder';
+import { clearPin, lockSupport, setPin, usesPin, type LockSupport } from '../../platform/lock';
+import { cancelHint, cancelReminder, reminderSupported, reminderViaCalendar, scheduleReminder } from '../../platform/reminder';
 import type { ExportData } from '../../storage/repository';
 import { toDateKey } from '../../analysis/dates';
 import { PROVIDERS } from '../../adapter/providers';
@@ -49,16 +49,35 @@ export function SettingsScreen() {
   const [pw2, setPw2] = useState('');
   const [importPw, setImportPw] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [newPin, setNewPin] = useState('');
 
   useEffect(() => {
     lockSupport().then(setLock);
   }, []);
 
+  const savePin = async () => {
+    try {
+      await setPin(newPin);
+      setNewPin('');
+      setLock(await lockSupport());
+      await repo.updateSettings({ appLockEnabled: true });
+      await dialog.info('Koden är sparad', 'Appen frågar efter koden när den öppnas och när du kommer tillbaka till den.');
+    } catch (e) {
+      await dialog.info('Koden sparades inte', (e as Error).message);
+    }
+  };
+
+  const removePin = async () => {
+    await clearPin();
+    setLock(await lockSupport());
+    await repo.updateSettings({ appLockEnabled: false });
+  };
+
   const applyReminder = async (enabled: boolean, hour: number, minute: number) => {
     await repo.updateSettings({ reminderEnabled: enabled, reminderHour: hour, reminderMinute: minute });
     if (!enabled) {
       await cancelReminder();
-      setReminderMsg(null);
+      setReminderMsg(cancelHint);
       return;
     }
     const res = await scheduleReminder(hour, minute);
@@ -68,7 +87,10 @@ export function SettingsScreen() {
 
   const shiftTime = (minutes: number) => {
     const total = (s.reminderHour * 60 + s.reminderMinute + minutes + 24 * 60) % (24 * 60);
-    applyReminder(s.reminderEnabled, Math.floor(total / 60), total % 60);
+    const [hour, minute] = [Math.floor(total / 60), total % 60];
+    // On the web the time only takes effect when the calendar event is added again.
+    if (reminderViaCalendar) repo.updateSettings({ reminderHour: hour, reminderMinute: minute });
+    else applyReminder(s.reminderEnabled, hour, minute);
   };
 
   const doExport = async () => {
@@ -130,21 +152,30 @@ export function SettingsScreen() {
     <Screen title="Inställningar" back>
       <Section title="Påminnelse">
         <Card>
-          <Toggle
-            label="Påminn mig på kvällen"
-            value={s.reminderEnabled}
-            disabled={!reminderSupported}
-            onChange={(v) => applyReminder(v, s.reminderHour, s.reminderMinute)}
-          />
+          {reminderViaCalendar ? (
+            <Text style={[type.body, { fontWeight: '600' }]}>Påminn mig på kvällen via telefonens kalender</Text>
+          ) : (
+            <Toggle
+              label="Påminn mig på kvällen"
+              value={s.reminderEnabled}
+              disabled={!reminderSupported}
+              onChange={(v) => applyReminder(v, s.reminderHour, s.reminderMinute)}
+            />
+          )}
           <Row style={{ marginTop: space.m }}>
             <Button kind="secondary" title="−15 min" onPress={() => shiftTime(-15)} />
             <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]}>{pad(s.reminderHour)}:{pad(s.reminderMinute)}</Text>
             <Button kind="secondary" title="+15 min" onPress={() => shiftTime(15)} />
           </Row>
+          {reminderViaCalendar ? (
+            <Button title="Lägg till i kalendern" onPress={() => applyReminder(true, s.reminderHour, s.reminderMinute)} />
+          ) : null}
           <P muted>
-            {reminderMsg ?? (reminderSupported
-              ? 'En lokal notis på din telefon. Den skickas aldrig till någon annan.'
-              : 'Påminnelser finns bara i appen på telefonen.')}
+            {reminderMsg ?? (reminderViaCalendar
+              ? 'Webbappen kan inte skicka notiser själv. En händelse som upprepas varje kväll i din kalender påminner dig i stället. Bara klockslaget lämnar telefonen.'
+              : reminderSupported
+                ? 'En lokal notis på din telefon. Den skickas aldrig till någon annan.'
+                : 'Påminnelser finns bara i appen på telefonen.')}
           </P>
         </Card>
       </Section>
@@ -152,12 +183,25 @@ export function SettingsScreen() {
       <Section title="Applås">
         <Card>
           <Toggle
-            label="Lås med Face ID, fingeravtryck eller kod"
-            value={s.appLockEnabled}
+            label={usesPin ? 'Lås med kod' : 'Lås med Face ID, fingeravtryck eller kod'}
+            value={s.appLockEnabled && !!lock?.available}
             disabled={!lock?.available}
             onChange={(v) => repo.updateSettings({ appLockEnabled: v })}
           />
           {lock?.reason ? <P muted style={{ marginTop: space.s }}>{lock.reason}</P> : null}
+          {usesPin ? (
+            <View style={{ marginTop: space.m }}>
+              <Field
+                label={lock?.available ? 'NY KOD (4–8 SIFFROR)' : 'KOD (4–8 SIFFROR)'}
+                value={newPin}
+                onChangeText={(t) => setNewPin(t.replace(/\D/g, '').slice(0, 8))}
+                secureTextEntry
+                keyboardType="number-pad"
+              />
+              <Button kind="secondary" title={lock?.available ? 'Byt kod' : 'Spara kod'} onPress={savePin} disabled={newPin.length < 4} />
+              {lock?.available ? <Button kind="ghost" title="Ta bort koden" onPress={removePin} /> : null}
+            </View>
+          ) : null}
         </Card>
       </Section>
 

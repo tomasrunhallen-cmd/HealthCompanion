@@ -41,3 +41,7 @@ export async function scheduleReminder(hour: number, minute: number): Promise<{ 
 export async function cancelReminder(): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(ID).catch(() => undefined);
 }
+
+export const reminderViaCalendar = false;
+
+export const cancelHint: string | null = null;

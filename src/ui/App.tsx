@@ -2,11 +2,11 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { lockSupport, unlock } from '../platform/lock';
+import { lockSupport, unlock, usesPin } from '../platform/lock';
 import { syncOnOpen } from '../services/garmin';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
-import { Button } from './components';
+import { Button, Field } from './components';
 import { NavProvider, type Route } from './nav';
 import { CheckinScreen } from './screens/CheckinScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
@@ -60,9 +60,11 @@ function Centered(props: { children: React.ReactNode }) {
 function LockGate(props: { repo: Repository; children: React.ReactNode }) {
   const [locked, setLocked] = useState(true);
   const [checking, setChecking] = useState(true);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
   const appState = useRef(AppState.currentState);
 
-  const tryUnlock = useCallback(async () => {
+  const tryUnlock = useCallback(async (typed?: string) => {
     setChecking(true);
     try {
       const support = await lockSupport();
@@ -70,7 +72,15 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
         setLocked(false);
         return;
       }
-      setLocked(!(await unlock()));
+      // On the web the lock is a PIN typed below; wait for it.
+      if (usesPin && typed == null) {
+        setLocked(true);
+        return;
+      }
+      const ok = await unlock(typed);
+      setLocked(!ok);
+      setPin('');
+      setPinError(usesPin && !ok ? 'Fel kod. Försök igen.' : null);
     } finally {
       setChecking(false);
     }
@@ -92,7 +102,25 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
   return (
     <Centered>
       <Text style={[type.title, { marginBottom: space.m }]}>Dagsljus</Text>
-      {checking ? <ActivityIndicator color={colors.accent} /> : <Button title="Lås upp" onPress={tryUnlock} />}
+      {usesPin && !checking ? (
+        <View style={{ width: '100%', maxWidth: 320 }}>
+          <Field
+            label="DIN KOD"
+            value={pin}
+            onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 8))}
+            secureTextEntry
+            keyboardType="number-pad"
+            autoFocus
+            onSubmitEditing={() => tryUnlock(pin)}
+            hint={pinError ?? undefined}
+          />
+          <Button title="Lås upp" onPress={() => tryUnlock(pin)} disabled={pin.length < 4} />
+        </View>
+      ) : checking ? (
+        <ActivityIndicator color={colors.accent} />
+      ) : (
+        <Button title="Lås upp" onPress={() => tryUnlock()} />
+      )}
     </Centered>
   );
 }
