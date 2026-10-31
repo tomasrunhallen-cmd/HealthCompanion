@@ -117,3 +117,11 @@ describe('sign-in errors', () => {
     expect(authErrorText(new Error('x'))).toBe('Inloggningen misslyckades. Försök igen.');
   });
 });
+
+describe('the project config in the code', () => {
+  it('is complete and points at the Dagsljus project', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { FIREBASE_WEB_CONFIG } = require('../src/cloud/projectConfig');
+    expect(parseFirebaseConfig(FIREBASE_WEB_CONFIG)).toMatchObject({ projectId: 'dagsljus-1d0ab', authDomain: 'dagsljus-1d0ab.firebaseapp.com' });
+  });
+});
