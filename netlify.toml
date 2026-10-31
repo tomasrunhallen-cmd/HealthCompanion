@@ -1,0 +1,14 @@
+# Web preview of Dagsljus on Netlify. Only the static app is hosted; all data stays
+# in the visitor's own browser. Not for real health data: the browser copy is unencrypted.
+[build]
+  command = "npm run export:web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Keep the preview out of search engines.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
