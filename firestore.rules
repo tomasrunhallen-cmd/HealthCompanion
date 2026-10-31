@@ -1,0 +1,10 @@
+rules_version = '2';
+// Dagsljus web version: each signed-in account can read and write only its own items,
+// stored under users/{uid}/docs. Everything else is closed.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/docs/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

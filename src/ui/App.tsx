@@ -2,7 +2,8 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { lockSupport, unlock, usesPin } from '../platform/lock';
+import { clearPin, lockSupport, unlock, usesPin } from '../platform/lock';
+import { cloudConfigured, onUserChanged, signOutUser, type CloudUser } from '../cloud/firebase';
 import { syncOnOpen } from '../services/garmin';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
@@ -18,6 +19,7 @@ import { PlanScreen } from './screens/PlanScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { SignInScreen } from './screens/SignInScreen';
 import { DialogProvider, RepoProvider } from './state';
 import { colors, space, type } from './theme';
 
@@ -110,11 +112,23 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
             onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 8))}
             secureTextEntry
             keyboardType="number-pad"
+            placeholder="Kod"
             autoFocus
             onSubmitEditing={() => tryUnlock(pin)}
             hint={pinError ?? undefined}
           />
           <Button title="Lås upp" onPress={() => tryUnlock(pin)} disabled={pin.length < 4} />
+          {cloudConfigured ? (
+            <Button
+              kind="ghost"
+              title="Glömt koden? Logga ut"
+              onPress={async () => {
+                // Signing in again with the password proves who you are; then pick a new code.
+                await clearPin();
+                await signOutUser();
+              }}
+            />
+          ) : null}
         </View>
       ) : checking ? (
         <ActivityIndicator color={colors.accent} />
@@ -128,33 +142,52 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
 export default function App() {
   const [repo, setRepo] = useState<Repository | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Web with Firebase: undefined while Firebase answers, null when signed out.
+  const [user, setUser] = useState<CloudUser | null | undefined>(cloudConfigured ? undefined : null);
+
+  useEffect(() => (cloudConfigured ? onUserChanged(setUser) : undefined), []);
 
   useEffect(() => {
-    openBackend()
+    setRepo(null);
+    if (user === undefined || (cloudConfigured && user === null)) return;
+    let live = true;
+    openBackend(user)
       .then(Repository.create)
-      .then(setRepo)
-      .catch((e: Error) => setError(e.message));
-  }, []);
+      .then((r) => live && setRepo(r))
+      .catch((e: Error) => live && setError(e.message));
+    return () => {
+      live = false;
+    };
+  }, [user?.uid, user === null]);
+
+  let body: React.ReactNode;
+  if (error) {
+    body = (
+      <Centered>
+        <Text style={type.h2}>Databasen kunde inte öppnas</Text>
+        <Text style={[type.small, { marginTop: space.s }]}>{error}</Text>
+      </Centered>
+    );
+  } else if (cloudConfigured && user === null) {
+    body = <SignInScreen />;
+  } else if (!repo) {
+    body = <Centered><ActivityIndicator color={colors.accent} /></Centered>;
+  } else {
+    body = (
+      <RepoProvider repo={repo}>
+        <DialogProvider>
+          <LockGate repo={repo}>
+            <NavProvider>{renderRoute}</NavProvider>
+          </LockGate>
+        </DialogProvider>
+      </RepoProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
-      {error ? (
-        <Centered>
-          <Text style={type.h2}>Databasen kunde inte öppnas</Text>
-          <Text style={[type.small, { marginTop: space.s }]}>{error}</Text>
-        </Centered>
-      ) : !repo ? (
-        <Centered><ActivityIndicator color={colors.accent} /></Centered>
-      ) : (
-        <RepoProvider repo={repo}>
-          <DialogProvider>
-            <LockGate repo={repo}>
-              <NavProvider>{renderRoute}</NavProvider>
-            </LockGate>
-          </DialogProvider>
-        </RepoProvider>
-      )}
+      {body}
     </SafeAreaProvider>
   );
 }

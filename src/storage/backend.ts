@@ -6,7 +6,7 @@ export type Collection = 'plan' | 'entries' | 'assessments' | 'kv';
 export type Snapshot = Record<Collection, Record<string, unknown>>;
 
 export interface StorageInfo {
-  kind: 'sqlite' | 'browser' | 'memory';
+  kind: 'sqlite' | 'browser' | 'memory' | 'cloud';
   /** True when the database file is encrypted (SQLCipher). Null when unknown. */
   encrypted: boolean | null;
   detail: string;

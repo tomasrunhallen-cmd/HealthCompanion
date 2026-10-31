@@ -11,6 +11,7 @@ import { hasConsent } from '../../llm/config';
 import { deleteSecret } from '../../platform/secrets';
 import { LLM_KEY_NAME } from '../../services/llm';
 import { GARMIN_KEY_NAME } from '../../services/garmin';
+import { signOutUser } from '../../cloud/firebase';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -197,6 +198,7 @@ export function SettingsScreen() {
                 onChangeText={(t) => setNewPin(t.replace(/\D/g, '').slice(0, 8))}
                 secureTextEntry
                 keyboardType="number-pad"
+                placeholder="4–8 siffror"
               />
               <Button kind="secondary" title={lock?.available ? 'Byt kod' : 'Spara kod'} onPress={savePin} disabled={newPin.length < 4} />
               {lock?.available ? <Button kind="ghost" title="Ta bort koden" onPress={removePin} /> : null}
@@ -260,6 +262,24 @@ export function SettingsScreen() {
           </View>
         </Card>
       </Section>
+
+      {repo.storageInfo().kind === 'cloud' ? (
+        <Section title="Konto">
+          <Card>
+            <P muted>{repo.storageInfo().detail}</P>
+            <Button kind="secondary" title="Logga ut" onPress={async () => {
+              const ok = await dialog.confirm({
+                title: 'Logga ut?',
+                message: 'Din data ligger kvar i Firebase. Du loggar in med e-post och lösenord nästa gång. Applåsets kod tas bort från den här webbläsaren.',
+                confirmLabel: 'Logga ut',
+              });
+              if (!ok) return;
+              await clearPin();
+              await signOutUser();
+            }} />
+          </Card>
+        </Section>
+      ) : null}
 
       <Section title="Exportera allt">
         <Card>

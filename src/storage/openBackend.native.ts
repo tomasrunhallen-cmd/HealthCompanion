@@ -53,7 +53,7 @@ async function open(): Promise<{ db: SQLite.SQLiteDatabase; info: StorageInfo }>
   };
 }
 
-export async function openBackend(): Promise<DocBackend> {
+export async function openBackend(_user?: unknown): Promise<DocBackend> {
   let { db, info } = await open();
   return {
     async load() {
