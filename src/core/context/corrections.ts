@@ -4,7 +4,7 @@
 // deciding live in services/corrections.ts.
 
 import { formatDateSv } from '../analysis/dates';
-import type { Assessment, ContextEntry, PlanItem, Suggestion } from '../domain/types';
+import type { ContextEntry, PlanItem, Suggestion } from '../domain/types';
 
 export const CORRECTIONS_FOR_SUGGESTION = 3;
 

@@ -242,6 +242,48 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **Baslinjer** för sömn, stress, ord per minut och klocktid räknas om varje måndag ur gröna dagar de senaste 28 dagarna.
 - **Export och import** av kontexten ger tre läsbara markdownfiler, `grund.md`, `profil.md` och `dagligt.md`.
 
+## Krisplanen som textblock (den här versionen)
+
+Krisplanen skrivs eller klistras in som text under samma rubriker för alla. Varje rubrik är ett block, och personen skriver en sak per rad med egna ord:
+
+1. Värdeankare – det som är viktigt för mig
+2. Mitt normalläge
+3. Livsstil och rutiner – varje dag
+4. Risksituationer
+5. Tidiga varningstecken – uppvarvning
+6. Tidiga varningstecken – nedstämdhet
+7. Livsstil och rutiner vid uppvarvning
+8. Livsstil och rutiner vid nedstämdhet
+9. Det här gör jag vid tidiga tecken
+10. Det här gör mina närstående vid tidiga tecken
+11. Tecken på allvarlig försämring – uppvarvning
+12. Tecken på allvarlig försämring – nedstämdhet
+13. Det här gör jag vid allvarlig försämring
+14. Det här gör närstående och vården vid allvarlig försämring
+15. Strategier för att undvika tvångsåtgärder
+16. Kontakter
+17. Mina önskemål
+18. Till vården
+
+Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poäng, rutiner bockas av och stegen visas i *Hjälp nu*. Rader som står kvar ordagrant behåller sitt id, sina påminnelser och sin historik, också när en ny version av planen läses in. En plan från vården (text, PDF eller Word) delas upp efter sina egna rubriker. Personen kontrollerar blocken och väljer bara för rubriker som appen inte känner igen. Inget skickas till en modell vid importen, och planen som den lästes in sparas och går att läsa.
+
+**Rutiner i dag** på startsidan och i avstämningen: dagens grundrutiner med en bock per rutin, under dagen eller på kvällen. Pekade de senaste tecknen åt ett håll föreslår appen att följa planens rutiner för det hållet, till exempel *Livsstil och rutiner vid uppvarvning*. De visas då under grundrutinerna tills personen slutar följa dem. Avbockningen ändrar aldrig nivån och skickas aldrig till en modell.
+
+### Funktionerna från granskningen (fas C)
+
+1. **Inför återbesök** (*Jag*): 14 eller 30 dagar med nivå per dag, sömn och stress, tecken som syntes per riktning, rutiner, svaren efter röda dagar, och listan *Saker jag vill ta upp*. Sparas som PDF som personen själv delar.
+2. **Dagen efter rött:** nästa avstämning börjar med *I går var det rött. Gjorde du något av stegen?*, ja eller nej per steg.
+3. **Visa för någon:** ampel, sömn och stress och tecken som syntes, för 7, 14 eller 30 dagar, aldrig anteckningarna. Personen väljer innehåll.
+4. **Anhörigkort:** tecken som är markerade *Andra ser*, vad närstående gör, trappan och kontakterna, som PDF.
+5. **Sömnnotis:** tredje natten i rad under det egna snittet eller utanför sömnfönstret ger en notis med planens sömnrutin. I webbversionen ett kort på startsidan. Inga poäng.
+6. **Kontroll över signaler** (*Inställningar*): tysta timmar för appens egna notiser, förslag direkt, på måndagar eller bara inför återbesök, och ett lågt läge med bara avstämningen och *Hjälp nu*.
+7. **Gröna dagar:** en rutin och hur länge den hållits, till exempel *Sömnrutinen 22:30–07:00 hållen 4 nätter i rad*. Aldrig att allt ser bra ut.
+8. **Kommande händelser:** en gång i veckan frågar avstämningen om något stort är på gång. Dagen före visar startsidan planens rutin som passar.
+9. **Uppdaterad plan:** *Planen har uppdaterats hos vården* läser in den nya planen och visar ändringarna rad för rad innan något sparas.
+10. **Första veckan:** dag 1 bara avstämningen, från dag 3 förslag på sömnkälla, dag 7 veckobilden med vad grönt betyder.
+
+PDF:erna görs på telefonen med `expo-print` och öppnas i delningsarket. I webbversionen öppnas utskriften, där personen väljer *Spara som PDF*. Appen skickar inget själv.
+
 ## Krisplansimporten
 
 Vårdens krisplaner har ofta 100 rader eller fler, under rubriker som *Tidiga varningstecken*, *Tecken som brukar tyda på allvarlig försämring* och *Strategier för att undvika tvångsåtgärder*, med underrubriker som *Mani* och *Depression*. Importen bygger på planens egen struktur.

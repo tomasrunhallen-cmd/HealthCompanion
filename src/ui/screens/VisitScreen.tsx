@@ -6,6 +6,7 @@ import { Text, View } from 'react-native';
 import { formatDateSv } from '../../core/analysis/dates';
 import { polarityWord } from '../../core/plan/fields';
 import { sharePdf } from '../../platform/pdf';
+import { levelCounts } from '../../core/report/html';
 import { addVisitTopic, removeVisitTopic, visitHtml, visitSummary } from '../../services/visit';
 import { Button, Card, Dot, Field, P, Row, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
@@ -63,7 +64,7 @@ export function VisitScreen() {
 
       <Section title="Nivå per dag">
         <Card>
-          <P>{s.counts.green} gröna, {s.counts.yellow} gula, {s.counts.red} röda, {s.counts.none} utan avstämning.</P>
+          <P>{levelCounts(s.counts)}</P>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.s }}>
             {s.days.map((d) => (
               <View key={d.date} accessible accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`} style={{ alignItems: 'center', minWidth: 34 }}>

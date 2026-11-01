@@ -4,7 +4,7 @@
 import { newId } from '../core/analysis/assess';
 import { eveningDateKey, formatDateSv } from '../core/analysis/dates';
 import { buildVisitSummary, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
-import { levelMark, reportHtml, type ReportPart } from '../core/report/html';
+import { levelCounts, levelMark, reportHtml, type ReportPart } from '../core/report/html';
 import { polarityWord } from '../core/plan/fields';
 import type { PlanSettings } from '../core/domain/types';
 import type { Repository } from '../storage/repository';
@@ -54,7 +54,7 @@ export function shareHtml(s: VisitSummary, choice: ShareChoice, ps: Pick<PlanSet
   if (choice.levels) {
     parts.push(
       { kind: 'heading', text: 'Ampeln per dag' },
-      { kind: 'text', text: `${s.counts.green} gröna, ${s.counts.yellow} gula, ${s.counts.red} röda och ${s.counts.none} dagar utan avstämning.` },
+      { kind: 'text', text: levelCounts(s.counts) },
     );
   }
   if (choice.levels || choice.sleepStress) {
@@ -80,7 +80,7 @@ export function visitHtml(s: VisitSummary, ps: Pick<PlanSettings, 'polarityWords
     { kind: 'heading', text: 'Saker jag vill ta upp' },
     { kind: 'list', items: s.topics.map((t) => t.text) },
     { kind: 'heading', text: 'Nivå per dag' },
-    { kind: 'text', text: `${s.counts.green} gröna, ${s.counts.yellow} gula, ${s.counts.red} röda och ${s.counts.none} dagar utan avstämning.` },
+    { kind: 'text', text: levelCounts(s.counts) },
     { kind: 'table', head: ['Dag', 'Nivå', 'Sömn (h)', 'Stress'], rows: s.days.map((d) => [formatDateSv(d.date), levelMark(d.level), dec(d.sleepHours), dec(d.stressAvg)]) },
     { kind: 'text', text: `Snitt: sömn ${dec(s.sleepAvg)} h, stress ${dec(s.stressAvg)}.`, muted: true },
     { kind: 'heading', text: `Tecken som syntes, ${word('up')}` },
