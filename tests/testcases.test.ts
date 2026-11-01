@@ -1,4 +1,4 @@
-import { assessEntry, wordMatcher, type SignMatcher } from '../src/analysis/assess';
+import { assessEntry, SERIOUS_INTRO, seriousActions, wordMatcher, type SignMatcher } from '../src/analysis/assess';
 import { loadTestSuite, type TestCase } from '../src/analysis/testcases';
 import { akutLevel } from '../src/context/akut';
 import type { Assessment } from '../src/domain/types';
@@ -34,7 +34,7 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.1.0');
+    expect(suite.version).toBe('2.2.0');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [
@@ -51,12 +51,27 @@ describe('prompts/testfall.md', () => {
   for (const c of suite.cases) {
     it(`${c.id}: ${c.name}`, async () => {
       expect(akutLevel(c.entry.transcript)).toBe(c.expectedAkut);
-      expect((await run(c)).level).toBe(c.expected);
+      const a = await run(c);
+      expect(a.level).toBe(c.expected);
+      expect(seriousActions(a, c.plan) != null).toBe(c.expectedRedActions);
     });
   }
 });
 
 describe('what each case shows', () => {
+  it('a serious sign alone stays yellow and shows the plan\'s actions at red', async () => {
+    const c = byId('allvarligt-ensamt');
+    const a = await run(c);
+    expect([a.level, a.points]).toEqual(['yellow', 2]);
+    expect(seriousActions(a, c.plan)!.map((p) => p.text)).toEqual(['Ring min vårdkontakt i dag', 'Be någon jag litar på att vara med mig i kväll']);
+    expect(SERIOUS_INTRO).toBe('Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:');
+  });
+
+  it('an early sign alone does not show the actions at red', async () => {
+    const c = byId('orkade-inte-svara');
+    expect(seriousActions(await run(c), c.plan)).toBeNull();
+  });
+
   it('a known false alarm is in the prompt context and the reference answer matches nothing', async () => {
     const c = byId('kant-falsklarm');
     expect(c.context.some((e) => e.kind === 'false_alarm' && e.text.startsWith('Storhandla'))).toBe(true);

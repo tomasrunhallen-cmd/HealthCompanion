@@ -6,7 +6,7 @@ import { createCompleter } from '../adapter/complete';
 import { createAdapter, type FetchLike } from '../adapter/http';
 import type { ProviderId } from '../adapter/providers';
 import type { Completer, LlmAdapter } from '../adapter/types';
-import { assessEntry, wordMatcher, type SignMatcher } from '../analysis/assess';
+import { assessEntry, seriousActions, wordMatcher, type SignMatcher } from '../analysis/assess';
 import { eveningDateKey } from '../analysis/dates';
 import { createLlmMatcher } from '../analysis/llmMatcher';
 import { loadTestSuite } from '../analysis/testcases';
@@ -171,13 +171,21 @@ export async function runModelTest(
     };
     const a = await assessEntry({ ...base, matcher });
     const answered = a.method === 'llm';
+    // A serious sign taken for an early one can give the same level; the red steps show it.
+    const redOk = (seriousActions(a, c.plan) != null) === c.expectedRedActions;
     cases.push({
       id: c.id,
       name: c.name,
       expected: c.expected,
       got: answered ? a.level : null,
-      ok: answered && a.level === c.expected,
-      error: answered ? null : error ?? 'Modellen svarade inte enligt schemat.',
+      ok: answered && a.level === c.expected && redOk,
+      error: !answered
+        ? error ?? 'Modellen svarade inte enligt schemat.'
+        : redOk
+          ? null
+          : c.expectedRedActions
+            ? 'Modellen hittade inte det allvarliga tecknet, så planens åtgärder vid rött visades inte.'
+            : 'Modellen tog ett tecken för allvarligt, så planens åtgärder vid rött visades i onödan.',
       akut: null,
     });
     onProgress?.(cases.length, suite.cases.length);

@@ -59,6 +59,19 @@ export function actionsForLevel(level: Level, plan: PlanItem[]): PlanItem[] {
   return plan.filter((p) => p.kind === kind).sort((a, b) => a.order - b.order);
 }
 
+export const SERIOUS_INTRO = 'Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:';
+
+/**
+ * The plan's actions at red when one of the user's serious signs matched, whatever the
+ * level: a serious sign alone gives yellow, but the plan's red steps still apply. Null
+ * when no serious sign counted, and for the emergency rule, which has its own card.
+ */
+export function seriousActions(a: Pick<Assessment, 'signals' | 'akut'>, plan: PlanItem[]): PlanItem[] | null {
+  if (a.akut) return null;
+  if (!a.signals.some((s) => s.kind === 'serious_sign' && s.points > 0)) return null;
+  return actionsForLevel('red', plan);
+}
+
 export function firstStep(level: 'yellow' | 'red', plan: PlanItem[]): PlanItem | null {
   return actionsForLevel(level, plan)[0] ?? null;
 }

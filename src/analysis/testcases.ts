@@ -27,6 +27,8 @@ interface RawCase {
   history: string;
   /** "standard": the standard content, unconfirmed, instead of the test plan's signs. */
   plan?: 'standard';
+  /** A serious sign matched, so the plan's red actions must show whatever the level. */
+  redActions?: boolean;
   entry: {
     time: string;
     note: string;
@@ -47,6 +49,7 @@ interface RawFile {
     normalState: string;
     sleepThresholdHours: number;
     signs: { id: string; kind: 'early' | 'serious'; text: string }[];
+    actions?: { kind: 'action_yellow' | 'action_red'; text: string }[];
     context?: { kind: ContextKind; text: string }[];
   };
   histories: Record<string, RawDay[]>;
@@ -75,11 +78,13 @@ export interface TestCase {
   reference: ReferenceMatch[] | null;
   /** The emergency rule's expected verdict on the note, or null when it should not match. */
   expectedAkut: AkutLevel | null;
+  /** The assessment must show the plan's actions at red (a serious sign matched). */
+  expectedRedActions: boolean;
 }
 
 export interface TestSuite {
   version: string;
-  /** The test plan's signs, shared by every case that does not use the standard content. */
+  /** The test plan's signs and actions, shared by every case that does not use the standard content. */
   plan: PlanItem[];
   planSettings: PlanSettings;
   cases: TestCase[];
@@ -98,16 +103,17 @@ const APPROVED = '2026-01-01T00:00:00.000Z';
 
 function standardPlan(): PlanItem[] {
   return loadStandard()
-    .rows.filter((r) => r.kind === 'early' || r.kind === 'serious')
+    .rows.filter((r) => ['early', 'serious', 'action_yellow', 'action_red'].includes(r.kind))
     .map((r, i) => ({ id: `std${i + 1}`, kind: r.kind as PlanItemKind, text: r.text, order: i, approvedAt: null, origin: 'standard' as const }));
 }
 
 export function loadTestSuite(referenceDate = '2026-10-20'): TestSuite {
   const prompt = loadPrompt('testfall');
   const raw = extractJsonBlock<RawFile>(prompt.body);
-  const plan: PlanItem[] = raw.plan.signs.map((s, i) => ({
-    id: s.id, kind: s.kind, text: s.text, order: i, approvedAt: APPROVED,
-  }));
+  const plan: PlanItem[] = [
+    ...raw.plan.signs.map((s, i) => ({ id: s.id, kind: s.kind, text: s.text, order: i, approvedAt: APPROVED })),
+    ...(raw.plan.actions ?? []).map((a, i) => ({ id: `a${i + 1}`, kind: a.kind, text: a.text, order: i, approvedAt: APPROVED })),
+  ];
   const planSettings: PlanSettings = {
     normalState: raw.plan.normalState,
     sleepThresholdHours: raw.plan.sleepThresholdHours,
@@ -161,6 +167,7 @@ export function loadTestSuite(referenceDate = '2026-10-20'): TestSuite {
       context: [...entriesFromPlan(casePlan, planSettings.normalState), ...extra, ...medication],
       reference,
       expectedAkut,
+      expectedRedActions: !!c.redActions,
       entry: {
         id: `${c.id}_entry`, date: referenceDate, createdAt: timestamp(referenceDate, e.time),
         kind: 'checkin', transcript: e.note, mood: e.mood, energy: e.energy,

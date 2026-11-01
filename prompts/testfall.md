@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.1.0
+version: 2.2.0
 response: data
 ---
 # Testfall
@@ -11,7 +11,7 @@ Testfallen för ampeln och för knappen *Testa modellen*. Varje fall har en ante
 
 **Godkännande.** *Testa modellen* godkänner en ny modell bara om alla fall ger samma nivå som här, och visar vilka fall som skilde sig. En ändrad analysprompt måste klara alla fall med en riktig modell innan den checkas in: kör `npm run prompt:check` (se README). Godkännandet sparas i `prompts/godkand.json`, och ett test stoppar en prompt som ändrats utan nytt godkännande.
 
-Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken.
+Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
 
 ```json
 {
@@ -24,6 +24,11 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       { "id": "s3", "kind": "early", "text": "Massor av nya projekt samtidigt" },
       { "id": "s4", "kind": "serious", "text": "Slutar äta" },
       { "id": "s5", "kind": "serious", "text": "Känner att andra är emot mig" }
+    ],
+    "actions": [
+      { "kind": "action_yellow", "text": "Håll fasta tider för sömn och mat" },
+      { "kind": "action_red", "text": "Ring min vårdkontakt i dag" },
+      { "kind": "action_red", "text": "Be någon jag litar på att vara med mig i kväll" }
     ],
     "context": [
       { "kind": "false_alarm", "text": "Storhandla inför helger och fester är inte att handla saker jag inte behöver" },
@@ -160,8 +165,9 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
     },
     {
       "id": "allvarligt-ensamt",
-      "name": "Ett allvarligt tecken ensamt ger gult",
+      "name": "Ett allvarligt tecken ensamt ger gult, med planens åtgärder vid rött",
       "expected": "yellow",
+      "redActions": true,
       "history": "gron_vecka",
       "entry": {
         "time": "21:00",
@@ -181,6 +187,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "id": "allvarligt-plus-annat",
       "name": "Ett allvarligt tecken och ett tidigt tecken ger rött",
       "expected": "red",
+      "redActions": true,
       "history": "gron_vecka",
       "entry": {
         "time": "21:15",

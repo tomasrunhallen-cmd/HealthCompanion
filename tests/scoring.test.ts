@@ -1,4 +1,4 @@
-import { assessEntry, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep } from '../src/analysis/assess';
+import { assessEntry, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep, seriousActions } from '../src/analysis/assess';
 import { addDays, eveningDateKey } from '../src/analysis/dates';
 import { computeBaseline, levelFromSignals, score, silentDaysBefore, silentDaysUntil } from '../src/analysis/scoring';
 import { loadTestSuite } from '../src/analysis/testcases';
@@ -179,5 +179,27 @@ describe('sentence and actions', () => {
     });
     expect(a.method).toBe('llm_fallback');
     expect(a.level).toBe('yellow');
+  });
+});
+
+describe('a serious sign shows the plan\'s actions at red', () => {
+  const plan: PlanItem[] = [
+    { id: 's', kind: 'serious', text: 'Slutar äta', order: 0, approvedAt: '2026-01-01' },
+    { id: 'r1', kind: 'action_red', text: 'Ring vårdkontakten', order: 0, approvedAt: '2026-01-01' },
+    { id: 'y1', kind: 'action_yellow', text: 'Vila', order: 0, approvedAt: '2026-01-01' },
+  ];
+  const serious = { kind: 'serious_sign' as const, points: 2, label: 'Slutar äta', measured: false };
+
+  it('gives the red actions, whatever the level, and changes neither level nor points', () => {
+    expect(seriousActions({ signals: [serious] }, plan)?.map((p) => p.id)).toEqual(['r1']);
+  });
+
+  it('gives an empty list when the plan has no actions at red, so the screen can say so', () => {
+    expect(seriousActions({ signals: [serious] }, plan.filter((p) => p.kind !== 'action_red'))).toEqual([]);
+  });
+
+  it('gives nothing without a serious sign, or when the emergency rule has its own card', () => {
+    expect(seriousActions({ signals: [{ ...serious, kind: 'early_sign', points: 1 }] }, plan)).toBeNull();
+    expect(seriousActions({ signals: [serious], akut: true }, plan)).toBeNull();
   });
 });

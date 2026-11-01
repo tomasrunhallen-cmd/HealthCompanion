@@ -218,7 +218,7 @@ describe('Testa modellen', () => {
   it('approves a model that gives the reference answer in every case', async () => {
     const suite = loadTestSuite();
     const report = await runModelTest(createCompleter(referenceAdapter(suite.cases)), 'referenssvar');
-    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.1.0' });
+    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.2.0' });
     expect(report.cases.every((c) => c.ok && c.error == null)).toBe(true);
     expect(differingCases(report)).toEqual([]);
   });

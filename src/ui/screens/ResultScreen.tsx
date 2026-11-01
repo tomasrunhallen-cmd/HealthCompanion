@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { actionsForLevel, firstStep } from '../../analysis/assess';
+import { actionsForLevel, firstStep, SERIOUS_INTRO, seriousActions } from '../../analysis/assess';
 import { formatDateSv, formatTime } from '../../analysis/dates';
 import { explainAssessment } from '../../analysis/explain';
 import { CrisisCard } from '../CrisisCard';
@@ -51,6 +51,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
   const measured = a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut');
   const first = a.level === 'green' ? null : firstStep(a.level, plan);
+  // A serious sign shows the plan's red steps, also when the level is yellow.
+  const serious = seriousActions(a, plan);
 
   return (
     <Screen
@@ -69,7 +71,20 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         <P style={{ textAlign: 'center', marginTop: space.m }}>{a.sentence}</P>
       </Card>
 
-      {a.level === 'red' && !a.akut && (
+      {serious && (
+        <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
+          <Text style={type.h2}>Åtgärder vid rött</Text>
+          <P style={{ marginTop: space.xs }}>{SERIOUS_INTRO}</P>
+          {serious.length ? serious.map((p, i) => (
+            <P key={p.id} style={{ marginTop: space.xs }}>{`${i + 1}. ${p.text}`}</P>
+          )) : (
+            <P style={{ marginTop: space.xs }}>Din plan har ingen åtgärd vid rött ännu. Lägg till en under Min krisplan.</P>
+          )}
+          <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen. Det är du som bestämmer vad du gör.</P>
+        </Card>
+      )}
+
+      {a.level === 'red' && !a.akut && !serious && (
         <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
           <Text style={type.h2}>Rekommendation</Text>
           <P style={{ marginTop: space.xs }}>
@@ -107,7 +122,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
 
       <CorrectionBox assessment={a} />
 
-      {actions.length > 0 && (
+      {actions.length > 0 && !(serious && a.level === 'red') && (
         <Section title={a.level === 'red' ? 'Åtgärder vid rött' : 'Åtgärder vid gult'}>
           <Card>
             {actions.map((p, i) => (
