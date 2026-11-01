@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { eveningDateKey, formatDateSv } from '../../core/analysis/dates';
 import { buildContext } from '../../core/context/buildContext';
 import { KIND_TEXT, LAYER_TEXT, ORIGIN_TEXT } from '../../core/context/labels';
@@ -10,8 +10,7 @@ import { useDialog, useRepo } from '../state';
 import { monthlyDue, runProfileReview } from '../../services/profile';
 import { CONTEXT_FILES, exportAll, parseLayer } from '../../core/context/markdown';
 import { pickImportFile, saveExportFile } from '../../platform/files';
-import { Platform } from 'react-native';
-import { colors, space, type } from '../theme';
+import { colors, MIN_TOUCH, space, type } from '../theme';
 
 /** Kinds the user adds here. Plan rows are added under Min krisplan; corrections after an assessment. */
 const ADDABLE: Record<ContextLayer, ContextKind[]> = {
@@ -77,10 +76,12 @@ function EntryRow({ e }: { e: ContextEntry }) {
       {isAkut ? <Text style={[type.small, { marginTop: 2 }]}>Skickas aldrig till en språkmodell.</Text> : null}
       <Row style={{ marginTop: space.xs, gap: space.l }}>
         {e.kind !== 'medication_taken' ? (
-          <Pressable onPress={() => setEditing(true)} hitSlop={8}><Text style={link}>Ändra</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Ändra: ${e.text || KIND_TEXT[e.kind]}`} onPress={() => setEditing(true)} style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}><Text style={link}>Ändra</Text></Pressable>
         ) : null}
         <Pressable
-          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Radera: ${e.text || KIND_TEXT[e.kind]}`}
+          style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}
           onPress={async () => {
             const ok = await dialog.confirm({ title: 'Radera posten?', message: e.text || KIND_TEXT[e.kind], confirmLabel: 'Radera', danger: true });
             if (ok) await repo.removeContextEntry(e.id);

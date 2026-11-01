@@ -103,6 +103,17 @@ Alla par klarar 4,5:1 i båda lägena. HIG:s önskemål om 7:1 för små texter 
   - Veckoraden läses dag för dag, till exempel "måndag 26 oktober: Grönt".
   - Diagrammen i Trend har en sammanfattning, och samma siffror finns som lista.
 - **Reduce Motion.** Stackarna byter från glidning till toning när inställningen är på. Appen har inga andra animationer.
+- **Knappar med tecken som titel har en egen etikett.** Till exempel läses *−* vid sömnen som "Mindre sömn, en halvtimme", och *−15 min* som "15 minuter tidigare". Knappar vars titel inte säger vad som händer har en ledtråd, till exempel *Inte nu*: "Kortet visas igen i morgon".
+- **Ihopfällbara delar** (`Disclosure`) läses som en knapp med tillståndet expanderad eller hopfälld.
+
+### Enkelhet: en sak i taget
+
+> "Disclosure controls … hide and reveal information …" (Disclosure controls)
+> "Prioritize the most important content." (Layout)
+
+- **Startsidan visar ett kort åt gången.** Bara ett kort visas under knapparna för avstämningen. Tänkbara kort är tystnad, att lägga in planen, en händelse i morgon, sömnnotisen, första veckan, sömnkällan, förslag, profilgenomgång, påminnelse om allmänna tecken och rutiner i dag. Kortet med högst prioritet visas. *Inte nu* döljer det till i morgon, och då visas nästa. Under kortet står hur många som väntar. Ordningen ligger i `src/core/analysis/homeCards.ts`, med tester. Säkerhet och det som gäller i dag kommer först, påminnelser om appen sist.
+- **Bedömningen talar patientens språk.** Överst står nivån, meningen och vad planen säger att du ska göra. Därefter *Det här syntes i dag*, utan poäng. Poäng, underlag, baslinje, metod, modell och regelversion ligger under *Så räknade appen*. Den delen är hopfälld från början och är till för den som vill veta, och för granskare.
+- **Avstämningen börjar med anteckningen.** Ordningen är anteckningen, stämning och energi, sömn och stress, medicin, rutiner i dag och sist veckofrågan om händelser. Texten om att Whisper kräver en utvecklingsbuild är borttagen. Kvar finns en mening om att tangentbordets diktering kan skicka ljud till Apple eller Google. Frågan om alkohol, sjukdom och träning är ett reglage med en förklaring i stället för en knapp.
 
 ### Layout
 

@@ -21,6 +21,7 @@ export async function scheduleReminder(hour: number, minute: number): Promise<{ 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('reminder', {
       name: 'Kvällspåminnelse',
+      // eslint-disable-next-line import/namespace -- the enum is re-exported with export *, which the rule cannot follow
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
@@ -55,6 +56,7 @@ export async function scheduleRoutineReminder(id: string, text: string, hour: nu
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('routines', {
       name: 'Rutiner',
+      // eslint-disable-next-line import/namespace -- the enum is re-exported with export *, which the rule cannot follow
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }

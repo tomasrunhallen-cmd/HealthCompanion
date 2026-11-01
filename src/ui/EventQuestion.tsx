@@ -1,4 +1,4 @@
-// "Något stort på gång kommande veckan?" Once a week, first in the check-in. One tap for a day.
+// "Något stort på gång kommande veckan?" Once a week, last in the check-in. One tap for a day.
 
 import React, { useState } from 'react';
 import { Text } from 'react-native';

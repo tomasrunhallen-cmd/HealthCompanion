@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
@@ -8,8 +8,9 @@ import { logHeavyDay } from '../../services/checkin';
 import { standardNudgeWeek } from '../../core/context/standard';
 import { startWithStandard, unconfirmedStandard } from '../../services/standard';
 import { dueNow, runProfileReview } from '../../services/profile';
-import { Platform } from 'react-native';
 import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
+import { homeQueue, laterToday, putAside, type HomeCard, type HomeLater } from '../../core/analysis/homeCards';
+import type { Level } from '../../core/domain/types';
 import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
 import { RoutinesToday } from '../RoutinesToday';
@@ -21,6 +22,8 @@ import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
+
+const HOME_LATER_KEY = 'homeLater';
 
 export function HomeScreen() {
   const repo = useRepo();
@@ -62,11 +65,11 @@ export function HomeScreen() {
 
   const chooseStandard = async () => {
     const ok = await dialog.confirm({
-      title: 'Börja med standard?',
+      title: 'Börja med allmänna tecken?',
       message:
         'Appen lägger in allmänna tecken och åtgärder som ofta står i krisplaner. De kan bara ge gult, aldrig rött, ' +
         'tills du bekräftat eller ersatt dem med din egen plan. Du kan ändra och ta bort allt under Min krisplan.',
-      confirmLabel: 'Börja med standard',
+      confirmLabel: 'Börja',
     });
     if (ok) await startWithStandard(repo);
   };
@@ -127,121 +130,154 @@ export function HomeScreen() {
     );
   }
 
+  // One card at a time, highest priority first (core/analysis/homeCards.ts).
+  const pending = showSuggestions ? repo.pendingSuggestions().length : 0;
+  const candidates: HomeCard[] = [
+    silent >= RULES.silenceDays ? { kind: 'silence' as const, id: `silence_${silent}` } : null,
+    !hasSigns ? { kind: 'start' as const, id: 'start' } : null,
+    ...tomorrow.map((t) => ({ kind: 'tomorrow' as const, id: `tomorrow_${t.date}_${t.event}` })),
+    sleepNote ? { kind: 'sleepNotice' as const, id: 'sleepNotice' } : null,
+    fw?.weekPicture ? { kind: 'weekPicture' as const, id: 'weekPicture' } : null,
+    fw?.offerSleepSource ? { kind: 'sleepSource' as const, id: 'sleepSource' } : null,
+    pending ? { kind: 'suggestions' as const, id: 'suggestions' } : null,
+    showSuggestions && due ? { kind: 'review' as const, id: `review_${due.reason}` } : null,
+    nudgeWeek != null ? { kind: 'standardNudge' as const, id: 'standardNudge' } : null,
+    repo.contextOf('routine').length ? { kind: 'routines' as const, id: 'routines' } : null,
+  ].filter((c): c is HomeCard => c != null);
+  const queue = homeQueue(candidates, laterToday(repo.kvGet(HOME_LATER_KEY) as HomeLater | null, today));
+  const card = queue[0] ?? null;
+  const later = (id: string) => repo.kvSet(HOME_LATER_KEY, putAside(repo.kvGet(HOME_LATER_KEY) as HomeLater | null, today, id));
+  const notNow = (id: string) => (
+    <Button kind="ghost" title="Inte nu" hint="Kortet visas igen i morgon" onPress={() => later(id)} />
+  );
+
+  const renderCard = (c: HomeCard) => {
+    switch (c.kind) {
+      case 'silence':
+        return (
+          <Card tone="yellow" style={{ borderColor: colors.yellow }}>
+            <Row>
+              <Dot level="yellow" size={20} />
+              <Text style={[type.h2, { color: colors.text, flexShrink: 1 }]} accessibilityRole="header">{silent} dagar utan avstämning</Text>
+            </Row>
+            <P style={{ marginTop: space.xs }}>
+              Det räknas som ett tidigt tecken i nästa bedömning.
+              {firstYellow ? ` Första steget i din plan: ${firstYellow.text}` : ''}
+            </P>
+            {notNow(c.id)}
+          </Card>
+        );
+      case 'start':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">Lägg in din krisplan</Text>
+            <P style={{ marginTop: space.xs, marginBottom: space.m }}>
+              Appen jämför din anteckning med tecknen i din krisplan. Har du ingen plan till hands kan du börja med allmänna
+              tecken och byta till din egen senare.
+            </P>
+            <Button title="Lägg in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
+            <Button kind="secondary" title="Börja med allmänna tecken" onPress={chooseStandard} />
+            {notNow(c.id)}
+          </Card>
+        );
+      case 'tomorrow': {
+        const t = tomorrow.find((x) => `tomorrow_${x.date}_${x.event}` === c.id)!;
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">I morgon: {t.event}</Text>
+            {t.trigger ? <P style={{ marginTop: space.xs }}>Din plan nämner det som en risksituation: ”{t.trigger}”.</P> : null}
+            {t.routines.length ? (
+              <>
+                <P style={{ marginTop: space.xs }}>Din plan:</P>
+                {t.routines.map((r) => <P key={r}>{`• ${r}`}</P>)}
+              </>
+            ) : null}
+            {notNow(c.id)}
+          </Card>
+        );
+      }
+      case 'sleepNotice':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">{sleepNote!.title}</Text>
+            <P style={{ marginTop: space.xs }}>{sleepNote!.body}</P>
+            <P muted style={{ marginTop: space.xs }}>En påminnelse om din egen plan. Den påverkar inte nivån.</P>
+            <Button kind="ghost" title="Okej" onPress={() => repo.kvSet(NOTICE_KEY, { ...sleepNote, dismissed: true })} />
+          </Card>
+        );
+      case 'weekPicture':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">Din första vecka</Text>
+            <WeekRow week={week} fontScale={fontScale} />
+            <P style={{ marginTop: space.s }}>{GREEN_MEANS}</P>
+            <P muted style={{ marginTop: space.xs }}>Gult betyder att ett eller flera av dina tecken syntes. Rött betyder att flera syntes, eller ett allvarligt tillsammans med ett annat.</P>
+            <Button kind="ghost" title="Okej" onPress={() => markFirstWeek(repo, 'weekPicture')} />
+          </Card>
+        );
+      case 'sleepSource':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">Sömnen gör bedömningen bättre</Text>
+            <P style={{ marginTop: space.xs }}>Koppla din Garmin, eller ange sömnen själv i kvällens avstämning. Du väljer.</P>
+            <Button title="Koppla Garmin" onPress={() => nav.push({ name: 'garmin' })} />
+            <Button kind="ghost" title="Jag anger sömnen själv" onPress={() => markFirstWeek(repo, 'sleepSource')} />
+          </Card>
+        );
+      case 'suggestions':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">{pending === 1 ? 'Ett förslag väntar' : `${pending} förslag väntar`}</Text>
+            <P style={{ marginTop: space.xs }}>Appen ändrar inget om dig förrän du godkänt det.</P>
+            <Button title="Granska" onPress={() => nav.push({ name: 'suggestions' })} />
+            {notNow(c.id)}
+          </Card>
+        );
+      case 'review':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">Dags att se över din profil</Text>
+            <P style={{ marginTop: space.xs, marginBottom: space.m }}>
+              {due!.reason === 'period'
+                ? 'En period med gult eller rött i mer än tre dagar är över. Appen kan föreslå vad som kan läggas till i din profil.'
+                : 'En månad har gått. Appen kan föreslå ändringar i din profil utifrån dina anteckningar.'}{' '}
+              Du godkänner varje förslag själv.
+            </P>
+            <Button title="Gå igenom" onPress={review} busy={reviewing} />
+            {notNow(c.id)}
+          </Card>
+        );
+      case 'standardNudge':
+        return (
+          <Card tone="accent">
+            <Text style={type.h2} accessibilityRole="header">Din plan bygger på allmänna tecken</Text>
+            <P style={{ marginTop: space.xs, marginBottom: space.m }}>
+              Allmänna tecken kan bara ge gult. Lägg in din egen krisplan när du kan, eller bekräfta de rader som stämmer för dig
+              under Min krisplan.
+            </P>
+            <Button title="Lägg in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
+            <Button kind="ghost" title="Påminn mig nästa vecka" onPress={() => repo.updateSettings({ standardNudgeDismissedWeek: nudgeWeek! })} />
+          </Card>
+        );
+      case 'routines':
+        return <RoutinesToday />;
+    }
+  };
+
   return (
     <Screen title="Dagsljus">
       <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
 
-      {!hasSigns && (
-        <Card tone="accent">
-          <Text style={type.h2}>Hur vill du börja?</Text>
-          <P style={{ marginTop: space.xs, marginBottom: space.m }}>
-            Appen jämför din anteckning med tecknen i din krisplan. Har du ingen plan till hands kan du börja med
-            allmänna tecken och byta till din egen senare.
-          </P>
-          <P muted style={{ marginBottom: space.m }}>{MEDICAL_REMINDER}</P>
-          <Button title="Ladda in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
-          <Button kind="secondary" title="Börja med standard" onPress={chooseStandard} />
-        </Card>
-      )}
-
-      {showSuggestions && repo.pendingSuggestions().length > 0 && (
-        <Pressable onPress={() => nav.push({ name: 'suggestions' })} accessibilityRole="button">
-          <Card tone="accent">
-            <Text style={type.h2}>{repo.pendingSuggestions().length === 1 ? 'Ett förslag väntar' : `${repo.pendingSuggestions().length} förslag väntar`}</Text>
-            <P style={{ marginTop: space.xs }}>Appen ändrar inget om dig förrän du godkänt det.</P>
-            <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Granska ›</Text>
-          </Card>
-        </Pressable>
-      )}
-
-      {showSuggestions && due && (
-        <Card tone="accent">
-          <Text style={type.h2}>Dags att se över din profil</Text>
-          <P style={{ marginTop: space.xs, marginBottom: space.m }}>
-            {due.reason === 'period'
-              ? 'En period med gult eller rött i mer än tre dagar är över. Appen kan föreslå hur perioden utvecklades och vad som kan läggas till i din profil.'
-              : 'En månad har gått. Appen kan föreslå ändringar i din profil utifrån dina anteckningar.'}{' '}
-            Du godkänner varje förslag själv.
-          </P>
-          <Button title="Gå igenom" onPress={review} busy={reviewing} />
-        </Card>
-      )}
-
-      {nudgeWeek != null && (
-        <Card tone="accent">
-          <Text style={type.h2}>Din plan bygger på standardinnehåll</Text>
-          <P style={{ marginTop: space.xs, marginBottom: space.m }}>
-            Standardtecken kan bara ge gult. Lägg in din egen krisplan när du kan, eller bekräfta de rader som stämmer för
-            dig under Min krisplan.
-          </P>
-          <Button title="Ladda in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
-          <Button kind="ghost" title="Påminn mig nästa vecka" onPress={() => repo.updateSettings({ standardNudgeDismissedWeek: nudgeWeek })} />
-        </Card>
-      )}
-
-      {silent >= RULES.silenceDays && (
-        <Card tone="yellow" style={{ borderColor: colors.yellow }}>
-          <Text style={[type.h2, { color: colors.text }]}>Gult: {silent} dagar utan inlägg</Text>
-          <P style={{ marginTop: space.xs }}>
-            Tystnaden räknas som ett tecken i nästa bedömning.
-            {firstYellow ? ` Första steget i din plan: ${firstYellow.text}` : ''}
-          </P>
-        </Card>
-      )}
-
-      {fw?.weekPicture ? (
-        <Card tone="accent">
-          <Text style={type.h2} accessibilityRole="header">Din första vecka</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.m, marginTop: space.s }}>
-            {week.map((d) => (
-              <View key={d.date} accessible accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`} style={{ alignItems: 'center', gap: 4 }}>
-                <Dot level={d.level} size={22} />
-                <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
-              </View>
-            ))}
-          </View>
-          <P style={{ marginTop: space.s }}>{GREEN_MEANS}</P>
-          <P muted style={{ marginTop: space.xs }}>Gult betyder att ett eller flera av dina tecken syntes. Rött betyder att flera syntes, eller ett allvarligt tillsammans med ett annat.</P>
-          <Button kind="ghost" title="Okej" onPress={() => markFirstWeek(repo, 'weekPicture')} />
-        </Card>
-      ) : null}
-
-      {fw?.offerSleepSource ? (
-        <Card tone="accent">
-          <Text style={type.h2} accessibilityRole="header">Sömnen gör bedömningen bättre</Text>
-          <P style={{ marginTop: space.xs }}>Koppla din Garmin, eller ange sömnen själv i kvällens avstämning. Du väljer.</P>
-          <Button title="Koppla Garmin" onPress={() => nav.push({ name: 'garmin' })} />
-          <Button kind="ghost" title="Jag anger sömnen själv" onPress={() => markFirstWeek(repo, 'sleepSource')} />
-        </Card>
-      ) : null}
-
-      {tomorrow.map((t) => (
-        <Card key={t.event + t.date} tone="accent">
-          <Text style={type.h2} accessibilityRole="header">I morgon: {t.event}</Text>
-          {t.trigger ? <P style={{ marginTop: space.xs }}>Din plan nämner det som en risksituation: ”{t.trigger}”.</P> : null}
-          {t.routines.length ? (
-            <>
-              <P style={{ marginTop: space.xs }}>Din plan:</P>
-              {t.routines.map((r) => <P key={r}>{`• ${r}`}</P>)}
-            </>
-          ) : null}
-        </Card>
-      ))}
-
-      {sleepNote ? (
-        <Card tone="accent">
-          <Text style={type.h2} accessibilityRole="header">{sleepNote.title}</Text>
-          <P style={{ marginTop: space.xs }}>{sleepNote.body}</P>
-          <P muted style={{ marginTop: space.xs }}>Det här ger inga poäng. Det är bara en påminnelse om din egen plan.</P>
-          <Button kind="ghost" title="Okej" onPress={() => repo.kvSet(NOTICE_KEY, { ...sleepNote, dismissed: true })} />
-        </Card>
-      ) : null}
-
       {todayAssessment ? (
-        <Pressable onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })} accessibilityRole="button">
+        <Pressable
+          onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
+          accessibilityRole="button"
+          accessibilityLabel={`I kväll: ${LEVEL_TEXT[todayAssessment.level]}. ${displaySentence(todayAssessment)}`}
+          accessibilityHint="Visar bedömningen"
+        >
           <Card tone={todayAssessment.level}>
             <Row>
-              <Dot level={todayAssessment.level} size={18} />
+              <Dot level={todayAssessment.level} size={20} />
               <Text style={[type.h2, { color: levelColor(todayAssessment.level) }]}>
                 I kväll: {LEVEL_TEXT[todayAssessment.level]}
               </Text>
@@ -262,30 +298,43 @@ export function HomeScreen() {
       <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
       <P muted style={{ textAlign: 'center', marginTop: space.xs }}>Loggar dagen som tung, utan frågor.</P>
 
-      <View style={{ marginTop: space.xl }}>
-        <RoutinesToday />
-      </View>
+      {card ? (
+        <View style={{ marginTop: space.xl }}>
+          {renderCard(card)}
+          {queue.length > 1 ? (
+            <Text style={[type.small, { textAlign: 'center' }]}>
+              {queue.length === 2 ? 'En sak till väntar.' : `${queue.length - 1} saker till väntar.`}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <Section title="Senaste veckan" right={<Button kind="ghost" title="Alla dagar" onPress={() => nav.push({ name: 'history' })} />}>
         <Card>
-          {/* HIG: fewer columns at large text sizes, so nothing is cut off. */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: fontScale > 1.4 ? 'flex-start' : 'space-between', rowGap: space.m, columnGap: space.m }}>
-            {week.map((d) => (
-              <View
-                key={d.date}
-                style={{ alignItems: 'center', gap: 6, minWidth: 36 }}
-                accessible
-                accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`}
-              >
-                <Dot level={d.level} size={22} />
-                <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
-              </View>
-            ))}
-          </View>
+          <WeekRow week={week} fontScale={fontScale} />
         </Card>
       </Section>
 
-      <Button kind="ghost" title="Lågt läge: bara avstämningen" onPress={() => repo.updateSettings({ lowMode: true })} />
+      <Button kind="ghost" title="Lågt läge: bara avstämningen" hint="Döljer allt utom avstämningen och Hjälp nu" onPress={() => repo.updateSettings({ lowMode: true })} />
     </Screen>
+  );
+}
+
+/** Seven days with their level. HIG: fewer columns at large text sizes, so nothing is cut off. */
+function WeekRow({ week, fontScale }: { week: { date: string; level: Level | null }[]; fontScale: number }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: fontScale > 1.4 ? 'flex-start' : 'space-between', rowGap: space.m, columnGap: space.m, marginTop: space.s }}>
+      {week.map((d) => (
+        <View
+          key={d.date}
+          style={{ alignItems: 'center', gap: 6, minWidth: 36 }}
+          accessible
+          accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`}
+        >
+          <Dot level={d.level} size={22} />
+          <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
+        </View>
+      ))}
+    </View>
   );
 }

@@ -74,9 +74,9 @@ function RoutineCard({ e, stat }: { e: ContextEntry; stat: { answered: number; d
           />
         )}
         <Row style={{ marginTop: space.xs }}>
-          <Button kind="secondary" title="−15 min" onPress={() => move(-15)} />
+          <Button kind="secondary" title="−15 min" label="15 minuter tidigare" onPress={() => move(-15)} />
           <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]} accessibilityLabel={`Påminnelse klockan ${shown}`}>{shown}</Text>
-          <Button kind="secondary" title="+15 min" onPress={() => move(15)} />
+          <Button kind="secondary" title="+15 min" label="15 minuter senare" onPress={() => move(15)} />
         </Row>
         {reminderViaCalendar ? (
           <Button title="Lägg till i kalendern" onPress={() => remind(true, shown)} />

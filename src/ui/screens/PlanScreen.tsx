@@ -198,9 +198,9 @@ export function PlanScreen() {
       <Section title="Sömngräns">
         <Card>
           <Row>
-            <Button kind="secondary" title="−" onPress={() => { const v = Math.max(2, threshold - 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
+            <Button kind="secondary" title="−" label="Sänk gränsen en halvtimme" onPress={() => { const v = Math.max(2, threshold - 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
             <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]} accessibilityLabel={`Sömngräns ${threshold} timmar`}>{String(threshold).replace('.', ',')} h</Text>
-            <Button kind="secondary" title="+" onPress={() => { const v = Math.min(10, threshold + 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
+            <Button kind="secondary" title="+" label="Höj gränsen en halvtimme" onPress={() => { const v = Math.min(10, threshold + 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
           </Row>
           <P muted>Sömn under gränsen räknas som ett tidigt tecken. Standard är 5 timmar.</P>
           {ps.sleepWindow ? <P muted style={{ marginTop: space.s }}>Planens sömnfönster: {ps.sleepWindow.start}–{ps.sleepWindow.end}.</P> : null}

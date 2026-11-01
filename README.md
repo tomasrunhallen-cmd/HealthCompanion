@@ -142,7 +142,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 465 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 4 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 471 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 4 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -285,6 +285,14 @@ Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poän
 10. **Första veckan:** dag 1 bara avstämningen, från dag 3 förslag på sömnkälla, dag 7 veckobilden med vad grönt betyder.
 
 PDF:erna görs på telefonen med `expo-print` och öppnas i delningsarket. I webbversionen öppnas utskriften, där personen väljer *Spara som PDF*. Appen skickar inget själv.
+
+### Enkelhet
+
+- **Startsidan visar ett kort åt gången**, i prioritetsordning: tystnad, lägg in planen, händelse i morgon, sömnnotis, första veckan, sömnkälla, förslag, profilgenomgång, allmänna tecken och rutiner i dag. *Inte nu* skjuter kortet till i morgon och visar nästa. Ordningen ligger i `src/core/analysis/homeCards.ts`.
+- **Bedömningen** visar nivån, vad planen säger och *Det här syntes i dag* utan poäng. Poäng, underlag, baslinje, metod och regelversion ligger hopfällt under *Så räknade appen*.
+- **Avstämningen** börjar med anteckningen. Veckofrågan om händelser ligger sist.
+
+Mer om varför står i `DESIGN.md` under *Enkelhet: en sak i taget*.
 
 ## Krisplansimporten
 

@@ -17,7 +17,7 @@ import { PACE_TEXT } from '../../core/analysis/signals';
 import { Button, Segmented, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
-import { colors, space, type } from '../theme';
+import { colors, MIN_TOUCH, space, type } from '../theme';
 
 function shiftClock(t: string, minutes: number): string {
   const total = (Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)) + minutes + 24 * 60) % (24 * 60);
@@ -156,9 +156,9 @@ export function SettingsScreen() {
             />
           )}
           <Row style={{ marginTop: space.m }}>
-            <Button kind="secondary" title="−15 min" onPress={() => shiftTime(-15)} />
+            <Button kind="secondary" title="−15 min" label="15 minuter tidigare" onPress={() => shiftTime(-15)} />
             <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]}>{pad(s.reminderHour)}:{pad(s.reminderMinute)}</Text>
-            <Button kind="secondary" title="+15 min" onPress={() => shiftTime(15)} />
+            <Button kind="secondary" title="+15 min" label="15 minuter senare" onPress={() => shiftTime(15)} />
           </Row>
           {reminderViaCalendar ? (
             <Button title="Lägg till i kalendern" onPress={() => applyReminder(true, s.reminderHour, s.reminderMinute)} />
@@ -279,7 +279,8 @@ export function SettingsScreen() {
               <Pressable
                 key={n}
                 onPress={() => repo.updateSettings({ scrubNames: s.scrubNames.filter((x) => x !== n) })}
-                style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}
+                style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, minHeight: MIN_TOUCH, justifyContent: 'center' }}
+                accessibilityRole="button"
                 accessibilityLabel={`Ta bort ${n}`}
               >
                 <Text style={type.body}>{n} ✕</Text>

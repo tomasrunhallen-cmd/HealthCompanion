@@ -12,16 +12,12 @@ import { EventQuestion } from '../EventQuestion';
 import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
 import { FROM_SOURCE, MANUAL_STRESS, sleepSourceOf, stressSourceOf } from '../../core/analysis/sources';
-import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
+import { Button, Card, Chip, Field, P, Row, Screen, Toggle } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
 import { colors, MIN_TOUCH, paletteHex, space, type } from '../theme';
 
-const QUESTIONS = [
-  'Hur har du sovit?',
-  'Hur är tempot i huvudet i kväll?',
-  'Var det något som stack ut i dag?',
-];
+const QUESTIONS = 'Skriv några meningar, till exempel om hur du sovit, hur tempot i huvudet är i kväll och om något stack ut i dag.';
 
 function Scale(props: { label: string; value: number; onChange: (v: number) => void; low: string; high: string }) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
@@ -126,22 +122,15 @@ export function CheckinScreen() {
         </Card>
       ) : null}
 
-      <EventQuestion />
-
-      <Card>
-        {QUESTIONS.map((q, i) => (
-          <Text key={q} style={[type.body, { fontWeight: '600', marginBottom: i < 2 ? space.s : 0 }]}>
-            {i + 1}. {q}
-          </Text>
-        ))}
-      </Card>
-
+      <Text style={type.h2} accessibilityRole="header">Hur har dagen varit?</Text>
+      <Text style={[type.small, { marginTop: space.xs, marginBottom: space.s }]}>{QUESTIONS}</Text>
       <Field
-        label="DIN ANTECKNING"
+        accessibilityLabel="Din anteckning"
+        accessibilityHint={QUESTIONS}
         value={text}
         onChangeText={setText}
         multiline
-        placeholder="Skriv eller prata in några meningar…"
+        placeholder="Några meningar om dagen…"
         autoCorrect
         hint={
           garminSleep != null
@@ -151,9 +140,16 @@ export function CheckinScreen() {
               : 'Tips: skriv till exempel ”sov sex timmar” så räknas sömnen med.'
         }
       />
+      <P muted style={{ marginTop: -space.s, marginBottom: space.l }}>
+        Du kan prata in med tangentbordets mikrofon. Då kan ljudet gå till Apple eller Google, beroende på telefonens inställningar.
+      </P>
       {akut ? <CrisisCard plan={repo.plan()} mild={akut === 'mild'} /> : null}
+
+      <Scale label="Stämning" value={mood} onChange={setMood} low="1 Mycket låg" high="10 Mycket hög" />
+      <Scale label="Energi" value={energy} onChange={setEnergy} low="1 Ingen" high="10 Väldigt mycket" />
+
       <Card>
-        <Text style={type.label} accessibilityRole="header">SÖMN OCH STRESS</Text>
+        <Text style={type.h2} accessibilityRole="header">Sömn och stress</Text>
         {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
           <P style={{ marginTop: space.xs }}>
             {[
@@ -163,17 +159,17 @@ export function CheckinScreen() {
               garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg} ${FROM_SOURCE[stressSourceOf(garmin) ?? 'garmin']}` : null,
             ].filter(Boolean).join(', ') + '.'}
           </P>
-        ) : (
-          <P muted style={{ marginTop: space.xs }}>Inga mätvärden för i dag. Ange själv om du vill.</P>
-        )}
-        <Text style={[type.small, { marginTop: space.s }]}>Egen uppgift går före klockan och telefonens hälsoapp.</Text>
+        ) : null}
+        <P muted style={{ marginTop: space.xs }}>
+          {garmin && (garminSleep != null || garmin.stressAvg != null) ? 'Stämmer det inte, ange själv. Det du anger gäller.' : 'Ange själv om du vill.'}
+        </P>
         <Row style={{ marginTop: space.s }}>
           <Text style={[type.body, { flex: 1 }]}>Sömn i natt</Text>
-          <Button kind="secondary" title="−" onPress={() => setManualSleep(Math.max(0, (manualSleep ?? garminSleep ?? sleep ?? 7) - 0.5))} />
-          <Text style={[type.h2, { minWidth: 72, textAlign: 'center' }]} accessibilityLabel={manualSleep != null ? `Sömn ${manualSleep} timmar` : 'Sömn inte angiven'}>
-            {manualSleep != null ? `${String(manualSleep).replace('.', ',')} h` : '–'}
+          <Button kind="secondary" title="−" label="Mindre sömn, en halvtimme" onPress={() => setManualSleep(Math.max(0, (manualSleep ?? garminSleep ?? sleep ?? 7) - 0.5))} />
+          <Text style={[manualSleep != null ? type.h2 : type.small, { minWidth: 72, textAlign: 'center' }]} accessibilityLiveRegion="polite" accessibilityLabel={manualSleep != null ? `Sömn ${manualSleep} timmar` : 'Sömn inte angiven'}>
+            {manualSleep != null ? `${String(manualSleep).replace('.', ',')} h` : 'Inte angiven'}
           </Text>
-          <Button kind="secondary" title="+" onPress={() => setManualSleep(Math.min(16, (manualSleep ?? garminSleep ?? sleep ?? 7) + 0.5))} />
+          <Button kind="secondary" title="+" label="Mer sömn, en halvtimme" onPress={() => setManualSleep(Math.min(16, (manualSleep ?? garminSleep ?? sleep ?? 7) + 0.5))} />
         </Row>
         <Text style={[type.body, { marginTop: space.s }]}>Stress i dag</Text>
         <Row style={{ marginTop: space.xs }}>
@@ -182,35 +178,27 @@ export function CheckinScreen() {
               onPress={() => setManualStress(manualStress === MANUAL_STRESS[k] ? null : MANUAL_STRESS[k])} />
           ))}
         </Row>
-        <P muted style={{ marginTop: space.s }}>Uppdateras när du sparar. Dagens och veckans värden följer med till bedömningen, med källan.</P>
-      </Card>
-      <Card tone="accent">
-        <P muted>
-          Inspelning med taligenkänning på telefonen (Whisper) kräver en utvecklingsbuild och läggs till senare.
-          Till dess kan du skriva, eller använda tangentbordets mikrofon. Observera att tangentbordets diktering kan
-          skicka ljud till Apple eller Google, beroende på telefonens inställningar.
-        </P>
+        <View style={{ marginTop: space.m }}>
+          <Toggle
+            label="Alkohol, sjuk eller hård träning i går?"
+            value={strain}
+            onChange={setStrain}
+            hint={strain ? 'Sömn och stress räknas inte i dag.' : 'Då räknas inte sömn och stress i dag.'}
+          />
+        </View>
       </Card>
 
       {hasMedication ? (
-        <View style={{ marginBottom: space.l }}>
-          <Text style={type.label}>TOG DU DIN MEDICIN I DAG?</Text>
+        <Card>
+          <Text style={type.h2} accessibilityRole="header">Tog du din medicin i dag?</Text>
           <Row style={{ marginTop: space.xs }}>
             <Chip label="Ja" selected={medication === true} onPress={() => setMedication(medication === true ? null : true)} />
             <Chip label="Nej" selected={medication === false} onPress={() => setMedication(medication === false ? null : false)} />
           </Row>
-        </View>
+        </Card>
       ) : null}
       <RoutinesToday compact />
-
-      <View style={{ marginBottom: space.l }}>
-        <Row>
-          <Chip label="Alkohol, sjuk eller hård träning i går?" selected={strain} onPress={() => setStrain(!strain)} />
-        </Row>
-        {strain ? <Text style={[type.small, { marginTop: space.xs }]}>Sömn och stress räknas inte i dag.</Text> : null}
-      </View>
-      <Scale label="Stämning" value={mood} onChange={setMood} low="1 Mycket låg" high="10 Mycket hög" />
-      <Scale label="Energi" value={energy} onChange={setEnergy} low="1 Ingen" high="10 Väldigt mycket" />
+      <EventQuestion />
     </Screen>
   );
 }

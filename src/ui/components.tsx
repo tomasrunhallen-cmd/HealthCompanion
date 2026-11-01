@@ -3,12 +3,12 @@ import { useNavigation } from '@react-navigation/native';
 import { SymbolView } from 'expo-symbols';
 import React, { useContext, useLayoutEffect } from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useColorScheme, View,
   type ColorValue, type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Level } from '../core/domain/types';
-import { colors, LEVEL_TEXT, levelColor, levelSoft, MIN_TOUCH, radius, space, type } from './theme';
+import { colors, LEVEL_TEXT, levelColor, levelSoft, MIN_TOUCH, paletteHex, radius, space, type } from './theme';
 
 /**
  * A screen inside a native stack. The title goes to the native navigation bar (large on
@@ -61,6 +61,10 @@ export function Button(props: {
   busy?: boolean;
   big?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** What VoiceOver reads instead of the title, e.g. "Minska sömnen" for "−". */
+  label?: string;
+  /** What happens when pressed, when the title does not say it (VoiceOver hint). */
+  hint?: string;
 }) {
   const kind = props.kind ?? 'primary';
   const bg =
@@ -69,7 +73,8 @@ export function Button(props: {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={props.title}
+      accessibilityLabel={props.label ?? props.title}
+      accessibilityHint={props.hint}
       accessibilityState={{ disabled: !!props.disabled, busy: !!props.busy }}
       disabled={props.disabled || props.busy}
       onPress={props.onPress}
@@ -234,6 +239,42 @@ export function Section(props: { title: string; children: React.ReactNode; right
         {props.right}
       </View>
       {props.children}
+    </View>
+  );
+}
+
+/**
+ * A section that opens on a tap (HIG: Disclosure controls). Closed by default, so detail for
+ * the curious, such as how the level was counted, does not stand between the person and what
+ * matters. VoiceOver reads it as a button that is expanded or collapsed.
+ */
+export function Disclosure(props: { title: string; detail?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = React.useState(!!props.defaultOpen);
+  const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
+  return (
+    <View style={{ marginTop: space.xl }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={props.detail ? `${props.title}, ${props.detail}` : props.title}
+        accessibilityState={{ expanded: open }}
+        accessibilityHint={open ? 'Döljer delen' : 'Visar delen'}
+        onPress={() => setOpen(!open)}
+        style={({ pressed }) => ({ minHeight: MIN_TOUCH, flexDirection: 'row', alignItems: 'center', gap: space.s, opacity: pressed ? 0.6 : 1, marginBottom: space.s })}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={type.h2}>{props.title}</Text>
+          {props.detail ? <Text style={type.small}>{props.detail}</Text> : null}
+        </View>
+        <SymbolView
+          name={{ ios: open ? 'chevron.up' : 'chevron.down', android: open ? 'expand_less' : 'expand_more', web: open ? 'expand_less' : 'expand_more' } as never}
+          size={16}
+          tintColor={paletteHex('textMuted', mode)}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+          fallback={<Text style={type.small}>{open ? '▲' : '▼'}</Text>}
+        />
+      </Pressable>
+      {open ? props.children : null}
     </View>
   );
 }

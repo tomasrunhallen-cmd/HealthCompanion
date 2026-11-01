@@ -70,6 +70,7 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
   }, [props.repo]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- unlocking on start is the point of the effect
     tryUnlock();
     const sub = AppState.addEventListener('change', (next) => {
       if (appState.current === 'background' && next === 'active') {
@@ -147,6 +148,7 @@ export default function App() {
   useEffect(() => (cloudConfigured ? onUserChanged(setUser) : undefined), []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the old account's data must go before the new one opens
     setRepo(null);
     if (user === undefined || (cloudConfigured && user === null)) return;
     if (cloudConfigured && !vault) return;

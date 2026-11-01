@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { decideSuggestion } from '../../services/corrections';
 import { KIND_TEXT } from '../../core/context/labels';
@@ -13,8 +13,10 @@ export function SuggestionsScreen() {
   const repo = useRepo();
   const pending = repo.pendingSuggestions();
   const s = pending[0];
-  const [text, setText] = useState(s?.change.text ?? '');
-  useEffect(() => setText(s?.change.text ?? ''), [s?.id]);
+  // The edited text belongs to one proposal; the next proposal starts from its own text.
+  const [draft, setDraft] = useState<{ id: string | undefined; text: string }>({ id: s?.id, text: s?.change.text ?? '' });
+  const text = draft.id === s?.id ? draft.text : (s?.change.text ?? '');
+  const setText = (t: string) => setDraft({ id: s?.id, text: t });
 
   return (
     <Screen title="Förslag" back>
