@@ -115,6 +115,8 @@ export interface ContextEntry {
   importId?: string | null;
   /** grund: the crisis plan row's fields. The entry's kind follows from them. */
   plan?: PlanFields | null;
+  /** grund: the crisis plan block the row was made from. */
+  blockId?: string | null;
   /** grund, kind routine: whether it is logged in the evening check-in, and a daily reminder time. */
   routine?: RoutineSettings | null;
   /** dagligt, kind routine_done: the routine it is about, and whether it was done that day. */
@@ -396,6 +398,11 @@ export interface AppSettings {
   standardSince: string | null;
   /** Week number (since standardSince) of the last dismissed reminder to replace standard content. */
   standardNudgeDismissedWeek: number | null;
+  /**
+   * The plan's routines at early signs are followed: the person turned it on because the signs
+   * point up or down. Their routines then show in "Rutiner i dag" next to the daily ones.
+   */
+  planMode?: { direction: 'up' | 'down'; since: DateKey } | null;
 }
 
 export const DEFAULT_PLAN_SETTINGS: PlanSettings = {

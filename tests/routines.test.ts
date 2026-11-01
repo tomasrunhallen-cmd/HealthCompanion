@@ -70,7 +70,7 @@ describe('routines from the plan', () => {
     for (const [day, done] of [['2026-11-01', true], ['2026-11-02', false], ['2026-11-03', true]] as const) {
       await saveCheckin(repo, { ...input, routines: { [med.id]: done } }, new Date(`${day}T21:00:00`));
     }
-    expect(routineSummary(repo.contextEntries(), '2026-11-03')).toEqual({ done: ['Tar min medicin klockan 21'], answered: 1 });
+    expect(routineSummary(repo.contextEntries(), '2026-11-03', 6)).toEqual({ done: ['Tar min medicin klockan 21'], answered: 6 });
     expect(routineSummary(repo.contextEntries(), '2026-10-30')).toBeNull();
     const stat = routineStats(repo.contextEntries(), '2026-11-03').find((s) => s.routine.id === med.id)!;
     expect([stat.answered, stat.done]).toEqual([3, 2]);

@@ -8,7 +8,7 @@ import { correctionFor } from '../../services/corrections';
 import { MEDICAL_REMINDER } from '../../legal';
 import type { Signal } from '../../core/domain/types';
 import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../core/plan/guidance';
-import { routineSummary } from '../../core/plan/routines';
+import { routineSummary, routinesToday as routinesTodayList } from '../../core/plan/routines';
 import { SOURCE_TEXT } from '../../core/analysis/sources';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -59,7 +59,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const direction = a.akut ? null : directionSentence(dir, repo.planSettings());
   const actions = actionsForLevel(a.level, plan, dir);
   const routines = a.level === 'yellow' ? routinesFor(repo.contextOf('routine'), dir) : [];
-  const routinesToday = routineSummary(repo.contextEntries(), a.date);
+  const todays = routinesTodayList(repo.contextEntries(), repo.settings().planMode);
+  const routinesToday = routineSummary(repo.contextEntries(), a.date, todays.daily.length + todays.extra.length);
   const anchors = showValueAnchors(a, repo.assessments()) ? repo.contextOf('value_anchor').filter((e) => e.approvedAt) : [];
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
   const measured = a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut');
@@ -184,7 +185,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           <Card>
             <P>
               {routinesToday.done.length
-                ? `Du gjorde ${routinesToday.done.length} av ${routinesToday.answered} rutiner du svarade på.`
+                ? `Du gjorde ${routinesToday.done.length} av ${routinesToday.answered} rutiner i dag.`
                 : 'Ingen av rutinerna blev av i dag. Det räknas inte in i nivån.'}
             </P>
             {routinesToday.done.map((t) => <P key={t} muted style={{ marginTop: space.xs }}>{`✓ ${t}`}</P>)}

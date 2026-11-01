@@ -22,6 +22,21 @@ export function trackedRoutines(entries: ContextEntry[]): ContextEntry[] {
   return routines(entries).filter((e) => routineSettings(e).track);
 }
 
+export type PlanMode = { direction: 'up' | 'down' } | null | undefined;
+
+/**
+ * The routines to tick off today: the daily ones, and the routines for a direction while the
+ * person follows the plan for it (planMode). A routine the person turned off is left out.
+ */
+export function routinesToday(entries: ContextEntry[], mode: PlanMode): { daily: ContextEntry[]; extra: ContextEntry[] } {
+  const all = routines(entries).filter((e) => e.routine?.track !== false);
+  const pol = (e: ContextEntry) => e.plan?.polarity ?? 'both';
+  return {
+    daily: all.filter((e) => pol(e) === 'both'),
+    extra: mode ? all.filter((e) => pol(e) === mode.direction) : all.filter((e) => pol(e) !== 'both' && e.routine?.track === true),
+  };
+}
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
@@ -49,24 +64,30 @@ export function routineLog(entries: ContextEntry[], date: DateKey): Map<string, 
 
 export interface RoutineStat {
   routine: ContextEntry;
-  /** Days answered and days done in the period. */
+  /** Days in the period when the person ticked off any routine, and days this one was done. */
   answered: number;
   done: number;
 }
 
-/** How often each tracked routine was kept the last `days` evenings, up to and including `today`. */
+/**
+ * How often each routine was kept the last `days` days, up to and including `today`. Counted
+ * on the days the person ticked off routines at all, so a day without the app is not a miss.
+ */
 export function routineStats(entries: ContextEntry[], today: DateKey, days = 14): RoutineStat[] {
   const from = addDays(today, -(days - 1));
-  return trackedRoutines(entries).map((routine) => {
-    const answers = entries.filter((e) => e.kind === 'routine_done' && e.routineId === routine.id && e.date && e.date >= from && e.date <= today);
-    return { routine, answered: answers.length, done: answers.filter((e) => e.done).length };
-  });
+  const answers = entries.filter((e) => e.kind === 'routine_done' && e.date && e.date >= from && e.date <= today);
+  const logged = new Set(answers.map((e) => e.date)).size;
+  return routines(entries).map((routine) => ({
+    routine,
+    answered: logged,
+    done: new Set(answers.filter((e) => e.routineId === routine.id && e.done).map((e) => e.date)).size,
+  }));
 }
 
 /** The day's line on the result screen, in positive words: what was done. Null when nothing was answered. */
-export function routineSummary(entries: ContextEntry[], date: DateKey): { done: string[]; answered: number } | null {
+export function routineSummary(entries: ContextEntry[], date: DateKey, total?: number): { done: string[]; answered: number } | null {
   const log = routineLog(entries, date);
   if (!log.size) return null;
   const list = routines(entries);
-  return { done: list.filter((r) => log.get(r.id) === true).map((r) => r.text), answered: log.size };
+  return { done: list.filter((r) => log.get(r.id) === true).map((r) => r.text), answered: total ?? log.size };
 }

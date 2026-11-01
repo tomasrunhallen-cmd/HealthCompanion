@@ -1,6 +1,6 @@
 ---
 id: krisplan-rubriker
-version: 1.0.0
+version: 1.1.0
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Rubriker i krisplaner
@@ -14,6 +14,12 @@ Appen sorterar raderna i en krisplan efter planens egna rubriker, i koden och ut
 | Mönster | Nivå | Fält |
 | --- | --- | --- |
 | värdeankare, det som är viktigt för mig | huvud | kind=value_anchor |
+| det här gör jag vid tidiga tecken, det här gör jag vid tidiga varningstecken | huvud | kind=action when=early who=me |
+| det här gör mina närstående vid tidiga tecken, det här gör närstående vid tidiga tecken | huvud | kind=action when=early who=relative |
+| det här gör jag vid allvarlig försämring | huvud | kind=action when=serious who=me |
+| det här gör närstående och vården vid allvarlig försämring | huvud | kind=action when=serious who=relative |
+| tecken på allvarlig försämring | huvud | kind=sign severity=serious |
+| livsstil och rutiner varje dag, grundrutiner, dagliga rutiner | huvud | kind=routine polarity=both |
 | risksituationer, risksituation, utlösande faktorer, utlösare, triggers | huvud | kind=trigger |
 | tidiga varningstecken, tidiga tecken, tidiga signaler, varningstecken | huvud | kind=sign severity=early |
 | tecken som brukar tyda på allvarlig försämring, allvarlig försämring, allvarliga tecken, allvarliga varningstecken, sena tecken | huvud | kind=sign severity=serious |
@@ -25,8 +31,8 @@ Appen sorterar raderna i en krisplan efter planens egna rubriker, i koden och ut
 | rekommendationer, rekommendationer till vården, till vården | huvud | kind=note_for_care |
 | kontaktuppgifter, viktiga telefonnummer, telefonnummer, kontakter | huvud | kind=contact |
 | normalläge, när jag mår bra | huvud | special=normal |
-| mani, hypomani, manisk, uppvarvad, uppvarvning | under | polarity=up |
-| depression, depressiv, nedstämd, nedstämdhet | under | polarity=down |
+| mani, hypomani, manisk, uppvarvad, uppvarvning, uppåt | under | polarity=up |
+| depression, depressiv, nedstämd, nedstämdhet, nedåt | under | polarity=down |
 | tecken för omgivningen, tecken som andra ser, andra kan se, omgivningen | under | observer=others |
 | egna upplevelser, egna tecken, det jag själv märker | under | observer=self |
 | vad jag själv gör, egna åtgärder, jag själv | under | who=me |

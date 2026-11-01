@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
 import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
+import { RoutinesToday } from '../RoutinesToday';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
 
@@ -169,6 +170,10 @@ export function HomeScreen() {
       />
       <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
       <P muted style={{ textAlign: 'center', marginTop: space.xs }}>Loggar dagen som tung, utan frågor.</P>
+
+      <View style={{ marginTop: space.xl }}>
+        <RoutinesToday />
+      </View>
 
       <Section title="Senaste veckan" right={<Button kind="ghost" title="Alla dagar" onPress={() => nav.push({ name: 'history' })} />}>
         <Card>

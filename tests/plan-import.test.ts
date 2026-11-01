@@ -225,7 +225,7 @@ describe('the review (A1: a changed kind never moves a card)', () => {
 describe('the rules table', () => {
   it('parses context/krisplan-rubriker.md and lets the longest pattern win per field', () => {
     const rules = headingRules();
-    expect(rules.version).toBe('1.0.0');
+    expect(rules.version).toBe('1.1.0');
     expect(rules.headings.length).toBeGreaterThan(15);
     expect(matchHeading('Överenskomna åtgärder vid allvarlig försämring').fields).toMatchObject({ kind: 'action', when: 'serious' });
     expect(matchHeading('Tecken som brukar tyda på allvarlig försämring').fields).toMatchObject({ kind: 'sign', severity: 'serious' });

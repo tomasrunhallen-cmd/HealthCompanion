@@ -58,7 +58,7 @@ function RoutineCard({ e, stat }: { e: ContextEntry; stat: { answered: number; d
       ) : null}
       {stat && stat.answered ? (
         <Text style={[type.small, { marginTop: space.xs, color: colors.green }]}>
-          Gjord {stat.done} av {stat.answered} {stat.answered === 1 ? 'kväll' : 'kvällar'} du svarat de senaste 14 dagarna.
+          Gjord {stat.done} av {stat.answered} {stat.answered === 1 ? 'dag' : 'dagar'} du bockat av rutiner de senaste 14 dagarna.
         </Text>
       ) : null}
       <View style={{ marginTop: space.s }}>

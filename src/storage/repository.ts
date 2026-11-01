@@ -72,6 +72,7 @@ export interface NewContextEntry {
   routine?: RoutineSettings | null;
   routineId?: string | null;
   done?: boolean | null;
+  blockId?: string | null;
 }
 
 let idCounter = 0;
@@ -464,6 +465,7 @@ export class Repository {
       ...(input.taken !== undefined ? { taken: input.taken } : {}),
       ...(input.correction !== undefined ? { correction: input.correction } : {}),
       ...(input.routine !== undefined ? { routine: input.routine } : {}),
+      ...(input.blockId !== undefined ? { blockId: input.blockId } : {}),
       ...(input.routineId !== undefined ? { routineId: input.routineId } : {}),
       ...(input.done !== undefined ? { done: input.done } : {}),
       ...(layer === 'grund' && (input.plan ?? fieldsFromKind(input.kind)) ? { plan: input.plan ?? fieldsFromKind(input.kind) } : {}),

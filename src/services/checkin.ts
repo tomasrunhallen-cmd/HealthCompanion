@@ -84,7 +84,7 @@ export async function saveCheckin(
   if (input.medicationTaken != null) await setMedicationTaken(repo, date, input.medicationTaken);
   for (const [id, done] of Object.entries(input.routines ?? {})) {
     const routine = repo.findEntry(id);
-    if (routine?.kind === 'routine') await setRoutineDone(repo, date, routine, done);
+    if (routine?.kind === 'routine') await setRoutineDone(repo, date, routine, done, false);
   }
   // Fresh numbers for today's stress; on failure the stored values are used.
   if (!akut) await refreshForCheckin(repo, { ...garminOptions, now, timeoutMs: garminOptions.timeoutMs ?? budget.garminBudgetMs ?? GARMIN_BUDGET_MS });

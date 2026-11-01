@@ -98,9 +98,10 @@ export function buildTree(lines: SourceLine[]): PlanTree {
       lastLine = line;
       return;
     }
-    // Running text: joined with the line before when no blank line separates them.
+    // Running text: a line that starts in lower case continues the line before (text wrapped
+    // when copied). A line in upper case is a row of its own, as in a plan written one thing per line.
     const prev: PlanRow | null = last;
-    if (prev && !line.gapBefore && lastLine && !lastLine.heading && (prev.paragraph || /^[a-zåäö]/.test(line.text))) {
+    if (prev && !line.gapBefore && lastLine && !lastLine.heading && /^[a-zåäö0-9(]/.test(line.text)) {
       prev.text = `${prev.text} ${line.text}`.replace(/\s+/g, ' ');
     } else {
       last = add(line.text, { paragraph: true });
