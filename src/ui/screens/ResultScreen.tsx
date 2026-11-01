@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { actionsForLevel, displaySentence, firstStep, SERIOUS_INTRO, seriousActions } from '../../analysis/assess';
-import { formatDateSv, formatTime } from '../../analysis/dates';
+import { formatDateSv, formatDateSvYear, formatTime } from '../../analysis/dates';
 import { explainAssessment } from '../../analysis/explain';
 import { CrisisCard } from '../CrisisCard';
 import { CorrectionBox } from '../CorrectionBox';
@@ -16,6 +16,7 @@ const METHOD_TEXT = {
   llm: 'Tecknen tolkades av din språkmodell. Nivån räknades i appen.',
   llm_fallback: 'Språkmodellen svarade inte som den skulle, så ordmatchning användes i stället.',
   none: 'Ingen text att jämföra med.',
+  import: 'Dagen importerades från din tidigare dagbok. Tecknen kom från hur du kopplade dagbokens kolumner till dina tecken, och från ordmatchning i anteckningen. Nivån räknades i appen.',
 };
 
 function SignalRow({ s }: { s: Signal }) {
@@ -56,12 +57,12 @@ export function ResultScreen({ entryId }: { entryId: string }) {
 
   return (
     <Screen
-      title={entry.kind === 'heavy' ? 'Dagen är loggad' : 'Kvällens bedömning'}
+      title={entry.kind === 'heavy' ? 'Dagen är loggad' : entry.kind === 'imported' ? 'Importerad dag' : 'Kvällens bedömning'}
       back
       footer={<Button title="Till startsidan" onPress={() => nav.reset()} />}
     >
       <Text style={[type.small, { marginTop: -space.s, marginBottom: space.l }]}>
-        {formatDateSv(a.date)}, inlägg {formatTime(entry.createdAt)}
+        {entry.kind === 'imported' ? `${formatDateSvYear(a.date)}, importerad` : `${formatDateSv(a.date)}, inlägg ${formatTime(entry.createdAt)}`}
       </Text>
 
       {a.akut ? <CrisisCard plan={plan} /> : a.akutMild ? <CrisisCard plan={plan} mild /> : null}

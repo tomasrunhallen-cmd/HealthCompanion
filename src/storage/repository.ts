@@ -4,7 +4,7 @@ import { buildHistory, type HistoryDay } from '../analysis/scoring';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
   type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
-  type Correction, type DateKey, type Suggestion, type Entry, type GarminDay, type PlanItem, type PlanItemKind, type PlanSettings,
+  type Correction, type DateKey, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
 import { addDays } from '../analysis/dates';
 import type { SentRequest, Usage } from '../adapter/types';
@@ -33,6 +33,21 @@ export interface GarminStatus {
 export const DEFAULT_GARMIN_STATUS: GarminStatus = { connected: false, lastSyncAt: null, lastError: null };
 
 const GARMIN_KEEP_DAYS = 120;
+export const GARMIN_MONTH_PREFIX = 'garminMonth:';
+
+/** One import from another diary, kept so it can be shown and removed. */
+export interface ImportRecord {
+  id: string;
+  source: ImportSource;
+  at: string;
+  from: DateKey;
+  to: DateKey;
+  days: number;
+  /** Diary item to plan sign id, or null for ignored. */
+  mapping: Record<string, string | null>;
+  /** Dates already written in Dagsljus, left as they were. */
+  skipped: number;
+}
 
 /** Version 2: crisis plan and normal state moved into the context bank. */
 export const SCHEMA_VERSION = 2;
@@ -243,6 +258,85 @@ export class Repository {
     this.changed();
   }
 
+  // ---- Garmin history, one document per month ----
+  /** Older measured days, fetched for an import from another diary. Kept apart from the 120-day window. */
+  garminArchive(): Record<DateKey, GarminDay> {
+    const out: Record<DateKey, GarminDay> = {};
+    for (const [k, v] of Object.entries(this.snap.kv)) {
+      if (k.startsWith(GARMIN_MONTH_PREFIX)) Object.assign(out, v as Record<DateKey, GarminDay>);
+    }
+    return out;
+  }
+
+  /** The archive and the recent window together; the recent window wins on overlap. */
+  allGarminDays(): Record<DateKey, GarminDay> {
+    return { ...this.garminArchive(), ...this.garminDays() };
+  }
+
+  async saveGarminArchive(days: GarminDay[]): Promise<void> {
+    const months = new Map<string, GarminDay[]>();
+    for (const d of days) {
+      const m = d.date.slice(0, 7);
+      months.set(m, [...(months.get(m) ?? []), d]);
+    }
+    for (const [m, list] of months) {
+      const key = `${GARMIN_MONTH_PREFIX}${m}`;
+      const next = { ...((this.snap.kv[key] as Record<DateKey, GarminDay> | undefined) ?? {}) };
+      for (const d of list) next[d.date] = d;
+      this.snap.kv[key] = next;
+      await this.backend.put('kv', key, next);
+    }
+    if (months.size) this.changed();
+  }
+
+  // ---- imports from another diary ----
+  imports(): ImportRecord[] {
+    return (this.snap.kv.imports as ImportRecord[] | undefined) ?? [];
+  }
+
+  /** Saves a whole import in one go and records it, so it can be removed again. */
+  async saveImport(record: ImportRecord, entries: Entry[], assessments: Assessment[], context: ContextEntry[]): Promise<void> {
+    for (const e of entries) {
+      this.snap.entries[e.id] = e;
+      await this.backend.put('entries', e.id, e);
+    }
+    for (const a of assessments) {
+      this.snap.assessments[a.id] = a;
+      await this.backend.put('assessments', a.id, a);
+    }
+    for (const c of context) {
+      this.snap[c.layer][c.id] = c;
+      await this.backend.put(c.layer, c.id, c);
+    }
+    const list = [...this.imports().filter((r) => r.id !== record.id), record];
+    this.snap.kv.imports = list;
+    await this.backend.put('kv', 'imports', list);
+    this.changed();
+  }
+
+  /** Removes every day, assessment and context entry an import created. Days written in Dagsljus stay. */
+  async removeImport(importId: string): Promise<number> {
+    const entries = this.entries().filter((e) => e.imported?.importId === importId);
+    const ids = new Set(entries.map((e) => e.id));
+    for (const e of entries) {
+      delete this.snap.entries[e.id];
+      await this.backend.remove('entries', e.id);
+    }
+    for (const a of this.assessments().filter((x) => ids.has(x.entryId))) {
+      delete this.snap.assessments[a.id];
+      await this.backend.remove('assessments', a.id);
+    }
+    for (const c of this.contextEntries().filter((x) => x.importId === importId)) {
+      delete this.snap[c.layer][c.id];
+      await this.backend.remove(c.layer, c.id);
+    }
+    const list = this.imports().filter((r) => r.id !== importId);
+    this.snap.kv.imports = list;
+    await this.backend.put('kv', 'imports', list);
+    this.changed();
+    return entries.length;
+  }
+
   // ---- small app state ----
   kvGet(key: string): unknown {
     return this.snap.kv[key];
@@ -410,7 +504,13 @@ export class Repository {
   }
 
   assessmentFor(entryId: string): Assessment | null {
-    return this.assessments().find((a) => a.entryId === entryId) ?? null;
+    // Direct lookup: with years of imported days, sorting on every call is too slow.
+    return (Object.values(this.snap.assessments) as Assessment[]).find((a) => a.entryId === entryId) ?? null;
+  }
+
+  /** Assessments by entry id, for lists of many days. */
+  assessmentsByEntry(): Map<string, Assessment> {
+    return new Map((Object.values(this.snap.assessments) as Assessment[]).map((a) => [a.entryId, a]));
   }
 
   history(): HistoryDay[] {

@@ -142,13 +142,35 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 262 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 289 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
 Testfallen ligger i `prompts/testfall.md`, se *Testfall och modellbyte* nedan. Varje fall har ett referenssvar, och testerna skickar referenssvaren genom hela LLM-vägen och kontrollerar nivån. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
 
 Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster, eftersom det kräver dina nycklar. Det är det som verifieringen på telefonen visar. Garmin-flödet är provkört i webbförhandsvisningen med fejkade svar: fel nyckel, rätt nyckel, veckovyn, avstämningen och texten till modellen.
+
+## Import från en annan dagbok
+
+*Inställningar*, *Importera dagbok* läser årsrapporterna från **Bipolär dagbok** (CSV-filer, en per år, flera på en gång). Filerna läses i appen. Ingenting skickas till någon språkmodell.
+
+1. **Granska.** Appen visar varje fil, antalet ifyllda dagar och perioden. Dagar där formuläret är tomt ("-" överallt) hoppas över. Ett datum som redan finns i Dagsljus lämnas som det är.
+2. **Koppla.** Varje punkt i dagboken som förekommer, till exempel "Ångest", "Handlat Mer Än Vanligt" eller "Lågt Humör: Nedstämdhet", visas med antal dagar. En punkt ger poäng bara om du kopplar den till ett av dina tecken i krisplanen. Appen föreslår kopplingar där orden liknar varandra. Allt annat ignoreras tills du väljer.
+3. **Garmin för samma period.** Om Garmin är anslutet hämtar appen sömn och stress för hela perioden, nyast först, 28 dagar i taget. Värdena sparas i ett arkiv med ett dokument per månad, skilt från de senaste 120 dagarna. Säger Garmin stopp fortsätter hämtningen där den slutade nästa gång. Har Garmin inget under tre omgångar i rad slutar appen fråga, eftersom klockan då inte användes.
+4. **Räkna.** Varje dag får sin nivå med samma regler i koden som en vanlig kväll, äldsta dagen först, så att tidigare dagar räknas som historik för senare. Akutregeln körs på varje anteckning.
+
+| I dagboken | I Dagsljus |
+| --- | --- |
+| Anteckningar | Dagens text. "-" blir tom |
+| Högt Humör, Lågt Humör | Stämning 1–10: Balanserad 5, Glädje 7, Uppvarvning 9, de tre nivåerna av lågt humör 4, 3 och 2. Ett lågt värde går före ett högt samma dag |
+| Medicin NEJ | Medicin inte tagen. Två kvällar i rad ger 1 poäng. JA sparas bara på dagen |
+| Alkohol JA | Ja på *Alkohol, sjuk eller hård träning i går?* dagen efter |
+| Raden "Sömn: … ca 7 h" | Sömn, om Garmin saknar natten. Värden under 3 timmar ur texten används inte |
+| Övriga JA-punkter | Poäng bara via din koppling till ett tecken |
+| Energi, klockslag | Finns inte i dagboken och lämnas tomma |
+| Tomma dagar | Dagar utan inlägg, som i Dagsljus |
+
+Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bort i sin helhet under *Importera dagbok*, och då ligger det du skrivit i Dagsljus och de hämtade Garmin-värdena kvar. Historiken visar 60 dagar i taget, med årtal på äldre dagar.
 
 ## Testfall och modellbyte
 

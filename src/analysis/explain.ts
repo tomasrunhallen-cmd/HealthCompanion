@@ -86,12 +86,14 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');
   if (garmin?.bodyBatteryWake != null) data.push(`Body Battery ${garmin.bodyBatteryWake} vid uppvaknandet`);
   if (entry.kind === 'checkin') data.push(`Inlägget gjordes ${formatTime(entry.createdAt)}`);
+  if (entry.kind === 'imported') data.push('Importerad från din tidigare dagbok. Klockslag saknas, så regeln om inlägg mitt i natten användes inte');
 
   if (a.akut) data.push('Anteckningen jämfördes bara på telefonen. Den skickades inte till någon språkmodell');
   else if (a.akutMild) data.push('Anteckningen nämnde tankar på att inte vilja leva, med en negation. Krisrutan visades, men dagen räknades som vanligt. Anteckningen skickades inte till någon språkmodell');
   else if (a.method === 'llm') data.push(`Tecknen tolkades av ${a.model ?? 'din språkmodell'}, med dagens och veckans mätvärden som bakgrund`);
   else if (a.method === 'llm_fallback') data.push('Språkmodellen svarade inte, så tecknen hittades med ordmatchning');
   else if (a.method === 'wordmatch') data.push('Tecknen hittades med ordmatchning på telefonen');
+  else if (a.method === 'import') data.push('Tecknen kom från hur du kopplade dagbokens kolumner till dina tecken, och från ordmatchning i anteckningen');
 
   if (a.baseline.greenDays < RULES.baselineMinSamples) {
     data.push(`Baslinjen är inte klar: ${a.baseline.greenDays} av ${RULES.baselineMinSamples} gröna dagar`);

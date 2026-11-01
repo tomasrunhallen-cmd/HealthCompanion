@@ -281,6 +281,13 @@ export function SettingsScreen() {
         </Section>
       ) : null}
 
+      <Section title="Importera från annan dagbok">
+        <Card>
+          <P muted>Årsrapporter från Bipolär dagbok, med Garmin för samma period. Du kopplar dagbokens punkter till dina tecken innan något sparas.</P>
+          <Button kind="secondary" title="Importera dagbok" onPress={() => nav.push({ name: 'importDiary' })} />
+        </Card>
+      </Section>
+
       <Section title="Exportera allt">
         <Card>
           <P muted>

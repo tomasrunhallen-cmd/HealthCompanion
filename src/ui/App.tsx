@@ -22,6 +22,7 @@ import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SignInScreen } from './screens/SignInScreen';
 import { VaultScreen } from './screens/VaultScreen';
+import { ImportDiaryScreen } from './screens/ImportDiaryScreen';
 import type { Vault } from '../cloud/vault';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { DialogProvider, RepoProvider } from './state';
@@ -41,6 +42,7 @@ function renderRoute(route: Route) {
     case 'knowledge': return <KnowledgeScreen />;
     case 'privacy': return <PrivacyScreen />;
     case 'history': return <HistoryScreen />;
+    case 'importDiary': return <ImportDiaryScreen />;
   }
 }
 

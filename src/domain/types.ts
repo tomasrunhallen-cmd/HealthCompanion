@@ -78,6 +78,8 @@ export interface ContextEntry {
   taken?: boolean | null;
   /** dagligt, kind correction. */
   correction?: Correction | null;
+  /** Set on entries created by an import from another diary, so the import can be undone. */
+  importId?: string | null;
 }
 
 /**
@@ -124,7 +126,8 @@ export interface PlanSettings {
   sleepThresholdHours: number;
 }
 
-export type EntryKind = 'checkin' | 'heavy';
+/** imported: a day brought in from another mood diary; it has no clock time. */
+export type EntryKind = 'checkin' | 'heavy' | 'imported';
 
 export type SleepSource = 'garmin' | 'transcript';
 
@@ -148,7 +151,18 @@ export interface Entry {
   stressAvg: number | null;
   /** "Alkohol, sjuk eller hård träning i går?" Yes: the sleep and stress rules give 0 points that day. */
   strainYesterday?: boolean | null;
+  /** Days brought in from another diary: which import, and the day's original values. */
+  imported?: ImportedFrom;
 }
+
+export interface ImportedFrom {
+  importId: string;
+  source: ImportSource;
+  /** The original row's filled-in values, column by column, except the note. */
+  values: Record<string, string>;
+}
+
+export type ImportSource = 'bipolar-dagbok';
 
 /** One day of measured values from the user's own Garmin account. */
 export interface GarminDay {
@@ -206,7 +220,8 @@ export interface Signal {
   capped?: boolean;
 }
 
-export type MatchMethod = 'wordmatch' | 'llm' | 'llm_fallback' | 'none';
+/** import: signs came from the user's own mapping of another diary's columns, plus word matching. */
+export type MatchMethod = 'wordmatch' | 'llm' | 'llm_fallback' | 'none' | 'import';
 
 /** Which rule decided the level, so the app can explain it. */
 export type LevelReason =

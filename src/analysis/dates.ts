@@ -54,6 +54,19 @@ export function formatDateSvTitle(key: DateKey): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** "1 augusti 2025": for periods that span years. */
+export function formatDateSvYear(key: DateKey): string {
+  const [y, m, d] = key.split('-').map(Number);
+  const months = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+  return `${d} ${months[m - 1]} ${y}`;
+}
+
+/** Like formatDateSvTitle, with the year added when it is not this year (imported days go back years). */
+export function formatDateSvTitleYear(key: DateKey, now = new Date()): string {
+  const s = formatDateSvTitle(key);
+  return key.slice(0, 4) === String(now.getFullYear()) ? s : `${s} ${key.slice(0, 4)}`;
+}
+
 export function formatTime(iso: string): string {
   const d = new Date(iso);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;

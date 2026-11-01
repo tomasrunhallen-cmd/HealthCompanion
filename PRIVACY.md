@@ -85,6 +85,10 @@ Text till språkmodellen går direkt från webbläsaren till leverantören, rens
 
 Firebase-projektet ska inte ha Google Analytics påslaget. Appen laddar bara inloggning och Firestore.
 
+## Import från en annan dagbok
+
+Årsrapporter från Bipolär dagbok läses på enheten och sparas som vanliga dagar, krypterade på samma sätt som allt annat. Ingenting från importen skickas till någon språkmodell. Nivån för varje importerad dag räknas i koden. Garmin-värden för samma period hämtas med användarens egen nyckel och sparas på samma sätt som de senaste dagarnas. En import kan tas bort i sin helhet.
+
 ## Användarens rättigheter
 
 - *Exportera allt* skapar en krypterad fil med all data.

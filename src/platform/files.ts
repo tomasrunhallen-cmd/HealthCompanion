@@ -33,3 +33,20 @@ export async function pickImportFile(types: string[] = ['application/json', '.js
     input.click();
   });
 }
+
+/** Several text files at once, for an import from another diary. Empty when cancelled. */
+export async function pickTextFiles(types: string[] = ['.csv', 'text/csv']): Promise<{ name: string; text: string }[]> {
+  const doc = (globalThis as { document?: any }).document;
+  if (!doc) return [];
+  return new Promise((resolve) => {
+    const input = doc.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = types.join(',');
+    input.onchange = async () => {
+      const list = Array.from((input.files ?? []) as ArrayLike<{ name: string; text(): Promise<string> }>);
+      resolve(await Promise.all(list.map(async (f) => ({ name: f.name, text: await f.text() }))));
+    };
+    input.click();
+  });
+}

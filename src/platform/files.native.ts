@@ -40,3 +40,20 @@ export async function pickImportFile(types: string[] = ['application/json', '*/*
   }
   return text;
 }
+
+/** Several text files at once, for an import from another diary. Empty when cancelled. */
+export async function pickTextFiles(types: string[] = ['text/csv', 'text/comma-separated-values', 'text/plain', '*/*']): Promise<{ name: string; text: string }[]> {
+  const res = await DocumentPicker.getDocumentAsync({ type: types, copyToCacheDirectory: true, multiple: true });
+  if (res.canceled || !res.assets?.length) return [];
+  const out: { name: string; text: string }[] = [];
+  for (const a of res.assets) {
+    const file = new File(a.uri);
+    out.push({ name: a.name, text: await file.text() });
+    try {
+      file.delete();
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
+}

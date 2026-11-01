@@ -16,7 +16,8 @@ export type Route =
   | { name: 'suggestions' }
   | { name: 'knowledge' }
   | { name: 'privacy' }
-  | { name: 'history' };
+  | { name: 'history' }
+  | { name: 'importDiary' };
 
 interface Nav {
   route: Route;
