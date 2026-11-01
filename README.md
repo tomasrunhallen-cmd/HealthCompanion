@@ -264,6 +264,10 @@ Så används fälten. Poäng och nivå ändras inte.
 - Önskemål, rader till vården och kontakter används aldrig i bedömningen och skickas aldrig till en modell.
 - Ett sömnfönster i planen, som *Sömn 22:30–07:00*, föreslås för sömnregeln efter sparandet och gäller först när du godkänner det.
 
+### Rutiner och livsstil
+
+Raderna under *Livsstil och rutiner* blir rutiner. Under *Jag → Rutiner* väljer du vilka du vill bocka av i kvällens avstämning och vilka du vill bli påmind om. Rutiner som gäller båda hållen bockas av från början. De som bara gäller vid tecken åt ett håll väljer du själv. Påminnelsens tid föreslås ur planens ord: *klockan 21* ger 21:00, och sömnfönstret *22:30–07:00* ger 22:00, en halvtimme före läggdags. På telefonen är påminnelsen en lokal notis med rutinens ord. I webbversionen är den en kalenderhändelse som bara heter *Dagsljus: din rutin*, så rutinens ord lämnar aldrig telefonen. I avstämningen svarar du *Gjort* eller *Inte i dag*. Bedömningen visar det du gjorde, och skärmen *Rutiner* visar hur ofta du gjort varje rutin de senaste 14 dagarna. Loggningen ändrar aldrig nivån och skickas aldrig till en modell.
+
 `fixtures/krisplan-exempel.md`, `.pdf` och `.facit.json` är en påhittad plan med 92 rader, sidhuvud med påhittat namn och personnummer och fyra sidor. `node fixtures/make-krisplan-exempel.js --pdf` bygger om dem. Lägg aldrig in en verklig plan i repot. `npm run plan:check` kör importen mot riktiga modeller och jämför med facit:
 
 ```bash

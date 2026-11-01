@@ -45,3 +45,44 @@ export async function cancelReminder(): Promise<void> {
 export const reminderViaCalendar = false;
 
 export const cancelHint: string | null = null;
+
+const routineId = (id: string) => `dagsljus-routine-${id}`;
+
+/** A daily reminder for one routine from the plan. The routine's own words are the notification text. */
+export async function scheduleRoutineReminder(id: string, text: string, hour: number, minute: number): Promise<{ ok: boolean; message: string }> {
+  const perm = await Notifications.requestPermissionsAsync();
+  if (!perm.granted) return { ok: false, message: 'Påminnelser är avstängda för Dagsljus i telefonens inställningar.' };
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('routines', {
+      name: 'Rutiner',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+  }
+  await Notifications.cancelScheduledNotificationAsync(routineId(id)).catch(() => undefined);
+  await Notifications.scheduleNotificationAsync({
+    identifier: routineId(id),
+    content: { title: 'Din rutin', body: text },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+      channelId: Platform.OS === 'android' ? 'routines' : undefined,
+    },
+  });
+  return { ok: true, message: 'Påminnelsen är inställd.' };
+}
+
+export async function cancelRoutineReminder(id: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(routineId(id)).catch(() => undefined);
+}
+
+/** Cancels routine reminders whose routine no longer exists (removed elsewhere in the app). */
+export async function cancelOrphanRoutineReminders(keep: string[]): Promise<void> {
+  const keepIds = new Set(keep.map(routineId));
+  const all = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
+  for (const n of all) {
+    if (n.identifier.startsWith('dagsljus-routine-') && !keepIds.has(n.identifier)) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => undefined);
+    }
+  }
+}

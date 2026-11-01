@@ -5,6 +5,7 @@ import { eveningDateKey } from '../analysis/dates';
 import { parseSleepHours } from '../analysis/sleep';
 import type { Assessment, Entry } from '../domain/types';
 import { akutLevel } from '../context/akut';
+import { setRoutineDone } from '../plan/routines';
 import type { Repository } from '../storage/repository';
 import { refreshForCheckin, type GarminOptions } from './garmin';
 import { currentMatcher, type AdapterOptions } from './llm';
@@ -19,6 +20,8 @@ export interface CheckinInput {
   medicationTaken?: boolean | null;
   /** "Alkohol, sjuk eller hård träning i går?" One tap; yes puts sleep, late sleep and stress at 0. */
   strainYesterday?: boolean;
+  /** Routines ticked off this evening, by routine id; null removes an earlier answer. Never part of the assessment. */
+  routines?: Record<string, boolean | null>;
 }
 
 /** One medication answer per evening; a new answer replaces the old. */
@@ -42,6 +45,10 @@ export async function saveCheckin(
   // A negated match ("vill inte dö") shows a gentler card; the note still never goes to a model.
   const akutMild = level === 'mild';
   if (input.medicationTaken != null) await setMedicationTaken(repo, date, input.medicationTaken);
+  for (const [id, done] of Object.entries(input.routines ?? {})) {
+    const routine = repo.findEntry(id);
+    if (routine?.kind === 'routine') await setRoutineDone(repo, date, routine, done);
+  }
   // Fresh numbers for today's stress; on failure the stored values are used.
   if (!akut) await refreshForCheckin(repo, { ...garminOptions, now });
   const g = repo.garminDay(date);

@@ -128,6 +128,7 @@ export function PlanScreen() {
               {other} rader om risksituationer, livsstil och rutiner, värdeankare, kontakter, önskemål och information till vården
               finns under Det appen vet om mig. Önskemål, kontakter och rader till vården används aldrig i bedömningen och skickas aldrig till en språkmodell.
             </P>
+            <Button kind="ghost" title="Rutiner: påminnelser och avbockning" onPress={() => nav.push({ name: 'routines' })} />
             <Button kind="ghost" title="Visa Det appen vet om mig" onPress={() => nav.push({ name: 'knowledge' })} />
           </Card>
         </Section>

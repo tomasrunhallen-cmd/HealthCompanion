@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { decryptBackup, encryptBackup, type BackupFile } from '../../backup/crypto';
 import { pickImportFile, randomBytes, saveExportFile } from '../../platform/files';
 import { clearPin, lockSupport, setPin, usesPin, type LockSupport } from '../../platform/lock';
@@ -12,28 +12,13 @@ import { deleteSecret } from '../../platform/secrets';
 import { LLM_KEY_NAME } from '../../services/llm';
 import { GARMIN_KEY_NAME } from '../../services/garmin';
 import { signOutUser } from '../../cloud/firebase';
-import { Button, Card, Field, P, Row, Screen, Section } from '../components';
+import { Button, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
 
 function pad(n: number) {
   return n < 10 ? `0${n}` : String(n);
-}
-
-function Toggle(props: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
-  return (
-    <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
-      <Text style={[type.body, { flex: 1, fontWeight: '600' }]}>{props.label}</Text>
-      <Switch
-        accessibilityLabel={props.label}
-        value={props.value}
-        onValueChange={props.onChange}
-        disabled={props.disabled}
-        trackColor={{ true: colors.accent, false: colors.border }}
-      />
-    </Row>
-  );
 }
 
 export function SettingsScreen() {

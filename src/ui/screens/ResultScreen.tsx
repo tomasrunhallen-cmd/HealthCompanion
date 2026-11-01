@@ -8,6 +8,7 @@ import { correctionFor } from '../../context/corrections';
 import { MEDICAL_REMINDER } from '../../legal';
 import type { Signal } from '../../domain/types';
 import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../plan/guidance';
+import { routineSummary } from '../../plan/routines';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -55,6 +56,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const direction = a.akut ? null : directionSentence(dir, repo.planSettings());
   const actions = actionsForLevel(a.level, plan, dir);
   const routines = a.level === 'yellow' ? routinesFor(repo.contextOf('routine'), dir) : [];
+  const routinesToday = routineSummary(repo.contextEntries(), a.date);
   const anchors = showValueAnchors(a, repo.assessments()) ? repo.contextOf('value_anchor').filter((e) => e.approvedAt) : [];
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
   const measured = a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut');
@@ -163,6 +165,19 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           </Card>
         </Section>
       )}
+
+      {routinesToday ? (
+        <Section title="Rutiner i dag">
+          <Card>
+            <P>
+              {routinesToday.done.length
+                ? `Du gjorde ${routinesToday.done.length} av ${routinesToday.answered} rutiner du svarade på.`
+                : 'Ingen av rutinerna blev av i dag. Det räknas inte in i nivån.'}
+            </P>
+            {routinesToday.done.map((t) => <P key={t} muted style={{ marginTop: space.xs }}>{`✓ ${t}`}</P>)}
+          </Card>
+        </Section>
+      ) : null}
 
       {routines.length > 0 && (
         <Section title="Livsstil och rutiner">

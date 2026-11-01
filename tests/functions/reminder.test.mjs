@@ -24,3 +24,14 @@ test('rejects anything but HH:MM and YYYY-MM-DD', async () => {
   assert.equal(ok.status, 200);
   assert.equal(ok.headers.get('content-type'), 'text/calendar; charset=utf-8');
 });
+
+test('a routine reminder never carries the routine\'s words, and each time is its own event', () => {
+  const a = calendarFor({ time: '21:00', date: '2026-10-31', what: 'rutin', origin: 'o' });
+  const b = calendarFor({ time: '07:30', date: '2026-10-31', what: 'rutin', origin: 'o' });
+  assert.match(a, /\r\nSUMMARY:Dagsljus: din rutin\r\n/);
+  assert.match(a, /\r\nUID:dagsljus-rutin-2100\r\n/);
+  assert.match(b, /\r\nUID:dagsljus-rutin-0730\r\n/);
+  assert.match(calendarFor({ time: '21:00', date: '2026-10-31', origin: 'o' }), /\r\nUID:dagsljus-kvallens-avstamning\r\n/);
+  // An unknown kind falls back to the evening reminder's words.
+  assert.match(calendarFor({ time: '21:00', date: '2026-10-31', what: 'x', origin: 'o' }), /SUMMARY:Dagsljus: kvällens avstämning/);
+});

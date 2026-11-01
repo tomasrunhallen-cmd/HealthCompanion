@@ -1,3 +1,4 @@
+import { cancelOrphanRoutineReminders } from '../platform/reminder';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Text, View } from 'react-native';
@@ -149,7 +150,14 @@ export default function App() {
     let live = true;
     openBackend(user, vault)
       .then(Repository.create)
-      .then((r) => live && setRepo(r))
+      .then((r) => {
+        if (!live) return;
+        setRepo(r);
+        // A routine removed elsewhere (Det appen vet, import) takes its daily reminder with it.
+        const kept = () => r.contextOf('routine').filter((e) => e.routine?.reminder).map((e) => e.id);
+        void cancelOrphanRoutineReminders(kept());
+        r.subscribe(() => void cancelOrphanRoutineReminders(kept()));
+      })
       .catch((e: Error) => live && setError(e.message));
     return () => {
       live = false;

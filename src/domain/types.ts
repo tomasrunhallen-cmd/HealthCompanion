@@ -80,7 +80,7 @@ export type ProfilKind =
   | 'period_mixed' // tidigare blandad period
   | 'course'; // känt förlopp: vilket tecken som kommer först, dagar till nästa
 
-export type DagligtKind = 'medication_taken' | 'event' | 'correction';
+export type DagligtKind = 'medication_taken' | 'event' | 'correction' | 'routine_done';
 
 export type ContextKind = GrundKind | ProfilKind | DagligtKind;
 
@@ -113,6 +113,18 @@ export interface ContextEntry {
   importId?: string | null;
   /** grund: the crisis plan row's fields. The entry's kind follows from them. */
   plan?: PlanFields | null;
+  /** grund, kind routine: whether it is logged in the evening check-in, and a daily reminder time. */
+  routine?: RoutineSettings | null;
+  /** dagligt, kind routine_done: the routine it is about, and whether it was done that day. */
+  routineId?: string | null;
+  done?: boolean | null;
+}
+
+export interface RoutineSettings {
+  /** Asked about in the evening check-in. */
+  track: boolean;
+  /** "HH:MM", a daily reminder on the phone. Null: no reminder. */
+  reminder: string | null;
 }
 
 /**
@@ -150,7 +162,7 @@ export const LAYER_OF: Record<ContextKind, ContextLayer> = {
   routine: 'grund', contact: 'grund', value_anchor: 'grund', wish: 'grund', note_for_care: 'grund',
   normal_state: 'profil', typical_phrase: 'profil', period_low: 'profil', period_high: 'profil',
   period_mixed: 'profil', course: 'profil',
-  medication_taken: 'dagligt', event: 'dagligt', correction: 'dagligt',
+  medication_taken: 'dagligt', event: 'dagligt', correction: 'dagligt', routine_done: 'dagligt',
 };
 
 export interface PlanSettings {

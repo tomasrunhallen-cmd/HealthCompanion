@@ -23,7 +23,7 @@ const ADDABLE: Record<ContextLayer, ContextKind[]> = {
 const KIND_ORDER: ContextKind[] = [
   'value_anchor', 'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'trigger', 'routine', 'contact',
   'wish', 'note_for_care', 'false_alarm', 'medication', 'tone_yellow', 'tone_red', 'normal_state', 'course', 'period_high', 'period_low', 'period_mixed', 'typical_phrase',
-  'event', 'medication_taken', 'correction',
+  'event', 'medication_taken', 'routine_done', 'correction',
 ];
 
 function short(iso: string | null | undefined): string {
@@ -41,6 +41,7 @@ function EntryRow({ e }: { e: ContextEntry }) {
     e.origin === 'standard' && !e.approvedAt ? 'inte bekräftad' : null,
     e.date ? formatDateSv(e.date) : null,
     e.kind === 'medication_taken' ? (e.taken ? 'tagen' : 'inte tagen') : null,
+    e.kind === 'routine_done' ? (e.done ? 'gjord' : 'inte gjord') : null,
     e.kind === 'correction' ? (e.correction?.verdict === 'agree' ? 'stämde' : 'stämde inte') : null,
     `skapad ${short(e.createdAt)}`,
     e.approvedAt && e.approvedAt !== e.createdAt ? `godkänd ${short(e.approvedAt)}` : null,

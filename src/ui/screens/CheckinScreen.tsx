@@ -7,6 +7,7 @@ import { akutLevel } from '../../context/akut';
 import { CrisisCard } from '../CrisisCard';
 import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
+import { routineLog, trackedRoutines } from '../../plan/routines';
 import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -61,6 +62,11 @@ export function CheckinScreen() {
   const hasMedication = repo.contextOf('medication').length > 0;
   const [medication, setMedication] = useState<boolean | null>(null);
   const [strain, setStrain] = useState(false);
+  // Routines to tick off, from Livsstil och rutiner in the plan. Earlier answers this evening are kept.
+  const tracked = trackedRoutines(repo.contextEntries('grund'));
+  const [routineDone, setRoutineDone] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(routineLog(repo.contextEntries('dagligt'), eveningDateKey(new Date()))),
+  );
   const sleep = useMemo(() => parseSleepHours(text), [text]);
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
   const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
@@ -70,7 +76,7 @@ export function CheckinScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain }, new Date(), { browser: Platform.OS === 'web' });
+      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain, routines: Object.fromEntries(tracked.map((r) => [r.id, routineDone[r.id] ?? null])) }, new Date(), { browser: Platform.OS === 'web' });
       // HIG: haptics sparingly. A light confirmation that the check-in is saved, never on a red day.
       if (Platform.OS !== 'web' && assessment.level !== 'red' && !assessment.akut) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
@@ -82,6 +88,7 @@ export function CheckinScreen() {
       setEnergy(5);
       setMedication(null);
       setStrain(false);
+      setRoutineDone({});
     } finally {
       setBusy(false);
     }
@@ -146,6 +153,31 @@ export function CheckinScreen() {
             <Chip label="Ja" selected={medication === true} onPress={() => setMedication(medication === true ? null : true)} />
             <Chip label="Nej" selected={medication === false} onPress={() => setMedication(medication === false ? null : false)} />
           </Row>
+        </View>
+      ) : null}
+      {tracked.length ? (
+        <View style={{ marginBottom: space.l }}>
+          <Text style={type.label} accessibilityRole="header">RUTINER I DAG</Text>
+          <Text style={[type.small, { marginTop: 2 }]}>Från din plan. Det du gör för balansen. Påverkar inte nivån.</Text>
+          {tracked.map((r) => {
+            const v = routineDone[r.id];
+            const set = (done: boolean) =>
+              setRoutineDone((all) => {
+                const next = { ...all };
+                if (next[r.id] === done) delete next[r.id];
+                else next[r.id] = done;
+                return next;
+              });
+            return (
+              <View key={r.id} style={{ marginTop: space.s }}>
+                <Text style={type.body}>{r.text}</Text>
+                <Row style={{ marginTop: space.xs }}>
+                  <Chip label="Gjort" selected={v === true} color={colors.green} onPress={() => set(true)} />
+                  <Chip label="Inte i dag" selected={v === false} onPress={() => set(false)} />
+                </Row>
+              </View>
+            );
+          })}
         </View>
       ) : null}
       <View style={{ marginBottom: space.l }}>

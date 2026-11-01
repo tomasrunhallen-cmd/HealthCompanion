@@ -14,7 +14,7 @@ const KIND_ORDER: ContextKind[] = [
   'value_anchor', 'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'trigger', 'routine', 'contact',
   'wish', 'note_for_care', 'false_alarm', 'medication',
   'tone_yellow', 'tone_red', 'normal_state', 'course', 'period_high', 'period_low', 'period_mixed', 'typical_phrase',
-  'event', 'medication_taken', 'correction',
+  'event', 'medication_taken', 'routine_done', 'correction',
 ];
 
 const MARK = 'dagsljus';
@@ -31,6 +31,7 @@ function humanNote(e: ContextEntry): string {
   if (e.origin === 'standard' && !e.approvedAt) bits.push('inte bekräftad');
   if (e.date) bits.push(formatDateSv(e.date));
   if (e.kind === 'medication_taken') bits.push(e.taken ? 'tagen' : 'inte tagen');
+  if (e.kind === 'routine_done') bits.push(e.done ? 'gjord' : 'inte gjord');
   if (e.kind === 'correction') bits.push(e.correction?.verdict === 'agree' ? 'stämde' : 'stämde inte');
   return bits.join(', ');
 }

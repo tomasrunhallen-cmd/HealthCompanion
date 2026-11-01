@@ -25,6 +25,7 @@ export const KIND_TEXT: Record<ContextKind, string> = {
   period_mixed: 'Tidigare blandad period',
   course: 'Känt förlopp',
   medication_taken: 'Medicin tagen',
+  routine_done: 'Rutin i dag',
   event: 'Kommande händelse',
   correction: 'Rättelse',
 };

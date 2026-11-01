@@ -28,6 +28,7 @@ import { MeScreen } from './screens/MeScreen';
 import { PlanImportScreen } from './screens/PlanImportScreen';
 import { PlanScreen } from './screens/PlanScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
+import { RoutinesScreen } from './screens/RoutinesScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
@@ -74,6 +75,7 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   privacy: PrivacyScreen,
   history: HistoryScreen,
   importDiary: ImportDiaryScreen,
+  routines: RoutinesScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -95,6 +97,7 @@ const TITLE: Record<RouteName, string> = {
   privacy: 'Integritet',
   history: 'Alla dagar',
   importDiary: 'Importera',
+  routines: 'Rutiner',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };

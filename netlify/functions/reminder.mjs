@@ -4,7 +4,14 @@
 
 const pad = (n) => String(n).padStart(2, '0');
 
-export function calendarFor({ time, date, origin, now = new Date() }) {
+// A routine's reminder (what=rutin) gets a neutral title: the routine's own words are never sent here.
+const KINDS = {
+  kvall: { uid: 'dagsljus-kvallens-avstamning', summary: 'Dagsljus: kvällens avstämning', description: 'Tre frågor och två reglage. Under två minuter.', alarm: 'Dags för kvällens avstämning' },
+  rutin: { uid: 'dagsljus-rutin', summary: 'Dagsljus: din rutin', description: 'En rutin ur din krisplan. Öppna Dagsljus för att se vilken.', alarm: 'Dags för din rutin' },
+};
+
+export function calendarFor({ time, date, origin, what = 'kvall', now = new Date() }) {
+  const kind = KINDS[what] ?? KINDS.kvall;
   const t = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time ?? '');
   const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? '');
   if (!t || !d) return null;
@@ -21,17 +28,18 @@ export function calendarFor({ time, date, origin, now = new Date() }) {
     'PRODID:-//Dagsljus//Kvallspaminnelse//SV',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
-    'UID:dagsljus-kvallens-avstamning',
+    // One event per time, so two routines at different times are two events.
+    `UID:${what === 'rutin' ? `${kind.uid}-${t[1]}${t[2]}` : kind.uid}`,
     `DTSTAMP:${stamp}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,
     'RRULE:FREQ=DAILY',
-    'SUMMARY:Dagsljus: kvällens avstämning',
-    `DESCRIPTION:Tre frågor och två reglage. Under två minuter.\\n${origin}`,
+    `SUMMARY:${kind.summary}`,
+    `DESCRIPTION:${kind.description}\\n${origin}`,
     `URL:${origin}`,
     'BEGIN:VALARM',
     'ACTION:DISPLAY',
-    'DESCRIPTION:Dags för kvällens avstämning',
+    `DESCRIPTION:${kind.alarm}`,
     'TRIGGER:PT0M',
     'END:VALARM',
     'END:VEVENT',
@@ -42,7 +50,7 @@ export function calendarFor({ time, date, origin, now = new Date() }) {
 
 export default async (req) => {
   const url = new URL(req.url);
-  const body = calendarFor({ time: url.searchParams.get('time'), date: url.searchParams.get('date'), origin: url.origin });
+  const body = calendarFor({ time: url.searchParams.get('time'), date: url.searchParams.get('date'), what: url.searchParams.get('what') ?? 'kvall', origin: url.origin });
   if (!body) return new Response('Bad time or date', { status: 400 });
   return new Response(body, {
     status: 200,

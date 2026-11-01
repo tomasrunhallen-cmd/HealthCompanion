@@ -11,3 +11,12 @@ export async function cancelReminder(): Promise<void> {}
 export const reminderViaCalendar = false;
 
 export const cancelHint: string | null = null;
+
+/** A daily reminder for one routine from the plan. */
+export async function scheduleRoutineReminder(_id: string, _text: string, _hour: number, _minute: number): Promise<{ ok: boolean; message: string }> {
+  return { ok: false, message: 'Påminnelser finns bara i appen på telefonen.' };
+}
+
+export async function cancelRoutineReminder(_id: string): Promise<void> {}
+
+export async function cancelOrphanRoutineReminders(_keep: string[]): Promise<void> {}

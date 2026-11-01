@@ -40,11 +40,13 @@ export function MeScreen() {
   const repo = useRepo();
   const pending = repo.pendingSuggestions().length;
   const signs = repo.plan().filter((p) => p.kind === 'early' || p.kind === 'serious').length;
+  const routineCount = repo.contextOf('routine').length;
   return (
     <Screen title="Jag">
       <Section title="Min plan">
         <Card style={{ paddingVertical: 0 }}>
-          <ListRow title="Min krisplan" detail={signs ? `${signs} tecken` : 'Inga tecken än'} to={{ name: 'plan' }} last={!pending} />
+          <ListRow title="Min krisplan" detail={signs ? `${signs} tecken` : 'Inga tecken än'} to={{ name: 'plan' }} />
+          <ListRow title="Rutiner" detail={routineCount ? `${routineCount} ur planen, påminnelser och avbockning` : 'Påminnelser och avbockning'} to={{ name: 'routines' }} last={!pending} />
           {pending ? <ListRow title="Förslag att granska" detail={`${pending} väntar`} to={{ name: 'suggestions' }} last /> : null}
         </Card>
       </Section>

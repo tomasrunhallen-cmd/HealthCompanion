@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SymbolView } from 'expo-symbols';
 import React, { useContext, useLayoutEffect } from 'react';
 import {
-  ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
   type ColorValue, type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -100,6 +100,26 @@ export function Chip(props: { label: string; selected?: boolean; onPress?: () =>
     >
       <Text style={[styles.chipText, props.selected ? { color: colors.onAccent } : null]}>{props.label}</Text>
     </Pressable>
+  );
+}
+
+/** A switch with its label (HIG: Toggles). */
+export function Toggle(props: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; hint?: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, minHeight: MIN_TOUCH }}>
+      <View style={{ flex: 1 }}>
+        <Text style={[type.body, { fontWeight: '600' }]}>{props.label}</Text>
+        {props.hint ? <Text style={type.small}>{props.hint}</Text> : null}
+      </View>
+      <Switch
+        accessibilityLabel={props.label}
+        accessibilityHint={props.hint}
+        value={props.value}
+        onValueChange={props.onChange}
+        disabled={props.disabled}
+        trackColor={{ true: colors.accent, false: colors.border }}
+      />
+    </View>
   );
 }
 

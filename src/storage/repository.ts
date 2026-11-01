@@ -4,7 +4,7 @@ import { buildHistory, type HistoryDay } from '../analysis/scoring';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
   type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
-  type Correction, type DateKey, type PlanFields, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
+  type Correction, type DateKey, type PlanFields, type RoutineSettings, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
 import { addDays } from '../analysis/dates';
 import { fieldsFromKind } from '../plan/fields';
@@ -68,6 +68,9 @@ export interface NewContextEntry {
   correction?: Correction | null;
   /** grund: the plan row's fields. Defaults to fields derived from the kind. */
   plan?: PlanFields | null;
+  routine?: RoutineSettings | null;
+  routineId?: string | null;
+  done?: boolean | null;
 }
 
 let idCounter = 0;
@@ -386,7 +389,7 @@ export class Repository {
   }
 
   // ---- context bank ----
-  private findEntry(id: string): ContextEntry | null {
+  findEntry(id: string): ContextEntry | null {
     for (const layer of LAYERS) {
       const e = this.snap[layer][id] as ContextEntry | undefined;
       if (e) return e;
@@ -419,6 +422,9 @@ export class Repository {
       ...(input.date !== undefined ? { date: input.date } : {}),
       ...(input.taken !== undefined ? { taken: input.taken } : {}),
       ...(input.correction !== undefined ? { correction: input.correction } : {}),
+      ...(input.routine !== undefined ? { routine: input.routine } : {}),
+      ...(input.routineId !== undefined ? { routineId: input.routineId } : {}),
+      ...(input.done !== undefined ? { done: input.done } : {}),
       ...(layer === 'grund' && (input.plan ?? fieldsFromKind(input.kind)) ? { plan: input.plan ?? fieldsFromKind(input.kind) } : {}),
     };
     this.snap[layer][entry.id] = entry;
