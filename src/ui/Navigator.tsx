@@ -31,6 +31,7 @@ import { PrivacyScreen } from './screens/PrivacyScreen';
 import { RecomputeScreen } from './screens/RecomputeScreen';
 import { RoutinesScreen } from './screens/RoutinesScreen';
 import { VisitScreen } from './screens/VisitScreen';
+import { ShareScreen } from './screens/ShareScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
@@ -80,6 +81,7 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   routines: RoutinesScreen,
   recompute: RecomputeScreen,
   visit: VisitScreen,
+  share: ShareScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -104,6 +106,7 @@ const TITLE: Record<RouteName, string> = {
   routines: 'Rutiner',
   recompute: 'Räkna om',
   visit: 'Återbesök',
+  share: 'Visa för någon',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };

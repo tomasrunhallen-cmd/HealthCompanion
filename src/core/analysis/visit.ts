@@ -45,7 +45,7 @@ const avg = (v: number[]) => (v.length ? Math.round((v.reduce((a, b) => a + b, 0
 
 export function buildVisitSummary(input: {
   today: DateKey;
-  days: 14 | 30;
+  days: number;
   entries: Entry[];
   assessments: Assessment[];
   context: ContextEntry[];

@@ -24,7 +24,7 @@ export async function removeVisitTopic(repo: Repository, id: string): Promise<vo
   await repo.kvSet(TOPICS_KEY, visitTopics(repo).filter((t) => t.id !== id));
 }
 
-export function visitSummary(repo: Repository, days: 14 | 30, now = new Date()): VisitSummary {
+export function visitSummary(repo: Repository, days: number, now = new Date()): VisitSummary {
   return buildVisitSummary({
     today: eveningDateKey(now),
     days,
@@ -38,6 +38,40 @@ export function visitSummary(repo: Repository, days: 14 | 30, now = new Date()):
 }
 
 const dec = (n: number | null) => (n == null ? '–' : String(n).replace('.', ','));
+
+export interface ShareChoice {
+  levels: boolean;
+  sleepStress: boolean;
+  signs: boolean;
+}
+
+/**
+ * Visa för någon: only what the person chose, from the period they chose. Never the notes,
+ * never the list of things to bring up, never routines or answers after red days.
+ */
+export function shareHtml(s: VisitSummary, choice: ShareChoice, ps: Pick<PlanSettings, 'polarityWords'>): string {
+  const parts: ReportPart[] = [];
+  if (choice.levels) {
+    parts.push(
+      { kind: 'heading', text: 'Ampeln per dag' },
+      { kind: 'text', text: `${s.counts.green} gröna, ${s.counts.yellow} gula, ${s.counts.red} röda och ${s.counts.none} dagar utan avstämning.` },
+    );
+  }
+  if (choice.levels || choice.sleepStress) {
+    const head = ['Dag', ...(choice.levels ? ['Nivå'] : []), ...(choice.sleepStress ? ['Sömn (h)', 'Stress'] : [])];
+    parts.push({ kind: 'table', head, rows: s.days.map((d) => [formatDateSv(d.date), ...(choice.levels ? [levelMark(d.level)] : []), ...(choice.sleepStress ? [dec(d.sleepHours), dec(d.stressAvg)] : [])]) });
+  }
+  if (choice.sleepStress) parts.push({ kind: 'text', text: `Snitt: sömn ${dec(s.sleepAvg)} h, stress ${dec(s.stressAvg)}.`, muted: true });
+  if (choice.signs) {
+    const sign = (list: { text: string; days: number }[]) => list.map((x) => `${x.text} (${x.days} ${x.days === 1 ? 'dag' : 'dagar'})`);
+    parts.push(
+      { kind: 'heading', text: `Tecken som syntes, ${polarityWord('up', ps)}` }, { kind: 'list', items: sign(s.signs.up) },
+      { kind: 'heading', text: `Tecken som syntes, ${polarityWord('down', ps)}` }, { kind: 'list', items: sign(s.signs.down) },
+    );
+    if (s.signs.both.length) parts.push({ kind: 'heading', text: 'Tecken som syntes, utan riktning' }, { kind: 'list', items: sign(s.signs.both) });
+  }
+  return reportHtml('Så har jag haft det', `${formatDateSv(s.from)} – ${formatDateSv(s.to)}. Utan anteckningar.`, parts);
+}
 
 export function visitHtml(s: VisitSummary, ps: Pick<PlanSettings, 'polarityWords'>): string {
   const word = (d: 'up' | 'down') => polarityWord(d, ps);
