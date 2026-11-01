@@ -315,6 +315,34 @@ export interface Assessment {
   akutMild?: boolean;
   /** Neutral lines on a green day: sleep or stress moved the wrong way three days in a row, still within the limit. No points, no colour. */
   trend?: string[];
+  /** Everything the assessment was computed from, so it can be computed again. Missing on assessments saved before it existed. */
+  inputs?: AssessmentInputs;
+  /** Set when the level was computed again with newer rules: what it was before. */
+  recomputed?: { at: string; fromRulesVersion: string | null; level: Level; points: number } | null;
+}
+
+/**
+ * All input to one assessment (B3). With it the level can be computed again with new rules,
+ * and anyone can see exactly what the app knew. The note appears only as it was sent to a
+ * model, scrubbed; word matching on the phone sends nothing.
+ */
+export interface AssessmentInputs {
+  /** rules/rules.json version the level was computed with. */
+  rulesVersion: string;
+  /** The note as sent to a language model, scrubbed. Null when nothing was sent. */
+  sentText: string | null;
+  /** The model's answer as it came back, before any check. Null for word matching. */
+  rawAnswer: string | null;
+  /** The signs the note was compared with, in prompt order. */
+  signs: PlanItem[];
+  /** The signs that matched, with quotes, as the scoring used them. */
+  matches: SignMatch[];
+  planSettings: Pick<PlanSettings, 'sleepThresholdHours'>;
+  /** Measured days used by the rules: this day and the days before it that the rules look at. */
+  garmin: Record<DateKey, GarminDay>;
+  /** Medication answers per day, as used by the rule. */
+  medication: Record<DateKey, boolean>;
+  baseline: Baseline;
 }
 
 export interface Baseline {

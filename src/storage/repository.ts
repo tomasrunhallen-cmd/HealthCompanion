@@ -565,6 +565,15 @@ export class Repository {
     this.changed();
   }
 
+  /** Replaces saved assessments, e.g. after "Räkna om historiken". Entries are not touched. */
+  async saveAssessments(list: Assessment[]): Promise<void> {
+    for (const a of list) {
+      this.snap.assessments[a.id] = a;
+      await this.backend.put('assessments', a.id, a);
+    }
+    this.changed();
+  }
+
   // ---- export, import, wipe ----
   exportData(now = new Date()): ExportData {
     return {

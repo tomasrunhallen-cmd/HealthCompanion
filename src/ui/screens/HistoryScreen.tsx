@@ -19,6 +19,7 @@ export function HistoryScreen() {
   return (
     <Screen title="Alla dagar" back>
       {entries.length === 0 ? <P muted>Inga inlägg ännu.</P> : null}
+      {entries.length ? <Button kind="ghost" title="Räkna om historiken med nya regler" onPress={() => nav.push({ name: 'recompute' })} /> : null}
       {entries.slice(0, shown).map((e) => {
         const a = byEntry.get(e.id) ?? null;
         return (

@@ -60,6 +60,8 @@ export function createLlmMatcher(opts: {
         model: opts.model,
         promptId: prompt.meta.id,
         promptVersion: prompt.meta.version,
+        sent: cleanNote,
+        raw: res.text,
       };
     },
   };

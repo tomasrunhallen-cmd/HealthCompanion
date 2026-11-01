@@ -12,7 +12,7 @@ import { routineSummary } from '../../core/plan/routines';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
-import { colors, levelColor, space, type } from '../theme';
+import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
 
 const METHOD_TEXT = {
   wordmatch: 'Tecknen hittades med ordmatchning på telefonen (ingen språkmodell).',
@@ -236,6 +236,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       <P muted style={{ marginTop: space.l }}>
         {METHOD_TEXT[a.method]} Poäng: {a.points}.
         {a.method === 'llm' && a.model ? ` Modell ${a.model}, prompt ${a.promptId} ${a.promptVersion}.` : ''}
+        {a.inputs ? ` Regler ${a.inputs.rulesVersion}.` : ''}
+        {a.recomputed ? ` Omräknad ${a.recomputed.at.slice(0, 10)}; tidigare ${LEVEL_TEXT[a.recomputed.level].toLowerCase()} med ${a.recomputed.points} poäng.` : ''}
       </P>
       <P muted style={{ marginTop: space.s }}>{MEDICAL_REMINDER}</P>
     </Screen>

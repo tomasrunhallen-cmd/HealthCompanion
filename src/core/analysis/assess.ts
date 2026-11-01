@@ -3,11 +3,13 @@
 
 import { buildContext, entriesFromPlan, type PromptContext } from '../context/buildContext';
 import type {
-  Assessment, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Polarity, Signal, SignMatch,
+  Assessment, AssessmentInputs, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Polarity, Signal, SignMatch,
 } from '../domain/types';
 import { actionsFor } from '../plan/guidance';
 import { matchSigns } from './wordmatch';
 import { score, type HistoryDay } from './scoring';
+import { addDays } from './dates';
+import { RULES, RULES_VERSION } from './rules';
 
 export const NOTHING_STANDS_OUT = 'Inget i anteckningen avviker från ditt normalläge.';
 /** Green always says this, whatever the model wrote: never that all is well. */
@@ -22,6 +24,10 @@ export interface MatchResult {
   model: string | null;
   promptId: string | null;
   promptVersion: string | null;
+  /** The note as sent to a model, scrubbed. */
+  sent?: string | null;
+  /** The model's answer as it came back. */
+  raw?: string | null;
 }
 
 export interface MatchContext {
@@ -119,6 +125,20 @@ export async function assessEntry(args: {
   const medication: Record<DateKey, boolean> = {};
   for (const e of bank) if (e.kind === 'medication_taken' && e.date && e.taken != null) medication[e.date] = e.taken;
   const scored = score({ entry, matches: result.matches, plan, planSettings, history, garmin, medication });
+  // Everything needed to compute the level again: the days the rules look back at, the signs and matches.
+  const lookback = Math.max(RULES.trendDays, RULES.medicationMissedDays, 2);
+  const days = Array.from({ length: lookback + 1 }, (_, i) => addDays(entry.date, -i));
+  const inputs: AssessmentInputs = {
+    rulesVersion: RULES_VERSION,
+    sentText: result.sent ?? null,
+    rawAnswer: result.raw ?? null,
+    signs,
+    matches: result.matches,
+    planSettings: { sleepThresholdHours: planSettings.sleepThresholdHours },
+    garmin: Object.fromEntries(days.filter((d) => garmin?.[d]).map((d) => [d, garmin![d]])),
+    medication: Object.fromEntries(days.filter((d) => medication[d] != null).map((d) => [d, medication[d]])),
+    baseline: scored.baseline,
+  };
   if (args.akut) {
     // The emergency rule always gives red, whatever the points and also in standard mode.
     scored.signals.unshift({ kind: 'akut', points: 0, label: 'Formulering om att inte vilja leva eller att skada sig', measured: false });
@@ -149,5 +169,6 @@ export async function assessEntry(args: {
     ...(args.akut ? { akut: true } : {}),
     ...(args.akutMild && !args.akut ? { akutMild: true } : {}),
     ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : {}),
+    inputs,
   };
 }
