@@ -16,6 +16,8 @@ import { RoutinesToday } from '../RoutinesToday';
 import { suggestionsOnHome } from '../../core/analysis/signals';
 import { greenDayLine } from '../../core/plan/routines';
 import { adviceForTomorrow } from '../../core/analysis/events';
+import { GREEN_MEANS } from '../../core/analysis/firstWeek';
+import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -39,6 +41,7 @@ export function HomeScreen() {
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
   const sleepNote = todaysSleepNotice(repo);
+  const fw = firstWeekState(repo);
   const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
   const greenLine = greenDayLine(repo.contextEntries(), today, { measured: repo.measuredDays(), window: repo.planSettings().sleepWindow ?? null });
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
@@ -92,6 +95,24 @@ export function HomeScreen() {
       setBusy(false);
     }
   };
+
+  // Första veckan, day 1: only the check-in, so the start is calm.
+  if (fw?.onlyCheckin && !settings.lowMode) {
+    return (
+      <Screen title="Dagsljus">
+        <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
+        <Card tone="accent">
+          <Text style={type.h2} accessibilityRole="header">Välkommen</Text>
+          <P style={{ marginTop: space.xs }}>
+            I dag gör du bara kvällens avstämning: några meningar om dagen och två reglage. Resten kommer under veckan.
+          </P>
+          <P muted style={{ marginTop: space.s }}>{MEDICAL_REMINDER}</P>
+        </Card>
+        <Button big title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'} onPress={() => nav.push({ name: 'checkin' })} />
+        {!hasSigns ? <Button kind="ghost" title="Lägg in din krisplan när du vill" onPress={() => nav.push({ name: 'plan' })} /> : null}
+      </Screen>
+    );
+  }
 
   // Lågt läge: only the check-in and Hjälp nu (in the top bar). Everything else waits.
   if (settings.lowMode) {
@@ -167,6 +188,32 @@ export function HomeScreen() {
           </P>
         </Card>
       )}
+
+      {fw?.weekPicture ? (
+        <Card tone="accent">
+          <Text style={type.h2} accessibilityRole="header">Din första vecka</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.m, marginTop: space.s }}>
+            {week.map((d) => (
+              <View key={d.date} accessible accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`} style={{ alignItems: 'center', gap: 4 }}>
+                <Dot level={d.level} size={22} />
+                <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
+              </View>
+            ))}
+          </View>
+          <P style={{ marginTop: space.s }}>{GREEN_MEANS}</P>
+          <P muted style={{ marginTop: space.xs }}>Gult betyder att ett eller flera av dina tecken syntes. Rött betyder att flera syntes, eller ett allvarligt tillsammans med ett annat.</P>
+          <Button kind="ghost" title="Okej" onPress={() => markFirstWeek(repo, 'weekPicture')} />
+        </Card>
+      ) : null}
+
+      {fw?.offerSleepSource ? (
+        <Card tone="accent">
+          <Text style={type.h2} accessibilityRole="header">Sömnen gör bedömningen bättre</Text>
+          <P style={{ marginTop: space.xs }}>Koppla din Garmin, eller ange sömnen själv i kvällens avstämning. Du väljer.</P>
+          <Button title="Koppla Garmin" onPress={() => nav.push({ name: 'garmin' })} />
+          <Button kind="ghost" title="Jag anger sömnen själv" onPress={() => markFirstWeek(repo, 'sleepSource')} />
+        </Card>
+      ) : null}
 
       {tomorrow.map((t) => (
         <Card key={t.event + t.date} tone="accent">

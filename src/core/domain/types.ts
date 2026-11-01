@@ -409,6 +409,10 @@ export interface AppSettings {
   suggestionPace?: SuggestionPace;
   /** Lågt läge: only the check-in and Hjälp nu are shown. */
   lowMode?: boolean;
+  /** Första veckan: the day the person started; the earliest entry for those who started before it existed. */
+  firstUseAt?: DateKey | null;
+  /** Första veckan: the sleep source suggestion and the first week picture have been answered. */
+  firstWeekDone?: { sleepSource?: boolean; weekPicture?: boolean };
 }
 
 /** direct: as soon as there is one. weekly: on Mondays. visit: only under Inför återbesök. */

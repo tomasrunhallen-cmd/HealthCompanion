@@ -1,5 +1,6 @@
 import { cancelOrphanRoutineReminders } from '../platform/reminder';
 import { checkSleepNotice } from '../services/sleepNotice';
+import { ensureFirstUse } from '../services/firstWeek';
 import { inQuietHours } from '../core/analysis/signals';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -158,6 +159,7 @@ export default function App() {
         // A routine removed elsewhere (Det appen vet, import) takes its daily reminder with it.
         const kept = () => r.contextOf('routine').filter((e) => e.routine?.reminder).map((e) => e.id);
         void cancelOrphanRoutineReminders(kept());
+        void ensureFirstUse(r);
         // The sleep notice is checked when the app opens and when new sleep data is saved.
         let checking = false;
         const sleep = () => {
