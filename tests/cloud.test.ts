@@ -66,8 +66,8 @@ describe('cloud storage', () => {
     await repo.addPlanItems([{ id: 'p/1', kind: 'early', text: 'Svarar inte på sms' }]);
     await repo.saveGarminDays([{ date: '2026-10-31', sleepHours: 6, deepMinutes: null, remMinutes: null, sleepStart: '23:00', sleepEnd: '05:00', stressAvg: 30, stressHighMinutes: 5, bodyBatteryWake: null, fetchedAt: '' }], '2026-10-31');
     await flush();
-    expect(docs.store.get(docId('plan', 'p/1'))).toMatchObject({ c: 'plan', i: 'p/1', u: '2026-10-31T10:00:00.000Z' });
-    expect(docId('plan', 'p/1')).toBe('plan~p%2F1');
+    expect(docs.store.get(docId('grund', 'p/1'))).toMatchObject({ c: 'grund', i: 'p/1', u: '2026-10-31T10:00:00.000Z' });
+    expect(docId('grund', 'p/1')).toBe('grund~p%2F1');
     const again = await Repository.create(cloudBackend(docs, { account: 'a@b.se' }));
     expect(again.plan()[0].text).toBe('Svarar inte på sms');
     expect(again.garminDay('2026-10-31')?.sleepHours).toBe(6);

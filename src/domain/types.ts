@@ -19,8 +19,75 @@ export interface PlanItem {
   text: string;
   /** Position within its kind; lower comes first. The first action is "the first step". */
   order: number;
-  approvedAt: string;
+  /** Null for standard content the user has not confirmed yet. */
+  approvedAt: string | null;
+  /** Where the row came from. Rows saved before the context bank have none. */
+  origin?: ContextOrigin;
 }
+
+// ---- Context bank: what the app knows about the user, kept apart from prompts and model ----
+
+/** grund: changed only by the user. profil: changed through approved suggestions. dagligt: day to day. */
+export type ContextLayer = 'grund' | 'profil' | 'dagligt';
+
+export type ContextOrigin = 'standard' | 'crisis_plan' | 'user' | 'suggested' | 'correction';
+
+export type GrundKind =
+  | PlanItemKind
+  | 'trigger' // utlösare: resor, sömnbrist, årstid, konflikter, alkohol
+  | 'false_alarm' // kända falsklarm
+  | 'medication' // medicin och dosändringar
+  | 'tone_yellow' // önskad ton vid gult
+  | 'tone_red'; // önskad ton vid rött
+
+export type ProfilKind =
+  | 'normal_state' // normalläge i egna ord
+  | 'typical_phrase' // typiska formuleringar på vanliga dagar
+  | 'period_low' // tidigare nedstämd period
+  | 'period_high' // tidigare uppvarvad period
+  | 'period_mixed' // tidigare blandad period
+  | 'course'; // känt förlopp: vilket tecken som kommer först, dagar till nästa
+
+export type DagligtKind = 'medication_taken' | 'event' | 'correction';
+
+export type ContextKind = GrundKind | ProfilKind | DagligtKind;
+
+export interface Correction {
+  assessmentId: string;
+  /** "Stämmer" or "Stämmer inte". */
+  verdict: 'agree' | 'disagree';
+  /** The plan sign the correction is about, when it is about one. */
+  planItemId?: string | null;
+}
+
+export interface ContextEntry {
+  id: string;
+  layer: ContextLayer;
+  kind: ContextKind;
+  text: string;
+  /** Position within its kind; lower comes first. */
+  order: number;
+  origin: ContextOrigin;
+  createdAt: string;
+  /** When the user approved or confirmed it. Null for unconfirmed standard content. */
+  approvedAt: string | null;
+  /** dagligt: the day it belongs to (an event's date, a day's medication, a correction's day). */
+  date?: DateKey | null;
+  /** dagligt, kind medication_taken. */
+  taken?: boolean | null;
+  /** dagligt, kind correction. */
+  correction?: Correction | null;
+}
+
+export const PLAN_KINDS: PlanItemKind[] = ['early', 'serious', 'action_yellow', 'action_red', 'relatives'];
+
+export const LAYER_OF: Record<ContextKind, ContextLayer> = {
+  early: 'grund', serious: 'grund', action_yellow: 'grund', action_red: 'grund', relatives: 'grund',
+  trigger: 'grund', false_alarm: 'grund', medication: 'grund', tone_yellow: 'grund', tone_red: 'grund',
+  normal_state: 'profil', typical_phrase: 'profil', period_low: 'profil', period_high: 'profil',
+  period_mixed: 'profil', course: 'profil',
+  medication_taken: 'dagligt', event: 'dagligt', correction: 'dagligt',
+};
 
 export interface PlanSettings {
   /** The user's own description of their normal state, used as context. */
@@ -143,6 +210,9 @@ export interface SignMatch {
   quote: string;
 }
 
+/** unset: first start, not chosen yet. standard: started with the app's standard content. own: own crisis plan. */
+export type ContextMode = 'unset' | 'standard' | 'own';
+
 export interface AppSettings {
   /** Names to remove before text is sent anywhere (partner, parents, care contact...). */
   scrubNames: string[];
@@ -151,6 +221,11 @@ export interface AppSettings {
   reminderMinute: number;
   appLockEnabled: boolean;
   onboardingDone: boolean;
+  contextMode: ContextMode;
+  /** When the user chose to start with standard content. */
+  standardSince: string | null;
+  /** Week number (since standardSince) of the last dismissed reminder to replace standard content. */
+  standardNudgeDismissedWeek: number | null;
 }
 
 export const DEFAULT_PLAN_SETTINGS: PlanSettings = {
@@ -165,4 +240,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   reminderMinute: 0,
   appLockEnabled: true,
   onboardingDone: false,
+  contextMode: 'unset',
+  standardSince: null,
+  standardNudgeDismissedWeek: null,
 };

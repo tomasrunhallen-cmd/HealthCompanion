@@ -22,7 +22,7 @@ export interface CloudDoc {
   u: string;
 }
 
-const COLLECTIONS: Collection[] = ['plan', 'entries', 'assessments', 'kv'];
+const COLLECTIONS: Collection[] = ['plan', 'entries', 'assessments', 'kv', 'grund', 'profil', 'dagligt'];
 
 export function docId(c: Collection, id: string): string {
   return `${c}~${encodeURIComponent(id)}`;

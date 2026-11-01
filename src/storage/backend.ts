@@ -1,7 +1,8 @@
 // Storage backends. Data is small (one entry per evening), so the repository keeps
 // everything in memory and writes each change through to the backend.
 
-export type Collection = 'plan' | 'entries' | 'assessments' | 'kv';
+// 'plan' is only read by the migration into the context bank ('grund').
+export type Collection = 'plan' | 'entries' | 'assessments' | 'kv' | 'grund' | 'profil' | 'dagligt';
 
 export type Snapshot = Record<Collection, Record<string, unknown>>;
 
@@ -24,7 +25,7 @@ export interface DocBackend {
 }
 
 export function emptySnapshot(): Snapshot {
-  return { plan: {}, entries: {}, assessments: {}, kv: {} };
+  return { plan: {}, entries: {}, assessments: {}, kv: {}, grund: {}, profil: {}, dagligt: {} };
 }
 
 export function memoryBackend(initial?: Snapshot): DocBackend {

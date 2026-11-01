@@ -2,13 +2,14 @@
 
 import { buildHistory, type HistoryDay } from '../analysis/scoring';
 import {
-  DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS,
-  type AppSettings, type Assessment, type DateKey, type Entry, type GarminDay, type PlanItem, type PlanItemKind, type PlanSettings,
+  DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
+  type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
+  type Correction, type DateKey, type Entry, type GarminDay, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
 import { addDays } from '../analysis/dates';
 import type { SentRequest, Usage } from '../adapter/types';
 import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
-import type { DocBackend, Snapshot, StorageInfo } from './backend';
+import type { Collection, DocBackend, Snapshot, StorageInfo } from './backend';
 
 export const EXPORT_FORMAT = 'dagsljus-export';
 export const EXPORT_VERSION = 1;
@@ -33,6 +34,34 @@ export const DEFAULT_GARMIN_STATUS: GarminStatus = { connected: false, lastSyncA
 
 const GARMIN_KEEP_DAYS = 120;
 
+/** Version 2: crisis plan and normal state moved into the context bank. */
+export const SCHEMA_VERSION = 2;
+
+const LAYERS: ContextLayer[] = ['grund', 'profil', 'dagligt'];
+
+export interface NewContextEntry {
+  kind: ContextKind;
+  text: string;
+  origin: ContextOrigin;
+  id?: string;
+  /** Defaults to now; pass null for standard content the user has not confirmed. */
+  approvedAt?: string | null;
+  createdAt?: string;
+  date?: DateKey | null;
+  taken?: boolean | null;
+  correction?: Correction | null;
+}
+
+let idCounter = 0;
+function contextId(): string {
+  idCounter = (idCounter + 1) % 1_000_000;
+  return `c_${Date.now().toString(36)}_${idCounter.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function byKindThenOrder(a: ContextEntry, b: ContextEntry): number {
+  return a.kind.localeCompare(b.kind) || a.order - b.order || a.createdAt.localeCompare(b.createdAt);
+}
+
 export class Repository {
   private snap!: Snapshot;
   private listeners = new Set<Listener>();
@@ -44,7 +73,50 @@ export class Repository {
   static async create(backend: DocBackend): Promise<Repository> {
     const r = new Repository(backend);
     r.snap = await backend.load();
+    await r.migrate();
     return r;
+  }
+
+  /**
+   * Moves data saved before the context bank: plan rows become grund entries
+   * (origin crisis_plan), the normal state becomes a profil entry. Safe to run again.
+   */
+  private async migrate(): Promise<void> {
+    const version = Number(this.snap.kv.schemaVersion ?? 1);
+    if (version >= SCHEMA_VERSION && Object.keys(this.snap.plan).length === 0) return;
+    for (const [id, raw] of Object.entries(this.snap.plan)) {
+      const old = raw as PlanItem;
+      if (!this.snap.grund[id]) {
+        const entry: ContextEntry = {
+          id, layer: 'grund', kind: old.kind, text: old.text, order: old.order, origin: 'crisis_plan',
+          createdAt: old.approvedAt ?? new Date().toISOString(), approvedAt: old.approvedAt ?? null,
+        };
+        this.snap.grund[id] = entry;
+        await this.backend.put('grund', id, entry);
+      }
+      delete this.snap.plan[id];
+      await this.backend.remove('plan', id);
+    }
+    const ps = this.snap.kv.planSettings as (Partial<PlanSettings> & { normalState?: string }) | undefined;
+    if (ps && typeof ps.normalState === 'string') {
+      const text = ps.normalState.trim();
+      if (text && !this.contextEntries('profil').some((e) => e.kind === 'normal_state')) {
+        const now = new Date().toISOString();
+        const entry: ContextEntry = { id: contextId(), layer: 'profil', kind: 'normal_state', text, order: 0, origin: 'user', createdAt: now, approvedAt: now };
+        this.snap.profil[entry.id] = entry;
+        await this.backend.put('profil', entry.id, entry);
+      }
+      const { normalState: _drop, ...rest } = ps;
+      this.snap.kv.planSettings = rest;
+      await this.backend.put('kv', 'planSettings', rest);
+    }
+    const settings = this.settings();
+    if (settings.contextMode === 'unset' && this.contextEntries('grund').some((e) => e.origin !== 'standard')) {
+      this.snap.kv.settings = { ...settings, contextMode: 'own' };
+      await this.backend.put('kv', 'settings', this.snap.kv.settings);
+    }
+    this.snap.kv.schemaVersion = SCHEMA_VERSION;
+    await this.backend.put('kv', 'schemaVersion', SCHEMA_VERSION);
   }
 
   subscribe(fn: Listener): () => void {
@@ -74,14 +146,32 @@ export class Repository {
     return next;
   }
 
+  /** Sleep limit from settings; the normal state is read from the profil layer. */
   planSettings(): PlanSettings {
-    return { ...DEFAULT_PLAN_SETTINGS, ...(this.snap.kv.planSettings as Partial<PlanSettings> | undefined) };
+    const stored = (this.snap.kv.planSettings as Partial<PlanSettings> | undefined) ?? {};
+    const normalState = this.contextEntries('profil')
+      .filter((e) => e.kind === 'normal_state')
+      .map((e) => e.text.trim())
+      .filter(Boolean)
+      .join('. ');
+    return { ...DEFAULT_PLAN_SETTINGS, sleepThresholdHours: stored.sleepThresholdHours ?? DEFAULT_PLAN_SETTINGS.sleepThresholdHours, normalState };
   }
 
+  /** The normal state is the user's own words: saving it replaces the profil entry. */
   async updatePlanSettings(patch: Partial<PlanSettings>): Promise<void> {
-    const next = { ...this.planSettings(), ...patch };
-    this.snap.kv.planSettings = next;
-    await this.backend.put('kv', 'planSettings', next);
+    if (patch.sleepThresholdHours != null) {
+      const stored = (this.snap.kv.planSettings as Partial<PlanSettings> | undefined) ?? {};
+      const next = { ...stored, sleepThresholdHours: patch.sleepThresholdHours };
+      this.snap.kv.planSettings = next;
+      await this.backend.put('kv', 'planSettings', next);
+    }
+    if (patch.normalState != null) {
+      const existing = this.contextEntries('profil').filter((e) => e.kind === 'normal_state');
+      const text = patch.normalState.trim();
+      for (const e of existing.slice(text ? 1 : 0)) await this.removeContextEntry(e.id, false);
+      if (text && existing[0]) await this.updateContextEntry(existing[0].id, { text, origin: 'user' }, false);
+      else if (text) await this.addContextEntry({ kind: 'normal_state', text, origin: 'user' }, false);
+    }
     this.changed();
   }
 
@@ -153,11 +243,84 @@ export class Repository {
     this.changed();
   }
 
-  // ---- crisis plan ----
+  // ---- context bank ----
+  private findEntry(id: string): ContextEntry | null {
+    for (const layer of LAYERS) {
+      const e = this.snap[layer][id] as ContextEntry | undefined;
+      if (e) return e;
+    }
+    return null;
+  }
+
+  contextEntries(layer?: ContextLayer): ContextEntry[] {
+    const layers = layer ? [layer] : LAYERS;
+    return layers.flatMap((l) => (Object.values(this.snap[l]) as ContextEntry[]).sort(byKindThenOrder));
+  }
+
+  contextOf(kind: ContextKind): ContextEntry[] {
+    return this.contextEntries(LAYER_OF[kind]).filter((e) => e.kind === kind);
+  }
+
+  async addContextEntry(input: NewContextEntry, notify = true): Promise<ContextEntry> {
+    const now = new Date().toISOString();
+    const layer = LAYER_OF[input.kind];
+    const order = this.contextOf(input.kind).reduce((m, e) => Math.max(m, e.order + 1), 0);
+    const entry: ContextEntry = {
+      id: input.id ?? contextId(),
+      layer,
+      kind: input.kind,
+      text: input.text.trim(),
+      order,
+      origin: input.origin,
+      createdAt: input.createdAt ?? now,
+      approvedAt: input.approvedAt === undefined ? now : input.approvedAt,
+      ...(input.date !== undefined ? { date: input.date } : {}),
+      ...(input.taken !== undefined ? { taken: input.taken } : {}),
+      ...(input.correction !== undefined ? { correction: input.correction } : {}),
+    };
+    this.snap[layer][entry.id] = entry;
+    await this.backend.put(layer as Collection, entry.id, entry);
+    if (notify) this.changed();
+    return entry;
+  }
+
+  async updateContextEntry(id: string, patch: Partial<Omit<ContextEntry, 'id' | 'layer'>>, notify = true): Promise<void> {
+    const e = this.findEntry(id);
+    if (!e) return;
+    const next: ContextEntry = { ...e, ...patch, layer: e.layer, id: e.id };
+    if (patch.kind && LAYER_OF[patch.kind] !== e.layer) throw new Error('Posten kan inte flyttas mellan lager');
+    this.snap[e.layer][id] = next;
+    await this.backend.put(e.layer, id, next);
+    if (notify) this.changed();
+  }
+
+  async removeContextEntry(id: string, notify = true): Promise<void> {
+    const e = this.findEntry(id);
+    if (!e) return;
+    delete this.snap[e.layer][id];
+    await this.backend.remove(e.layer, id);
+    if (notify) this.changed();
+  }
+
+  /** Moves an entry one step up or down within its kind. */
+  async moveContextEntry(id: string, dir: -1 | 1): Promise<void> {
+    const e = this.findEntry(id);
+    if (!e) return;
+    const list = this.contextOf(e.kind);
+    const idx = list.findIndex((x) => x.id === id);
+    const other = list[idx + dir];
+    if (!other) return;
+    await this.updateContextEntry(e.id, { order: other.order }, false);
+    await this.updateContextEntry(other.id, { order: e.order }, false);
+    this.changed();
+  }
+
+  // ---- crisis plan: the plan kinds of the grund layer ----
   plan(): PlanItem[] {
-    return (Object.values(this.snap.plan) as PlanItem[]).sort(
-      (a, b) => a.kind.localeCompare(b.kind) || a.order - b.order,
-    );
+    return this.contextEntries('grund')
+      .filter((e) => (PLAN_KINDS as string[]).includes(e.kind))
+      .map((e) => ({ id: e.id, kind: e.kind as PlanItemKind, text: e.text, order: e.order, approvedAt: e.approvedAt, origin: e.origin }))
+      .sort((a, b) => a.kind.localeCompare(b.kind) || a.order - b.order);
   }
 
   planOf(kind: PlanItemKind): PlanItem[] {
@@ -165,47 +328,30 @@ export class Repository {
   }
 
   /** Adds approved rows at the end of their category. */
-  async addPlanItems(rows: { kind: PlanItemKind; text: string; id: string }[]): Promise<void> {
-    const now = new Date().toISOString();
+  async addPlanItems(rows: { kind: PlanItemKind; text: string; id: string }[], origin: ContextOrigin = 'crisis_plan'): Promise<void> {
     for (const row of rows) {
-      const order = this.planOf(row.kind).reduce((m, p) => Math.max(m, p.order + 1), 0);
-      const item: PlanItem = { id: row.id, kind: row.kind, text: row.text.trim(), order, approvedAt: now };
-      this.snap.plan[item.id] = item;
-      await this.backend.put('plan', item.id, item);
+      await this.addContextEntry({ id: row.id, kind: row.kind, text: row.text, origin, approvedAt: origin === 'standard' ? null : undefined }, false);
     }
     this.changed();
   }
 
+  /** Editing a row is the user's own wording from then on, also for standard content. */
   async updatePlanItem(id: string, text: string): Promise<void> {
-    const item = this.snap.plan[id] as PlanItem | undefined;
-    if (!item) return;
-    const next = { ...item, text: text.trim(), approvedAt: new Date().toISOString() };
-    this.snap.plan[id] = next;
-    await this.backend.put('plan', id, next);
-    this.changed();
+    const e = this.findEntry(id);
+    if (!e) return;
+    await this.updateContextEntry(id, {
+      text: text.trim(),
+      approvedAt: new Date().toISOString(),
+      origin: e.origin === 'standard' ? 'user' : e.origin,
+    });
   }
 
   async removePlanItem(id: string): Promise<void> {
-    delete this.snap.plan[id];
-    await this.backend.remove('plan', id);
-    this.changed();
+    await this.removeContextEntry(id);
   }
 
-  /** Moves an item one step up or down within its category. */
   async movePlanItem(id: string, dir: -1 | 1): Promise<void> {
-    const item = this.snap.plan[id] as PlanItem | undefined;
-    if (!item) return;
-    const list = this.planOf(item.kind);
-    const idx = list.findIndex((p) => p.id === id);
-    const other = list[idx + dir];
-    if (!other) return;
-    const a = { ...item, order: other.order };
-    const b = { ...other, order: item.order };
-    this.snap.plan[a.id] = a;
-    this.snap.plan[b.id] = b;
-    await this.backend.put('plan', a.id, a);
-    await this.backend.put('plan', b.id, b);
-    this.changed();
+    await this.moveContextEntry(id, dir);
   }
 
   // ---- entries and assessments ----
@@ -265,6 +411,7 @@ export class Repository {
     if (data.version > EXPORT_VERSION) throw new Error('Exporten kommer från en nyare version av appen');
     await this.backend.replaceAll(data.data);
     this.snap = await this.backend.load();
+    await this.migrate();
     this.changed();
   }
 
