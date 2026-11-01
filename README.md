@@ -133,13 +133,32 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 117 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 169 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
 Specens fyra obligatoriska testfall ligger i `prompts/testfall.md` och körs både med ordmatchning och genom hela LLM-vägen med en fejkad modell. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
 
 Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster, eftersom det kräver dina nycklar. Det är det som verifieringen på telefonen visar. Garmin-flödet är provkört i webbförhandsvisningen med fejkade svar: fel nyckel, rätt nyckel, veckovyn, avstämningen och texten till modellen.
+
+## Kontextbanken: det appen vet om dig
+
+All kunskap om användaren ligger i en egen kontextbank, skild från promptarna och från modellen. Inget lärs in i modellen, och ett modellbyte ändrar ingenting i banken.
+
+| Lager | Innehåll | Ändras av |
+| --- | --- | --- |
+| Grund | Krisplanens tecken och åtgärder, akuta formuleringar, utlösare, kända falsklarm, medicin, önskad ton vid gult och rött | Bara användaren |
+| Profil | Normalläge, typiska formuleringar, tidigare perioder (nedstämd, uppvarvad och blandad var för sig), kända förlopp | Godkända förslag, eller användaren själv |
+| Dagligt | Medicin tagen, kommande händelser, rättelser. Anteckningar och mätvärden räknas fram ur avstämningarna | Användaren |
+
+Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correction`) och datum för när den skapades och godkändes. Vyn *Det appen vet om mig* visar allt och låter användaren ändra och radera.
+
+- **`buildContext`** i `src/context/buildContext.ts` bygger promptens variabler ur banken. Rensningen körs på resultatet.
+- **Standardläget** laddar `context/standard.md`. Obekräftade standardrader kan bara ge gult.
+- **Akutregeln** i `src/context/akut.ts` matchar `context/akut.md` och användarens egna formuleringar i koden, före och oberoende av modellen.
+- **Lärandet** sker bara genom förslag: rättelser (tre likadana om samma tecken), profilgenomgång varje månad och efter en period, och förlopp räknat i koden. Inget når banken utan godkännande.
+- **Baslinjer** för sömn, stress, ord per minut och klocktid räknas om varje måndag ur gröna dagar de senaste 28 dagarna.
+- **Export och import** av kontexten ger tre läsbara markdownfiler, `grund.md`, `profil.md` och `dagligt.md`.
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 

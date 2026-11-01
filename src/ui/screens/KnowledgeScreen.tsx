@@ -8,6 +8,8 @@ import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../component
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { monthlyDue, runProfileReview } from '../../services/profile';
+import { CONTEXT_FILES, exportAll, parseLayer } from '../../context/markdown';
+import { pickImportFile, saveExportFile } from '../../platform/files';
 import { Platform } from 'react-native';
 import { colors, space, type } from '../theme';
 
@@ -149,6 +151,64 @@ function ReviewNow() {
   );
 }
 
+function ExportImport({ summary }: { summary: string }) {
+  const repo = useRepo();
+  const dialog = useDialog();
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
+
+  const doExport = async () => {
+    const ok = await dialog.confirm({
+      title: 'Exportera kontext?',
+      message: 'Du får tre läsbara filer: grund.md, profil.md och dagligt.md. De är inte krypterade, till skillnad från Exportera allt. Spara dem där bara du kommer åt dem.',
+      confirmLabel: 'Exportera',
+    });
+    if (!ok) return;
+    setBusy('export');
+    try {
+      for (const [name, content] of Object.entries(exportAll(repo.contextEntries(), new Date(), summary))) {
+        await saveExportFile(name, content, 'text/markdown');
+      }
+    } catch (e) {
+      await dialog.info('Exporten misslyckades', (e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const doImport = async () => {
+    const text = await pickImportFile(['text/markdown', 'text/plain', '.md', '*/*']);
+    if (!text) return;
+    setBusy('import');
+    try {
+      const parsed = parseLayer(text);
+      const now = repo.contextEntries(parsed.layer).length;
+      const ok = await dialog.confirm({
+        title: `Ersätta ${LAYER_TEXT[parsed.layer].title}?`,
+        message: `Lagret har i dag ${now} poster. Filen har ${parsed.entries.length}. Allt i lagret ersätts med filens innehåll. Importera de andra filerna en i taget.`,
+        confirmLabel: 'Ersätt',
+        danger: true,
+      });
+      if (!ok) return;
+      await repo.replaceLayer(parsed.layer, parsed.entries);
+      await dialog.info('Klart', `${LAYER_TEXT[parsed.layer].title} är återställt med ${parsed.entries.length} poster.`);
+    } catch (e) {
+      await dialog.info('Importen misslyckades', (e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Section title="Exportera och importera">
+      <Card>
+        <P muted>{`Tre läsbara filer: ${Object.values(CONTEXT_FILES).join(', ')}. Bra för att visa någon, för att spara en kopia eller för att flytta till en ny telefon.`}</P>
+        <Button kind="secondary" title="Exportera kontext" onPress={doExport} busy={busy === 'export'} />
+        <Button kind="secondary" title="Importera kontext" onPress={doImport} busy={busy === 'import'} />
+      </Card>
+    </Section>
+  );
+}
+
 export function KnowledgeScreen() {
   const repo = useRepo();
   const nav = useNav();
@@ -211,6 +271,8 @@ export function KnowledgeScreen() {
           </Section>
         );
       })}
+
+      <ExportImport summary={derived} />
     </Screen>
   );
 }

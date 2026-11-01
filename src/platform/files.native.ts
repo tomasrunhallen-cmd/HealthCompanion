@@ -9,13 +9,13 @@ export function randomBytes(n: number): Uint8Array {
   return Crypto.getRandomBytes(n);
 }
 
-export async function saveExportFile(filename: string, content: string): Promise<void> {
+export async function saveExportFile(filename: string, content: string, mimeType = 'application/json'): Promise<void> {
   const file = new File(Paths.cache, filename);
   if (file.exists) file.delete();
   file.create();
   await file.write(content);
   try {
-    await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Spara exportfilen' });
+    await Sharing.shareAsync(file.uri, { mimeType, dialogTitle: `Spara ${filename}` });
   } finally {
     // The share sheet has made its own copy; do not leave the file in the cache.
     setTimeout(() => {
@@ -28,8 +28,8 @@ export async function saveExportFile(filename: string, content: string): Promise
   }
 }
 
-export async function pickImportFile(): Promise<string | null> {
-  const res = await DocumentPicker.getDocumentAsync({ type: ['application/json', '*/*'], copyToCacheDirectory: true });
+export async function pickImportFile(types: string[] = ['application/json', '*/*']): Promise<string | null> {
+  const res = await DocumentPicker.getDocumentAsync({ type: types, copyToCacheDirectory: true });
   if (res.canceled || !res.assets?.[0]) return null;
   const file = new File(res.assets[0].uri);
   const text = await file.text();

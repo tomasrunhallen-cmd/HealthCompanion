@@ -5,10 +5,10 @@ export function randomBytes(n: number): Uint8Array {
   return out;
 }
 
-export async function saveExportFile(filename: string, content: string): Promise<void> {
+export async function saveExportFile(filename: string, content: string, mimeType = 'application/json'): Promise<void> {
   const doc = (globalThis as { document?: any }).document;
   if (!doc) throw new Error('Export stöds inte här');
-  const blob = new Blob([content], { type: 'application/json' });
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const a = doc.createElement('a');
   a.href = url;
@@ -19,13 +19,13 @@ export async function saveExportFile(filename: string, content: string): Promise
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export async function pickImportFile(): Promise<string | null> {
+export async function pickImportFile(types: string[] = ['application/json', '.json']): Promise<string | null> {
   const doc = (globalThis as { document?: any }).document;
   if (!doc) return null;
   return new Promise((resolve) => {
     const input = doc.createElement('input');
     input.type = 'file';
-    input.accept = 'application/json,.json';
+    input.accept = types.filter((t) => t !== '*/*').join(',');
     input.onchange = async () => {
       const f = input.files?.[0];
       resolve(f ? await f.text() : null);

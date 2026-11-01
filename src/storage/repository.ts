@@ -328,6 +328,20 @@ export class Repository {
     if (notify) this.changed();
   }
 
+  /** Replaces a whole layer, used by the context import. */
+  async replaceLayer(layer: ContextLayer, entries: ContextEntry[]): Promise<void> {
+    for (const id of Object.keys(this.snap[layer])) {
+      delete this.snap[layer][id];
+      await this.backend.remove(layer, id);
+    }
+    for (const e of entries) {
+      if (e.layer !== layer) throw new Error('Posten hör till ett annat lager');
+      this.snap[layer][e.id] = e;
+      await this.backend.put(layer, e.id, e);
+    }
+    this.changed();
+  }
+
   /** Moves an entry one step up or down within its kind. */
   async moveContextEntry(id: string, dir: -1 | 1): Promise<void> {
     const e = this.findEntry(id);

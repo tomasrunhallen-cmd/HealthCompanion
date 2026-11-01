@@ -40,6 +40,14 @@ Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery frå
 
 Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
+## Kontextbanken och lärandet
+
+Det appen vet om användaren ligger i kontextbanken på telefonen (i webbversionen i användarens Firebase). Inget lärs in i någon modell, och leverantörernas minnesfunktioner används inte. Varje kväll skickas en sammanställning ur banken med till modellen, rensad på samma sätt som anteckningen.
+
+En gång i månaden, och när en period med gult eller rött är över, kan användaren be appen gå igenom anteckningarna. Då skickas periodens rensade anteckningar till modellen, utom anteckningar som träffat akutregeln. Svaret blir förslag som användaren godkänner eller avvisar ett i taget. Förloppet för en period räknas i appen och skickas inte någonstans.
+
+*Exportera kontext* ger tre läsbara markdownfiler. De är inte krypterade, till skillnad från *Exportera allt*, och appen säger det innan de skapas.
+
 ## Akutregeln
 
 En anteckning jämförs på telefonen med en ordlista för tankar på att inte vilja leva eller att skada sig, plus användarens egna akuta formuleringar ur krisplanen. Jämförelsen görs innan något skickas och fungerar utan nätverk. Vid träff visas krisplanens steg vid rött och krisnumren direkt. Anteckningen skickas då inte till språkmodellen, och appen hämtar inte heller något från Garmin. Ordlistan och de egna formuleringarna skickas aldrig till en modell, inte heller vid krisplansimport: rader som träffar listan stannar på telefonen.
