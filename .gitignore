@@ -41,3 +41,4 @@ yarn-error.*
 /android
 src/prompts/bundle.generated.ts
 dist-web/
+public/integritet.html

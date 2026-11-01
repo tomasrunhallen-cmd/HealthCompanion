@@ -5,6 +5,7 @@ import { formatDateSv, formatDateSvYear, formatTime } from '../../analysis/dates
 import { explainAssessment } from '../../analysis/explain';
 import { CrisisCard } from '../CrisisCard';
 import { correctionFor } from '../../context/corrections';
+import { MEDICAL_REMINDER } from '../../legal';
 import type { Signal } from '../../domain/types';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -197,6 +198,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         {METHOD_TEXT[a.method]} Poäng: {a.points}.
         {a.method === 'llm' && a.model ? ` Modell ${a.model}, prompt ${a.promptId} ${a.promptVersion}.` : ''}
       </P>
+      <P muted style={{ marginTop: space.s }}>{MEDICAL_REMINDER}</P>
     </Screen>
   );
 }

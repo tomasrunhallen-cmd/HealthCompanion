@@ -1,20 +1,21 @@
 import { SymbolView } from 'expo-symbols';
 import React from 'react';
-import { Pressable, Text, useColorScheme, View } from 'react-native';
+import { Linking, Pressable, Text, useColorScheme, View } from 'react-native';
+import { PRIVACY_POLICY_URL } from '../../legal';
 import { Card, Screen, Section } from '../components';
 import { useNav, type Route } from '../nav';
 import { useRepo } from '../state';
 import { colors, MIN_TOUCH, paletteHex, space, type } from '../theme';
 
 /** One row in a grouped list: title, optional detail, and a chevron. At least 44 points tall. */
-function ListRow(props: { title: string; detail?: string; to: Route; last?: boolean }) {
+function ListRow(props: { title: string; detail?: string; to?: Route; url?: string; last?: boolean }) {
   const nav = useNav();
   const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={props.url ? 'link' : 'button'}
       accessibilityLabel={props.detail ? `${props.title}, ${props.detail}` : props.title}
-      onPress={() => nav.push(props.to)}
+      onPress={() => (props.url ? Linking.openURL(props.url).catch(() => undefined) : props.to && nav.push(props.to))}
       style={({ pressed }) => ({
         minHeight: MIN_TOUCH, paddingVertical: space.m, flexDirection: 'row', alignItems: 'center', gap: space.m,
         borderBottomWidth: props.last ? 0 : 1, borderColor: colors.border, opacity: pressed ? 0.6 : 1,
@@ -56,7 +57,8 @@ export function MeScreen() {
       <Section title="Appen">
         <Card style={{ paddingVertical: 0 }}>
           <ListRow title="Inställningar" detail="Påminnelse, applås, språkmodell, Garmin, export" to={{ name: 'settings' }} />
-          <ListRow title="Data och integritet" to={{ name: 'privacy' }} last />
+          <ListRow title="Data och integritet" to={{ name: 'privacy' }} />
+          <ListRow title="Integritetspolicy" detail="Öppnas i webbläsaren" url={PRIVACY_POLICY_URL} last />
         </Card>
       </Section>
     </Screen>

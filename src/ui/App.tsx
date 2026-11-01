@@ -136,10 +136,11 @@ export default function App() {
   }, []);
 
   // Web with Firebase: the key from the user's password, in memory only. Null until unlocked.
-  const [vault, setVault] = useState<Vault | null>(null);
+  // Tied to the account it was opened for, so signing in as someone else needs that person's password.
+  const [opened, setOpened] = useState<{ uid: string; vault: Vault } | null>(null);
+  const vault = opened && opened.uid === user?.uid ? opened.vault : null;
 
   useEffect(() => (cloudConfigured ? onUserChanged(setUser) : undefined), []);
-  useEffect(() => setVault(null), [user?.uid]);
 
   useEffect(() => {
     setRepo(null);
@@ -166,7 +167,7 @@ export default function App() {
   } else if (cloudConfigured && user === null) {
     body = <SignInScreen />;
   } else if (cloudConfigured && user && !vault) {
-    body = <VaultScreen user={user} onOpen={setVault} />;
+    body = <VaultScreen user={user} onOpen={(v) => setOpened({ uid: user.uid, vault: v })} />;
   } else if (!repo) {
     body = <Centered><ActivityIndicator color={colors.accent} /></Centered>;
   } else {

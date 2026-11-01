@@ -202,9 +202,9 @@ const CrisisSheetStack = makeSheetStack(['crisis']);
 type SymbolName = SymbolViewProps['name'];
 
 function tabIcon(name: SymbolName, fallback: string) {
-  return ({ color, size }: { color: string; size: number }) => (
-    <SymbolView name={name} size={size} tintColor={color} fallback={<Text style={{ color, fontSize: size * 0.8 }}>{fallback}</Text>} />
-  );
+  return function TabIcon({ color, size }: { color: string; size: number }) {
+    return <SymbolView name={name} size={size} tintColor={color} fallback={<Text style={{ color, fontSize: size * 0.8 }}>{fallback}</Text>} />;
+  };
 }
 
 function TabsNavigator() {

@@ -53,7 +53,7 @@
     "test": "jest && node --test tests/functions/*.test.mjs",
     "prompt:check": "node scripts/build-prompts.js && jest --testMatch '<rootDir>/tests/live/*.live.ts'",
     "typecheck": "node scripts/build-prompts.js && tsc --noEmit",
-    "export:web": "node scripts/build-prompts.js && expo export --platform web"
+    "export:web": "node scripts/build-prompts.js && node scripts/build-policy.js && expo export --platform web"
   },
   "private": true,
   "jest": {

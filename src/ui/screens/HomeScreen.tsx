@@ -9,6 +9,7 @@ import { standardNudgeWeek, startWithStandard, unconfirmedStandard } from '../..
 import { dueNow, runProfileReview } from '../../services/profile';
 import { Platform } from 'react-native';
 import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
+import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -93,6 +94,7 @@ export function HomeScreen() {
             Appen jämför din anteckning med tecknen i din krisplan. Har du ingen plan till hands kan du börja med
             allmänna tecken och byta till din egen senare.
           </P>
+          <P muted style={{ marginBottom: space.m }}>{MEDICAL_REMINDER}</P>
           <Button title="Ladda in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
           <Button kind="secondary" title="Börja med standard" onPress={chooseStandard} />
         </Card>

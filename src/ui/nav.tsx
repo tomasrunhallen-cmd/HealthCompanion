@@ -8,7 +8,6 @@
 // right tab, stack or sheet.
 
 import { useNavigation, useRoute, type NavigationProp, type ParamListBase } from '@react-navigation/native';
-import { useCallback, useMemo } from 'react';
 
 export type Route =
   | { name: 'home' }
@@ -78,9 +77,9 @@ function rootOf(nav: NavigationProp<ParamListBase>): NavigationProp<ParamListBas
 export function useNav(): Nav {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const r = useRoute();
-  const route = useMemo(() => ({ name: r.name, ...(r.params as object | undefined) }) as Route, [r.name, r.params]);
+  const route = { name: r.name, ...(r.params as object | undefined) } as Route;
 
-  const push = useCallback((to: Route) => {
+  const push = (to: Route) => {
     const params = paramsOf(to);
     const root = rootOf(navigation);
     const tab = TAB_OF[to.name];
@@ -101,30 +100,30 @@ export function useNav(): Nav {
       return;
     }
     root.navigate('tabs', { screen: 'homeTab', params: { screen: to.name, params } });
-  }, [navigation]);
+  };
 
-  const replace = useCallback((to: Route) => {
+  const replace = (to: Route) => {
     const state = navigation.getState();
     if (state?.routeNames.includes(to.name)) {
       (navigation as unknown as { replace(n: string, p?: object): void }).replace(to.name, paramsOf(to));
     } else push(to);
-  }, [navigation, push]);
+  };
 
-  const back = useCallback(() => {
+  const back = () => {
     if (navigation.canGoBack()) navigation.goBack();
-  }, [navigation]);
+  };
 
-  const close = useCallback(() => {
+  const close = () => {
     const root = rootOf(navigation);
     if (root.canGoBack()) root.goBack();
-  }, [navigation]);
+  };
 
-  const reset = useCallback((to: Route = { name: 'home' }) => {
+  const reset = (to: Route = { name: 'home' }) => {
     // Pop the current tab to its first screen, then show the target tab.
     const stack = navigation as unknown as { popToTop?: () => void };
     if (navigation.canGoBack()) stack.popToTop?.();
     push(to);
-  }, [navigation, push]);
+  };
 
   return { route, canGoBack: navigation.canGoBack(), push, replace, back, reset, close };
 }

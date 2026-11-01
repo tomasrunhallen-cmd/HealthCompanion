@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, Linking } from 'react-native';
 import { PROVIDERS } from '../../adapter/providers';
 import { hasConsent, isLocalDestination } from '../../llm/config';
-import { Card, P, Screen, Section } from '../components';
+import { MEDICAL_REMINDER, PRIVACY_POLICY_URL } from '../../legal';
+import { Button, Card, P, Screen, Section } from '../components';
 import { useRepo } from '../state';
 import { colors, space, type } from '../theme';
 
@@ -55,8 +56,9 @@ export function PrivacyScreen() {
         ))}
       </Section>
 
+      <Button kind="secondary" title="Läs hela integritetspolicyn" onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => undefined)} style={{ marginTop: space.l }} />
       <P muted style={{ marginTop: space.l, color: colors.textMuted }}>
-        Appen ställer ingen diagnos och ersätter inte vården. Den visar bara det som står i din egen plan.
+        {MEDICAL_REMINDER} Appen visar bara det som står i din egen plan.
       </P>
     </Screen>
   );

@@ -142,7 +142,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 290 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 294 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -152,7 +152,7 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 
 ## Design
 
-Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsnitt, hur, och var de krockar med specen.
+Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsnitt, hur, och var de krockar med specen. Kraven från App Store Review Guidelines, integritetsuppgifterna och det som återstår före inskickning står i `APPSTORE.md`. Integritetspolicyn för användare är `INTEGRITETSPOLICY.md`. Den publiceras som `https://dagsljus.netlify.app/integritet.html` vid varje webbygge.
 
 - **Flikar:** Hem, Avstämning, Trend och Jag. Varje flik har en native stack med stor rubrik.
 - **Ark:** krisplanen, förslag, rättelser och *Hjälp nu* öppnas som ark.
