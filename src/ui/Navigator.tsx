@@ -32,6 +32,7 @@ import { RecomputeScreen } from './screens/RecomputeScreen';
 import { RoutinesScreen } from './screens/RoutinesScreen';
 import { VisitScreen } from './screens/VisitScreen';
 import { ShareScreen } from './screens/ShareScreen';
+import { RelativesScreen } from './screens/RelativesScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
@@ -82,6 +83,7 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   recompute: RecomputeScreen,
   visit: VisitScreen,
   share: ShareScreen,
+  relatives: RelativesScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -107,6 +109,7 @@ const TITLE: Record<RouteName, string> = {
   recompute: 'Räkna om',
   visit: 'Återbesök',
   share: 'Visa för någon',
+  relatives: 'Anhörigkort',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };
