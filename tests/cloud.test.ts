@@ -1,6 +1,6 @@
 import { parseFirebaseConfig } from '../src/cloud/config';
 import { authErrorText } from '../src/cloud/errors';
-import { adoptLocalData, cloudBackend, docId, type CloudDoc, type CloudDocs } from '../src/storage/cloudBackend';
+import { adoptLocalData, cloudBackend, docId, type CloudDoc, type CloudDocs, type StoredDoc } from '../src/storage/cloudBackend';
 import { emptySnapshot } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 
@@ -30,15 +30,18 @@ describe('Firebase config', () => {
   });
 });
 
-function fakeDocs(failWrites = false): CloudDocs & { store: Map<string, CloudDoc>; commits: number } {
-  const store = new Map<string, CloudDoc>();
+function fakeDocs(failWrites = false): CloudDocs & { store: Map<string, StoredDoc>; commits: number } {
+  const store = new Map<string, StoredDoc>();
   const f = {
     store,
     commits: 0,
     async list() {
       return Array.from(store, ([id, data]) => ({ id, data }));
     },
-    async set(id: string, data: CloudDoc) {
+    async get(id: string) {
+      return store.get(id) ?? null;
+    },
+    async set(id: string, data: StoredDoc) {
       if (failWrites) throw Object.assign(new Error('denied'), { code: 'permission-denied' });
       store.set(id, data);
     },

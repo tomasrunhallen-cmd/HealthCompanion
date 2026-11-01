@@ -61,7 +61,7 @@ Hämta Expo Go för SDK 58 från [expo.dev/go](https://expo.dev/go) och kör `np
 
 Webbversionen är samma app i webbläsaren. Allt fungerar där utom inspelning, som inte är byggd än. Den avviker från specen på fyra sätt. Du har valt det medvetet:
 
-- **Data sparas i ditt eget Firebase-projekt** hos Google, bakom din inloggning, och inte bara på telefonen. Den är inte krypterad med en nyckel som bara du har.
+- **Data sparas i ditt eget Firebase-projekt** hos Google, bakom din inloggning, och inte bara på telefonen. Den krypteras i webbläsaren innan den sparas, med en nyckel från ett lösenord som bara du känner till. Se *Krypteringen i webbversionen* nedan.
 - **Två små funktioner körs på din Netlify.** Den ena skickar Garmin-anropen vidare, eftersom Garmin inte tar emot anrop från webbläsare. Den andra skapar kalenderhändelsen för påminnelsen. Ingen av dem sparar något.
 - **Nycklarna till Mistral och Garmin sparas okrypterade** i webbläsaren.
 - **Applåset är en sifferkod**, inte Face ID. **Påminnelsen är en återkommande händelse i telefonens kalender**, eftersom en webbapp inte kan schemalägga notiser.
@@ -71,10 +71,19 @@ Mistral och Anthropic anropas direkt från webbläsaren. Ingen text passerar Net
 ### Ställ in Firebase (från telefonen, som för Veckopeng)
 
 1. Gå till console.firebase.google.com och lägg till ett nytt projekt, till exempel `dagsljus`. Stäng av Google Analytics.
-2. **Firestore Database:** skapa en databas i produktionsläge, i samma region som Veckopeng (`europe-west1`).
+2. **Firestore Database:** skapa en databas i produktionsläge, i en region i EU, till exempel `europe-west1` (Belgien) eller `eur3` (flera regioner i EU). Regionen går inte att ändra efteråt.
 3. **Authentication:** starta, slå på **Email/Password** under Sign-in method och lägg upp ditt konto under **Users** med *Add user*.
 4. **Firestore, fliken Rules:** ersätt allt med innehållet i `firestore.rules` i repot och publicera.
 5. **Project settings, Your apps:** lägg till en webbapp med ikonen `</>`. Kopiera blocket `firebaseConfig` och skicka det till mig, eller klistra in det i `src/cloud/projectConfig.ts`. Blocket är ingen hemlighet. Det pekar bara ut projektet, och reglerna skyddar datan.
+
+### Krypteringen i webbversionen
+
+- **Allt krypteras i webbläsaren innan det sparas i Firebase:** anteckningar, krisplan, kontextbank, bedömningar och inställningar. AES-256-GCM med en nyckel som härleds ur ett lösenord med PBKDF2-SHA256 och 600 000 iterationer, via webbläsarens Web Crypto. Koden ligger i `src/cloud/vault.ts`.
+- **Lösenordet lämnar aldrig webbläsaren och sparas ingenstans.** Det är ett annat lösenord än inloggningen. Appen frågar efter det varje gång den öppnas. **Glömmer du det går datan inte att läsa**, och appen säger det tydligt när lösenordet skapas.
+- **Dokumentens id är en HMAC** av postens id, så varken typ av post eller datum syns i Firebase. Det enda som inte är krypterat är dokumentet `_vault`, med salt och ett kontrollvärde som visar om lösenordet är rätt.
+- **Befintlig data krypteras första gången** du loggar in efter uppdateringen. Appen provkör först på en kopia i webbläsaren och visar resultatet. Sedan skrivs krypterade kopior bredvid originalen i Firebase, läses tillbaka och jämförs post för post. Först när alla stämmer tas de okrypterade bort. Stämmer något inte tas kopiorna bort och originalen lämnas orörda. Avbryts flytten görs den klart nästa gång du låser upp. Flytten är också provkörd mot Firebase-emulatorn med den riktiga Firebase-koden.
+- **Regionen.** En Firestore-databas kan inte byta region efter att den skapats. Om din ligger i EU, till exempel `europe-west1` som guiden ovan föreslog, behövs ingen flytt: krypteringen sker på plats. Du ser regionen i Firebase-konsolen under Firestore Database, i listan över databaser. Ligger den utanför EU finns två vägar. Den ena är en ny databas i samma projekt, vilket kräver betalplanen Blaze. Den andra är ett nytt projekt med databasen i EU, vilket är gratis. I båda fallen flyttar appen datan krypterad, men det är inte byggt än.
+- **Byte av lösenord** finns inte än.
 
 ### Ställ in Netlify
 
@@ -133,7 +142,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 246 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 262 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 

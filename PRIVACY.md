@@ -66,11 +66,13 @@ En anteckning jämförs på telefonen med en ordlista för tankar på att inte v
 
 ## Webbversionen
 
-Webbversionen på Netlify avviker från principen att allt stannar på telefonen. Användaren har valt det för att kunna använda appen utan dator.
+Webbversionen på Netlify avviker från principen att allt stannar på telefonen. Användaren har valt det för att kunna använda appen utan dator. Datan ligger i Firebase, men krypterad med en nyckel som bara användaren har.
+
+Det som syns för Google är antalet poster, deras storlek och när de ändrades, samt inloggningens e-postadress. Innehållet syns inte.
 
 | Data | Var | Skydd |
 | --- | --- | --- |
-| Krisplan, anteckningar, bedömningar, inställningar, Garmin-värden | Användarens eget Firebase-projekt (Firestore hos Google), plus en kopia i webbläsaren | Inloggning med e-post och lösenord för ett konto som lagts upp i Firebase-konsolen. Reglerna i `firestore.rules` låter bara det egna kontot läsa och skriva. Google krypterar lagringen, men inte med en nyckel som bara användaren har. |
+| Krisplan, anteckningar, bedömningar, kontextbank, inställningar, Garmin-värden | Användarens eget Firebase-projekt (Firestore hos Google, i EU), plus Firestores cache i webbläsaren | Krypterade i webbläsaren innan de sparas: AES-256-GCM med en nyckel som härleds ur ett lösenord som bara användaren känner till (PBKDF2-SHA256, 600 000 iterationer, Web Crypto). Lösenordet och nyckeln lämnar aldrig webbläsaren och sparas inte. Dokumentens id är en HMAC av postens id, så varken typ av post eller datum syns. Firebase har bara krypterad data, saltet och ett kontrollvärde. Glömt lösenord betyder att datan inte går att läsa. Dessutom inloggning, och reglerna i `firestore.rules` låter bara det egna kontot läsa och skriva. |
 | Nycklar till språkmodell och Garmin | Webbläsarens lagring på enheten | Okrypterade. Följer inte med till Firebase. |
 | Applåsets kod | Webbläsarens lagring | Bara som saltad hash (PBKDF2) |
 

@@ -21,6 +21,8 @@ import { PrivacyScreen } from './screens/PrivacyScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SignInScreen } from './screens/SignInScreen';
+import { VaultScreen } from './screens/VaultScreen';
+import type { Vault } from '../cloud/vault';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { DialogProvider, RepoProvider } from './state';
 import { colors, space, type } from './theme';
@@ -149,20 +151,25 @@ export default function App() {
   // Web with Firebase: undefined while Firebase answers, null when signed out.
   const [user, setUser] = useState<CloudUser | null | undefined>(cloudConfigured ? undefined : null);
 
+  // Web with Firebase: the key from the user's password, in memory only. Null until unlocked.
+  const [vault, setVault] = useState<Vault | null>(null);
+
   useEffect(() => (cloudConfigured ? onUserChanged(setUser) : undefined), []);
+  useEffect(() => setVault(null), [user?.uid]);
 
   useEffect(() => {
     setRepo(null);
     if (user === undefined || (cloudConfigured && user === null)) return;
+    if (cloudConfigured && !vault) return;
     let live = true;
-    openBackend(user)
+    openBackend(user, vault)
       .then(Repository.create)
       .then((r) => live && setRepo(r))
       .catch((e: Error) => live && setError(e.message));
     return () => {
       live = false;
     };
-  }, [user?.uid, user === null]);
+  }, [user?.uid, user === null, vault]);
 
   let body: React.ReactNode;
   if (error) {
@@ -174,6 +181,8 @@ export default function App() {
     );
   } else if (cloudConfigured && user === null) {
     body = <SignInScreen />;
+  } else if (cloudConfigured && user && !vault) {
+    body = <VaultScreen user={user} onOpen={setVault} />;
   } else if (!repo) {
     body = <Centered><ActivityIndicator color={colors.accent} /></Centered>;
   } else {

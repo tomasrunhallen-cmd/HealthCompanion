@@ -1,8 +1,9 @@
 // Web version. With Firebase configured and the user signed in, data lives in the user's
-// own Firestore (cloudBackend). Without Firebase it stays in this browser's localStorage,
+// own Firestore (cloudBackend), encrypted with a key from the user's password. Without Firebase it stays in this browser's localStorage,
 // unencrypted, falling back to memory where storage is blocked.
 
 import { cloudDocsFor, cloudConfigured, type CloudUser } from '../cloud/firebase';
+import type { Vault } from '../cloud/vault';
 import { emptySnapshot, memoryBackend, type DocBackend, type Snapshot } from './backend';
 import { adoptLocalData, cloudBackend } from './cloudBackend';
 
@@ -26,9 +27,11 @@ function write(s: Snapshot): boolean {
   }
 }
 
-export async function openBackend(user?: CloudUser | null): Promise<DocBackend> {
+export async function openBackend(user?: CloudUser | null, vault?: Vault | null): Promise<DocBackend> {
   if (cloudConfigured && user) {
-    const backend = cloudBackend(cloudDocsFor(user.uid), { account: user.email ?? 'ditt konto' });
+    // The web version with Firebase always encrypts: VaultScreen opens the vault first.
+    if (!vault) throw new Error('Krypteringen är inte upplåst.');
+    const backend = cloudBackend(cloudDocsFor(user.uid), { account: user.email ?? 'ditt konto', vault });
     // Data saved in the browser before Firebase was set up moves into an empty cloud store once.
     if (await adoptLocalData(backend, read())) {
       try {

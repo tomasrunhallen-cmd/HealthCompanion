@@ -4,14 +4,14 @@
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import {
-  browserLocalPersistence, indexedDBLocalPersistence, initializeAuth,
+  browserLocalPersistence, connectAuthEmulator, indexedDBLocalPersistence, initializeAuth,
   onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, type Auth,
 } from 'firebase/auth';
 import {
-  collection, deleteDoc, doc, getDocs, getDocsFromCache, initializeFirestore, persistentLocalCache,
+  collection, connectFirestoreEmulator, deleteDoc, doc, getDoc, getDocFromCache, getDocs, getDocsFromCache, initializeFirestore, persistentLocalCache,
   persistentMultipleTabManager, setDoc, writeBatch, type Firestore,
 } from 'firebase/firestore';
-import type { CloudDoc, CloudDocs } from '../storage/cloudBackend';
+import type { CloudDocs, StoredDoc } from '../storage/cloudBackend';
 import { parseFirebaseConfig } from './config';
 import { FIREBASE_WEB_CONFIG } from './projectConfig';
 
@@ -35,6 +35,12 @@ function init(): { auth: Auth; db: Firestore } {
     auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
     // Local cache in IndexedDB: the app works offline and syncs when back online.
     db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+    // Tests only: EXPO_PUBLIC_FIREBASE_EMULATOR=host points the app at the local Firebase emulators.
+    const emulator = process.env.EXPO_PUBLIC_FIREBASE_EMULATOR;
+    if (emulator) {
+      connectAuthEmulator(auth, `http://${emulator}:9099`, { disableWarnings: true });
+      connectFirestoreEmulator(db, emulator, 8080);
+    }
   }
   return { auth: auth!, db: db! };
 }
@@ -72,7 +78,16 @@ export function cloudDocsFor(uid: string): CloudDocs {
       } catch {
         snap = await getDocsFromCache(col);
       }
-      return snap.docs.map((d) => ({ id: d.id, data: d.data() as CloudDoc }));
+      return snap.docs.map((d) => ({ id: d.id, data: d.data() as StoredDoc }));
+    },
+    async get(id) {
+      let snap;
+      try {
+        snap = await getDoc(doc(col, id));
+      } catch {
+        snap = await getDocFromCache(doc(col, id));
+      }
+      return snap.exists() ? (snap.data() as StoredDoc) : null;
     },
     async set(id, data) {
       await setDoc(doc(col, id), data);

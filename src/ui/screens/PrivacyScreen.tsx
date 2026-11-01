@@ -43,7 +43,7 @@ export function PrivacyScreen() {
 
       <Section title="Vart din data tar vägen">
         {FLOW.map((f) => (info.kind === 'cloud' && f.title === 'Krisplan, anteckningar och bedömningar'
-          ? { ...f, text: 'I webbversionen: i ditt eget Firebase-projekt, bakom din inloggning, och i den här webbläsaren. Bara ditt konto kan läsa dem enligt reglerna i Firestore.' }
+          ? { ...f, text: 'I webbversionen: i ditt eget Firebase-projekt, bakom din inloggning, och i den här webbläsaren. Allt krypteras i webbläsaren med en nyckel från ditt lösenord innan det sparas, så Firebase och Google ser bara krypterad data. Lösenordet lämnar aldrig webbläsaren.' }
           : info.kind === 'cloud' && f.title === 'Garmin'
             ? { ...f, text: `${f.text} I webbversionen går hämtningen via appens egen funktion på Netlify, eftersom Garmin inte tar emot anrop från webbläsare. Funktionen sparar ingenting.` }
             : f
