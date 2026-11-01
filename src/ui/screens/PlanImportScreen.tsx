@@ -8,6 +8,7 @@ import { KIND_LABEL, KIND_ORDER, parsePlanText, type DraftKind, type DraftRow } 
 import { namesFromPlanText, scrubReversible } from '../../privacy/scrub';
 import { activeAdapter, structurePlanWithModel, trackedCompleter } from '../../services/llm';
 import { replaceStandard, unconfirmedStandard } from '../../context/standard';
+import { isAkut, splitAkutLines } from '../../context/akut';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -110,8 +111,12 @@ export function PlanImportScreen() {
     setNames(namesFromPlanText(text).filter((n) => !known.has(n.toLowerCase())).map((name) => ({ name, add: true })));
   };
 
+  // Rows about not wanting to live or self-harm are suggested as the user's own emergency phrases.
+  const markAkut = (list: DraftRow[]): DraftRow[] => list.map((r) => (isAkut(r.text) ? { ...r, kind: 'akut' } : r));
+  const split = useMemo(() => splitAkutLines(text), [text]);
+
   const structure = () => {
-    setRows(parsePlanText(text));
+    setRows(markAkut(parsePlanText(text)));
     setNotInPlan(new Set());
     setUsedModel(null);
     findNames();
@@ -119,8 +124,9 @@ export function PlanImportScreen() {
 
   // Names from the user's list plus the ones they kept ticked in the plan.
   const scrubbed = useMemo(
-    () => scrubReversible(text, [...repo.settings().scrubNames, ...names.filter((n) => n.add).map((n) => n.name)]),
-    [text, names, repo],
+    // Emergency lines never reach the model; they are added back as rows on the phone.
+    () => scrubReversible(split.kept, [...repo.settings().scrubNames, ...names.filter((n) => n.add).map((n) => n.name)]),
+    [split, names, repo],
   );
 
   const startModel = () => {
@@ -132,7 +138,11 @@ export function PlanImportScreen() {
     if (!adapter) return;
     setBusy(true);
     try {
-      const result = await structurePlanWithModel(trackedCompleter(repo, adapter), scrubbed.text, scrubbed.map, text);
+      const fromModel = await structurePlanWithModel(trackedCompleter(repo, adapter), scrubbed.text, scrubbed.map, text);
+      const result = [
+        ...fromModel,
+        ...split.akut.map((t, i) => ({ key: `a${i}`, text: t, kind: 'akut' as const, approved: false, inOriginal: true })),
+      ];
       setRows(result);
       setNotInPlan(new Set(result.filter((r) => !r.inOriginal).map((r) => r.key)));
       setUsedModel(adapter.model);
@@ -143,7 +153,7 @@ export function PlanImportScreen() {
         `${(e as Error).message} Raderna sorteras på telefonen i stället.`,
       );
       setReviewScrub(false);
-      setRows(parsePlanText(text));
+      setRows(markAkut(parsePlanText(text)));
       setNotInPlan(new Set());
       setUsedModel(null);
     } finally {
@@ -203,6 +213,14 @@ export function PlanImportScreen() {
             </Row>
           </Section>
         )}
+        {split.akut.length ? (
+          <Card tone="accent">
+            <P>
+              {split.akut.length === 1 ? 'En rad' : `${split.akut.length} rader`} om att inte vilja leva eller att skada sig
+              skickas inte. {split.akut.length === 1 ? 'Den' : 'De'} läggs till som akuta formuleringar på telefonen.
+            </P>
+          </Card>
+        ) : null}
         <Section title={`${scrubbed.findings.length} saker rensade`}>
           <Card><MarkedText text={scrubbed.text} /></Card>
         </Section>
@@ -258,7 +276,7 @@ export function PlanImportScreen() {
         </P>
       ) : null}
       <Button kind="ghost" title="‹ Tillbaka till texten" onPress={() => { setRows(null); setReviewScrub(false); }} />
-      {(['early', 'serious', 'action_yellow', 'action_red', 'relatives', 'normal', 'unsorted'] as DraftKind[]).map((k) => {
+      {KIND_ORDER.map((k) => {
         const group = visible.filter((r) => r.kind === k);
         if (!group.length) return null;
         return (

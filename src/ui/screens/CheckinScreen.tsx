@@ -3,6 +3,8 @@ import React, { useMemo, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { eveningDateKey } from '../../analysis/dates';
 import { parseSleepHours } from '../../analysis/sleep';
+import { isAkut } from '../../context/akut';
+import { CrisisCard } from '../CrisisCard';
 import { saveCheckin } from '../../services/checkin';
 import { Button, Card, Field, P, Row, Screen } from '../components';
 import { useNav } from '../nav';
@@ -52,6 +54,8 @@ export function CheckinScreen() {
   const [energy, setEnergy] = useState(5);
   const [busy, setBusy] = useState(false);
   const sleep = useMemo(() => parseSleepHours(text), [text]);
+  // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
+  const akut = useMemo(() => isAkut(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
   const garmin = repo.garminDay(eveningDateKey(new Date()));
   const garminSleep = garmin?.sleepHours ?? null;
 
@@ -94,6 +98,7 @@ export function CheckinScreen() {
               : 'Tips: skriv till exempel ”sov sex timmar” så räknas sömnen med.'
         }
       />
+      {akut ? <CrisisCard plan={repo.plan()} /> : null}
       {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
         <Card>
           <Text style={type.label}>FRÅN GARMIN</Text>

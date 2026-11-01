@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { actionsForLevel, firstStep } from '../../analysis/assess';
 import { formatDateSv, formatTime } from '../../analysis/dates';
 import { explainAssessment } from '../../analysis/explain';
+import { CrisisCard } from '../CrisisCard';
 import type { Signal } from '../../domain/types';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -47,7 +48,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const plan = repo.plan();
   const actions = actionsForLevel(a.level, plan);
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
-  const measured = a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign');
+  const measured = a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut');
   const first = a.level === 'green' ? null : firstStep(a.level, plan);
 
   return (
@@ -60,12 +61,14 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         {formatDateSv(a.date)}, inlägg {formatTime(entry.createdAt)}
       </Text>
 
+      {a.akut ? <CrisisCard plan={plan} /> : null}
+
       <Card tone={a.level} style={{ alignItems: 'center', borderColor: levelColor(a.level) }}>
         <LevelLight level={a.level} />
         <P style={{ textAlign: 'center', marginTop: space.m }}>{a.sentence}</P>
       </Card>
 
-      {a.level === 'red' && (
+      {a.level === 'red' && !a.akut && (
         <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
           <Text style={type.h2}>Rekommendation</Text>
           <P style={{ marginTop: space.xs }}>

@@ -15,6 +15,7 @@ const KINDS: { kind: PlanItemKind; title: string; help: string }[] = [
   { kind: 'action_yellow', title: 'Åtgärder vid gult', help: 'Den första är ditt första steg.' },
   { kind: 'action_red', title: 'Åtgärder vid rött', help: 'Den första visas som rekommendation vid rött.' },
   { kind: 'relatives', title: 'Vad anhöriga gör', help: 'Visas bara för dig. Appen kontaktar ingen.' },
+  { kind: 'akut', title: 'Akuta formuleringar', help: 'Dina egna ord för att inte vilja leva eller skada dig. Står de i en anteckning visas krisnumren direkt. De skickas aldrig till en språkmodell.' },
 ];
 
 function ItemRow({ item, first, last }: { item: PlanItem; first: boolean; last: boolean }) {

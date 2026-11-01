@@ -1,0 +1,46 @@
+// Shown at once when a note matches the emergency word list: the plan's own steps at red
+// and the crisis numbers. The app contacts no one; tapping a number opens the phone's dialler.
+
+import React from 'react';
+import { Linking, Pressable, Text, View } from 'react-native';
+import { crisisInfo } from '../context/akut';
+import type { PlanItem } from '../domain/types';
+import { Card, P } from './components';
+import { colors, space, type } from './theme';
+
+export function CrisisCard({ plan }: { plan: PlanItem[] }) {
+  const { steps, numbers } = crisisInfo(plan);
+  return (
+    <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
+      <Text style={type.h2} accessibilityRole="header">Du behöver inte vara ensam med det här</Text>
+      <P style={{ marginTop: space.xs }}>Det du skrev låter som att du har det mycket svårt just nu.</P>
+
+      <Text style={[type.label, { marginTop: space.m }]}>DIN PLAN VID RÖTT</Text>
+      {steps.length ? (
+        steps.map((s, i) => <P key={s + i} style={{ marginTop: space.xs }}>{`${i + 1}. ${s}`}</P>)
+      ) : (
+        <P muted style={{ marginTop: space.xs }}>Din plan har inga steg vid rött ännu.</P>
+      )}
+
+      <Text style={[type.label, { marginTop: space.m }]}>RING ELLER CHATTA</Text>
+      {numbers.map((n) => (
+        <Pressable
+          key={n.number}
+          accessibilityRole="link"
+          accessibilityLabel={`Ring ${n.number}, ${n.label}`}
+          onPress={() => Linking.openURL(`tel:${n.number}`).catch(() => undefined)}
+          style={({ pressed }) => ({
+            marginTop: space.s, padding: space.m, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+            backgroundColor: pressed ? colors.redSoft : colors.surface,
+          })}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.m }}>
+            <Text selectable style={[type.title, { color: colors.red, minWidth: 92 }]}>{n.number}</Text>
+            <Text style={[type.body, { flex: 1 }]}>{n.label}</Text>
+          </View>
+        </Pressable>
+      ))}
+      <P muted style={{ marginTop: space.m }}>Appen kontaktar ingen. Det är du som väljer vad du gör.</P>
+    </Card>
+  );
+}

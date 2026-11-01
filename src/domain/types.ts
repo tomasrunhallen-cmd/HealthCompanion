@@ -11,7 +11,8 @@ export type PlanItemKind =
   | 'serious' // serious sign, gives red
   | 'action_yellow'
   | 'action_red'
-  | 'relatives';
+  | 'relatives'
+  | 'akut'; // the user's own emergency phrases: matched in code, never sent to a model
 
 export interface PlanItem {
   id: string;
@@ -79,10 +80,10 @@ export interface ContextEntry {
   correction?: Correction | null;
 }
 
-export const PLAN_KINDS: PlanItemKind[] = ['early', 'serious', 'action_yellow', 'action_red', 'relatives'];
+export const PLAN_KINDS: PlanItemKind[] = ['early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut'];
 
 export const LAYER_OF: Record<ContextKind, ContextLayer> = {
-  early: 'grund', serious: 'grund', action_yellow: 'grund', action_red: 'grund', relatives: 'grund',
+  early: 'grund', serious: 'grund', action_yellow: 'grund', action_red: 'grund', relatives: 'grund', akut: 'grund',
   trigger: 'grund', false_alarm: 'grund', medication: 'grund', tone_yellow: 'grund', tone_red: 'grund',
   normal_state: 'profil', typical_phrase: 'profil', period_low: 'profil', period_high: 'profil',
   period_mixed: 'profil', course: 'profil',
@@ -151,7 +152,8 @@ export type SignalKind =
   | 'mood_jump'
   | 'energy_jump'
   | 'heavy_day'
-  | 'late_sleep_no_entry';
+  | 'late_sleep_no_entry'
+  | 'akut';
 
 export interface Signal {
   kind: SignalKind;
@@ -178,7 +180,8 @@ export type LevelReason =
   | 'serious_plus_other' // a serious sign together with another sign
   | 'recent_days' // 2 points after several yellow or red days
   | 'measured_three' // three measured signs the same day
-  | 'standard_cap'; // would be red only through unconfirmed standard rows: yellow
+  | 'standard_cap' // would be red only through unconfirmed standard rows: yellow
+  | 'akut'; // the note matched the emergency word list
 
 export interface Assessment {
   id: string;
@@ -200,6 +203,8 @@ export interface Assessment {
   levelReason?: LevelReason;
   /** Yellow or red days in the week before, as used by the rule. */
   recentNonGreenDays?: number;
+  /** The note matched the emergency word list: crisis numbers shown, note not sent to a model. */
+  akut?: boolean;
 }
 
 export interface Baseline {

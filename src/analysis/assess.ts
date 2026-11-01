@@ -9,6 +9,7 @@ import { matchSigns } from './wordmatch';
 import { score, type HistoryDay } from './scoring';
 
 export const NOTHING_STANDS_OUT = 'Inget i anteckningen avviker från ditt normalläge.';
+export const AKUT_SENTENCE = 'Det du skrev låter som att du har det mycket svårt just nu. Du behöver inte vara ensam med det.';
 
 export interface MatchResult {
   matches: SignMatch[];
@@ -78,6 +79,8 @@ export async function assessEntry(args: {
   garmin?: Record<DateKey, GarminDay>;
   /** The context bank. Without it, a bank is made from the plan alone. */
   context?: ContextEntry[];
+  /** The note matched the emergency word list (checked by the caller, before any model). */
+  akut?: boolean;
   now?: Date;
 }): Promise<Assessment> {
   const { entry, plan, planSettings, history, matcher, garmin } = args;
@@ -92,7 +95,15 @@ export async function assessEntry(args: {
     result = { ...(await wordMatcher.match(entry.transcript, signs, planSettings)), method: 'llm_fallback' };
   }
   const scored = score({ entry, matches: result.matches, plan, planSettings, history, garmin });
-  const sentence = result.sentence?.trim() || templateSentence(scored.signals);
+  if (args.akut) {
+    // The emergency rule always gives red, whatever the points and also in standard mode.
+    scored.signals.unshift({ kind: 'akut', points: 0, label: 'Formulering om att inte vilja leva eller att skada sig', measured: false });
+    scored.level = 'red';
+    scored.reason = 'akut';
+  }
+  const sentence = args.akut
+    ? AKUT_SENTENCE
+    : result.sentence?.trim() || templateSentence(scored.signals);
   return {
     id: newId('a'),
     entryId: entry.id,
@@ -109,5 +120,6 @@ export async function assessEntry(args: {
     baseline: scored.baseline,
     levelReason: scored.reason,
     recentNonGreenDays: scored.recentNonGreenDays,
+    ...(args.akut ? { akut: true } : {}),
   };
 }

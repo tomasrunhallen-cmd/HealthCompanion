@@ -40,6 +40,10 @@ Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery frå
 
 Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
+## Akutregeln
+
+En anteckning jämförs på telefonen med en ordlista för tankar på att inte vilja leva eller att skada sig, plus användarens egna akuta formuleringar ur krisplanen. Jämförelsen görs innan något skickas och fungerar utan nätverk. Vid träff visas krisplanens steg vid rött och krisnumren direkt. Anteckningen skickas då inte till språkmodellen, och appen hämtar inte heller något från Garmin. Ordlistan och de egna formuleringarna skickas aldrig till en modell, inte heller vid krisplansimport: rader som träffar listan stannar på telefonen.
+
 ## Vad som aldrig händer
 
 - Appen skickar aldrig meddelanden, notiser eller data till någon annan person. Påminnelsen är en lokal notis på användarens egen telefon.

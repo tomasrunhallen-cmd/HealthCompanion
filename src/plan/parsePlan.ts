@@ -63,10 +63,11 @@ export const KIND_LABEL: Record<DraftKind, string> = {
   action_yellow: 'Åtgärd vid gult',
   action_red: 'Åtgärd vid rött',
   relatives: 'Anhöriga gör',
+  akut: 'Akut formulering',
   normal: 'Normalläge',
   unsorted: 'Ej sorterad',
 };
 
 export const KIND_ORDER: DraftKind[] = [
-  'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'normal', 'unsorted',
+  'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'normal', 'unsorted',
 ];
