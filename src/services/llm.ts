@@ -10,7 +10,8 @@ import { assessEntry, wordMatcher, type SignMatcher } from '../analysis/assess';
 import { eveningDateKey } from '../analysis/dates';
 import { createLlmMatcher } from '../analysis/llmMatcher';
 import { loadTestSuite } from '../analysis/testcases';
-import type { Level, PlanItemKind } from '../domain/types';
+import { entriesFromPlan } from '../context/buildContext';
+import { PLAN_KINDS, type ContextEntry, type Level, type PlanItemKind } from '../domain/types';
 import { hasConsent, type LlmConfig } from '../llm/config';
 import type { DraftKind, DraftRow } from '../plan/parsePlan';
 import { loadPrompt } from '../prompts/loader';
@@ -100,27 +101,40 @@ export interface ModelTestReport {
  * prompt, model, schema check, scoring in code. A case passes when the model answered
  * with valid JSON (no fallback) and the level is the expected one.
  */
+/**
+ * The user's own context for the test cases: everything except the plan's rows, the
+ * normal state and day-bound entries, which belong to the test case. Corrections stay.
+ */
+export function userContextForTests(entries: ContextEntry[]): ContextEntry[] {
+  return entries.filter(
+    (e) => !(PLAN_KINDS as string[]).includes(e.kind) && e.kind !== 'normal_state' && (e.layer !== 'dagligt' || e.kind === 'correction'),
+  );
+}
+
 export async function runModelTest(
   completer: Completer,
   model: string,
   onProgress?: (done: number, total: number) => void,
+  /** The user's context bank, so the model is tested with the prompt it will really get. */
+  userEntries: ContextEntry[] = [],
 ): Promise<ModelTestReport> {
   const suite = loadTestSuite();
+  const context = [...userContextForTests(userEntries), ...entriesFromPlan(suite.plan, suite.planSettings.normalState)];
   const inner = createLlmMatcher({ completer, model, names: () => [] });
   const cases: CaseResult[] = [];
   for (const c of suite.cases) {
     let error: string | null = null;
     const matcher: SignMatcher = {
-      async match(note, signs, settings) {
+      async match(note, signs, settings, context) {
         try {
-          return await inner.match(note, signs, settings);
+          return await inner.match(note, signs, settings, context);
         } catch (e) {
           error = (e as Error).message || 'Okänt fel';
           throw e;
         }
       },
     };
-    const a = await assessEntry({ entry: c.entry, plan: suite.plan, planSettings: suite.planSettings, history: c.history, matcher });
+    const a = await assessEntry({ entry: c.entry, plan: suite.plan, planSettings: suite.planSettings, history: c.history, matcher, context });
     const answered = a.method === 'llm';
     cases.push({
       id: c.id,

@@ -15,9 +15,9 @@ describe('prompt loader', () => {
 
   it('parses frontmatter types and sections', () => {
     const p = loadPrompt('analys');
-    expect(p.meta).toMatchObject({ id: 'analys', version: '1.1.0', temperature: 0, max_output_tokens: 400, response: 'json', schema: 'schemas/analys.json' });
+    expect(p.meta).toMatchObject({ id: 'analys', version: '1.2.0', temperature: 0, max_output_tokens: 400, response: 'json', schema: 'schemas/analys.json' });
     expect(p.system).toContain('Svara bara med JSON');
-    expect(variablesIn(p.user).sort()).toEqual(['anteckning', 'matvarden', 'normallage', 'tecken']);
+    expect(variablesIn(p.user).sort()).toEqual(['anteckning', 'dagligt', 'grund', 'matvarden', 'normallage', 'profil', 'rattelser', 'tecken']);
   });
 
   it('every JSON prompt points to an existing schema', () => {
@@ -36,7 +36,7 @@ describe('prompt loader', () => {
   });
 
   it('renders system and user separately', () => {
-    const r = render(loadPrompt('analys'), { normallage: 'N', matvarden: 'M', tecken: '1. T', anteckning: 'A' });
+    const r = render(loadPrompt('analys'), { normallage: 'N', matvarden: 'M', grund: 'G', profil: 'P', dagligt: 'D', rattelser: 'R', tecken: '1. T', anteckning: 'A' });
     expect(r.user).toContain('Dagens anteckning (rensad):\nA');
     expect(r.system).not.toContain('{{');
   });
@@ -59,7 +59,7 @@ describe('schema validation', () => {
 describe('adapter with fake implementation', () => {
   it('retries once with the error attached, then succeeds', async () => {
     const fake = fixedAdapter(['inte json', '{"matches":[],"sentence":"Inget i anteckningen avviker från ditt normalläge."}']);
-    const res = await createCompleter(fake).complete(loadPrompt('analys'), { normallage: '', matvarden: '', tecken: '', anteckning: '' });
+    const res = await createCompleter(fake).complete(loadPrompt('analys'), { normallage: '', matvarden: '', grund: '', profil: '', dagligt: '', rattelser: '', tecken: '', anteckning: '' });
     expect(res.json).toEqual({ matches: [], sentence: 'Inget i anteckningen avviker från ditt normalläge.' });
     expect(fake.calls).toHaveLength(2);
     expect(fake.calls[1].errorFeedback).toContain('följde inte schemat');
@@ -67,7 +67,7 @@ describe('adapter with fake implementation', () => {
 
   it('throws after two invalid answers so the app can fall back', async () => {
     const fake = fixedAdapter(['{"matches":"nej"}']);
-    await expect(createCompleter(fake).complete(loadPrompt('analys'), { normallage: '', matvarden: '', tecken: '', anteckning: '' }))
+    await expect(createCompleter(fake).complete(loadPrompt('analys'), { normallage: '', matvarden: '', grund: '', profil: '', dagligt: '', rattelser: '', tecken: '', anteckning: '' }))
       .rejects.toBeInstanceOf(InvalidAnswerError);
   });
 
@@ -93,7 +93,7 @@ describe('adapter with fake implementation', () => {
       const a = await assessEntry({ entry: c.entry, plan: suite.plan, planSettings: suite.planSettings, history: c.history, matcher });
       expect({ id: c.id, level: a.level }).toEqual({ id: c.id, level: c.expected });
       expect(a.method).toBe('llm');
-      expect(a.promptVersion).toBe('1.1.0');
+      expect(a.promptVersion).toBe('1.2.0');
     }
   });
 });

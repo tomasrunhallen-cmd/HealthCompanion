@@ -1,12 +1,12 @@
 // Builds a full assessment: match signs (word matching or, from step 2, a language model),
 // score in code, and pick the plan's own actions for the level.
 
+import { buildContext, entriesFromPlan, type PromptContext } from '../context/buildContext';
 import type {
-  Assessment, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Signal, SignMatch,
+  Assessment, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Signal, SignMatch,
 } from '../domain/types';
-import { formatMeasurements, measuredDays } from './measurements';
 import { matchSigns } from './wordmatch';
-import { computeBaseline, score, type HistoryDay } from './scoring';
+import { score, type HistoryDay } from './scoring';
 
 export const NOTHING_STANDS_OUT = 'Inget i anteckningen avviker från ditt normalläge.';
 
@@ -21,8 +21,8 @@ export interface MatchResult {
 }
 
 export interface MatchContext {
-  /** Today's and the past week's measured sleep and stress, as text for the model. */
-  measurements: string;
+  /** Everything buildContext put together for the prompt, before scrubbing. */
+  variables: PromptContext;
 }
 
 export interface SignMatcher {
@@ -76,18 +76,17 @@ export async function assessEntry(args: {
   matcher: SignMatcher;
   /** Measured days from Garmin, keyed by calendar date. */
   garmin?: Record<DateKey, GarminDay>;
+  /** The context bank. Without it, a bank is made from the plan alone. */
+  context?: ContextEntry[];
   now?: Date;
 }): Promise<Assessment> {
   const { entry, plan, planSettings, history, matcher, garmin } = args;
-  const signs = plan.filter((p) => p.kind === 'early' || p.kind === 'serious');
-  const earlier = history.filter((h) => h.entry.date < entry.date);
-  const measurements = formatMeasurements(
-    measuredDays(entry, earlier, garmin),
-    computeBaseline(entry.date, earlier).stressAvg,
-  );
+  const bank = args.context ?? entriesFromPlan(plan, planSettings.normalState);
+  const built = buildContext({ entries: bank, entry, history, garmin }, planSettings);
+  const signs = built.signs;
   let result: MatchResult;
   try {
-    result = await matcher.match(entry.transcript, signs, planSettings, { measurements });
+    result = await matcher.match(entry.transcript, signs, planSettings, { variables: built.variables });
   } catch {
     // Any failure falls back to word matching, and the method shows it.
     result = { ...(await wordMatcher.match(entry.transcript, signs, planSettings)), method: 'llm_fallback' };

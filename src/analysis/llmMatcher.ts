@@ -31,11 +31,17 @@ export function createLlmMatcher(opts: {
     async match(note, signs, planSettings, context): Promise<MatchResult> {
       const prompt = loadPrompt('analys');
       const cleanNote = scrub(note, opts.names()).text;
+      const v = context?.variables;
+      // Everything sent to a model goes through scrub(), also numbers and the user's own lists.
+      const clean = (text: string) => scrub(text, opts.names()).text;
       const res = await opts.completer.complete(prompt, {
-        normallage: scrub(planSettings.normalState || '(inte ifyllt)', opts.names()).text,
-        // Numbers and dates only, but everything sent to a model goes through scrub().
-        matvarden: scrub(context?.measurements ?? NO_MEASUREMENTS, opts.names()).text,
-        tecken: signList(signs),
+        normallage: clean(v?.normallage || planSettings.normalState || '(inte ifyllt)'),
+        matvarden: clean(v?.matvarden ?? NO_MEASUREMENTS),
+        grund: clean(v?.grund ?? '(inget ifyllt)'),
+        profil: clean(v?.profil ?? '(inget ifyllt)'),
+        dagligt: clean(v?.dagligt ?? '(inget ifyllt)'),
+        rattelser: clean(v?.rattelser ?? '(inga rättelser än)'),
+        tecken: clean(signList(signs)),
         anteckning: cleanNote,
       });
       const answer = res.json as AnalysAnswer;

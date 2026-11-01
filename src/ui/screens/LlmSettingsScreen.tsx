@@ -102,8 +102,11 @@ export function LlmSettingsScreen() {
       const adapter = buildAdapter({ provider, model, baseUrl }, key, { browser: Platform.OS === 'web' });
       // Test calls cost tokens too, so they are counted; they are not "the last assessment".
       const completer = createCompleter(adapter, { onUsage: (u) => void repo.recordUsage(eveningDateKey(new Date()), u) });
-      const r = await runModelTest(completer, adapter.model, (done, total) =>
-        setProgress(done < total ? `Kör testfall ${done + 1} av ${total}…` : null),
+      const r = await runModelTest(
+        completer,
+        adapter.model,
+        (done, total) => setProgress(done < total ? `Kör testfall ${done + 1} av ${total}…` : null),
+        repo.contextEntries(),
       );
       setReport({ sig, r });
     } finally {

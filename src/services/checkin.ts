@@ -51,6 +51,7 @@ export async function saveCheckin(
     // The configured language model when there is one; word matching otherwise.
     matcher: await currentMatcher(repo, { now: () => now, ...adapterOptions }),
     garmin: repo.garminDays(),
+    context: repo.contextEntries(),
     now,
   });
   await repo.saveEntry(entry, assessment);
@@ -80,6 +81,7 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     history: repo.history(),
     matcher: wordMatcher,
     garmin: repo.garminDays(),
+    context: repo.contextEntries(),
     now,
   });
   await repo.saveEntry(entry, assessment);
