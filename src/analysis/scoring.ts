@@ -2,7 +2,7 @@
 // compute signals, points and level. Pure and fully testable.
 
 import type {
-  Assessment, Baseline, DateKey, Entry, GarminDay, Level, PlanItem, PlanSettings, Signal, SignMatch,
+  Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, PlanItem, PlanSettings, Signal, SignMatch,
 } from '../domain/types';
 import { addDays, daysBetween } from './dates';
 import { RULES } from './rules';
@@ -27,6 +27,8 @@ export interface ScoreInput {
 export interface ScoreResult {
   level: Level;
   points: number;
+  reason: LevelReason;
+  recentNonGreenDays: number;
   signals: Signal[];
   baseline: Baseline;
 }
@@ -82,21 +84,22 @@ export function silentDaysUntil(today: DateKey, entries: Entry[]): number {
 export function levelFromSignals(
   signals: Signal[],
   recentNonGreenDays: number,
-): { level: Level; points: number } {
+): { level: Level; points: number; reason: LevelReason } {
   const points = signals.reduce((sum, s) => sum + s.points, 0);
   const L = RULES.level;
   const serious = signals.some((s) => s.kind === 'serious_sign');
   const measuredCount = signals.filter((s) => s.measured).length;
   // "Ett allvarligt tecken matchar tillsammans med minst ett annat tecken".
   const seriousPlusOther = serious && signals.length >= 2;
-  const red =
-    points >= L.redAt ||
-    seriousPlusOther ||
-    (points >= L.redWithHistoryAt && recentNonGreenDays >= L.historyNonGreenDays) ||
-    measuredCount >= L.redMeasuredSigns;
-  if (red) return { level: 'red', points };
-  if (points >= L.yellowAt) return { level: 'yellow', points };
-  return { level: 'green', points };
+  // The first rule that applies is the one shown to the user.
+  if (points >= L.redAt) return { level: 'red', points, reason: 'points_red' };
+  if (seriousPlusOther) return { level: 'red', points, reason: 'serious_plus_other' };
+  if (measuredCount >= L.redMeasuredSigns) return { level: 'red', points, reason: 'measured_three' };
+  if (points >= L.redWithHistoryAt && recentNonGreenDays >= L.historyNonGreenDays) {
+    return { level: 'red', points, reason: 'recent_days' };
+  }
+  if (points >= L.yellowAt) return { level: 'yellow', points, reason: 'points' };
+  return { level: 'green', points, reason: 'nothing' };
 }
 
 function entryHour(entry: Entry): number {
@@ -244,8 +247,8 @@ export function score(input: ScoreInput): ScoreResult {
       .map((h) => h.entry.date),
   ).size;
 
-  const { level, points } = levelFromSignals(signals, recentNonGreen);
-  return { level, points, signals, baseline };
+  const { level, points, reason } = levelFromSignals(signals, recentNonGreen);
+  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals, baseline };
 }
 
 /** Builds history pairs from stored entries and assessments. */

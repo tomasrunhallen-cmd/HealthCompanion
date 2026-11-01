@@ -101,6 +101,15 @@ export interface Signal {
 
 export type MatchMethod = 'wordmatch' | 'llm' | 'llm_fallback' | 'none';
 
+/** Which rule decided the level, so the app can explain it. */
+export type LevelReason =
+  | 'nothing' // 0 points: green
+  | 'points' // 1-3 points: yellow
+  | 'points_red' // 4 points or more
+  | 'serious_plus_other' // a serious sign together with another sign
+  | 'recent_days' // 2 points after several yellow or red days
+  | 'measured_three'; // three measured signs the same day
+
 export interface Assessment {
   id: string;
   entryId: string;
@@ -117,6 +126,10 @@ export interface Assessment {
   promptVersion: string | null;
   /** Baseline values used, for display. */
   baseline: Baseline;
+  /** The rule that decided the level. Missing on assessments saved before it existed. */
+  levelReason?: LevelReason;
+  /** Yellow or red days in the week before, as used by the rule. */
+  recentNonGreenDays?: number;
 }
 
 export interface Baseline {

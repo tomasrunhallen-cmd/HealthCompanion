@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { actionsForLevel, firstStep } from '../../analysis/assess';
 import { formatDateSv, formatTime } from '../../analysis/dates';
+import { explainAssessment } from '../../analysis/explain';
 import type { Signal } from '../../domain/types';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -42,6 +43,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   }
 
   const garminDay = repo.garminDay(entry.date);
+  const why = explainAssessment(entry, a, garminDay);
   const plan = repo.plan();
   const actions = actionsForLevel(a.level, plan);
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
@@ -83,6 +85,21 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           </P>
         </Card>
       )}
+
+      <Section title="Så gjordes bedömningen">
+        <Card>
+          <Text style={type.label}>UNDERLAG</Text>
+          {why.data.map((line) => (
+            <P key={line} style={{ marginTop: space.xs }}>{`• ${line}`}</P>
+          ))}
+          <Text style={[type.label, { marginTop: space.m }]}>TECKEN SOM GAV POÄNG</Text>
+          {why.signs.length ? why.signs.map((s, i) => (
+            <P key={s.label + i} style={{ marginTop: space.xs }}>{`• ${s.label}  +${s.points}`}</P>
+          )) : <P muted style={{ marginTop: space.xs }}>Inga.</P>}
+          <Text style={[type.label, { marginTop: space.m }]}>SLUTSATS</Text>
+          <P style={{ marginTop: space.xs, fontWeight: '600' }}>{why.conclusion}</P>
+        </Card>
+      </Section>
 
       {actions.length > 0 && (
         <Section title={a.level === 'red' ? 'Åtgärder vid rött' : 'Åtgärder vid gult'}>

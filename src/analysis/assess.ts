@@ -108,5 +108,7 @@ export async function assessEntry(args: {
     promptId: result.promptId,
     promptVersion: result.promptVersion,
     baseline: scored.baseline,
+    levelReason: scored.reason,
+    recentNonGreenDays: scored.recentNonGreenDays,
   };
 }
