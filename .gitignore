@@ -39,6 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
-src/prompts/bundle.generated.ts
+src/core/prompts/bundle.generated.ts
 dist-web/
 public/integritet.html

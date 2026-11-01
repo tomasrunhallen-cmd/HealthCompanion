@@ -6,14 +6,14 @@
 // The diary's yes/no columns give points only through the user's own mapping to the signs
 // in their crisis plan; nothing is linked without the user choosing it.
 
-import { assessEntry, type SignMatcher } from '../analysis/assess';
-import { addDays } from '../analysis/dates';
-import { buildHistory, type HistoryDay } from '../analysis/scoring';
-import { contentTokens, matchSigns, tokenize, wordsMatch } from '../analysis/wordmatch';
-import { akutLevel } from '../context/akut';
+import { assessEntry, type SignMatcher } from '../core/analysis/assess';
+import { addDays } from '../core/analysis/dates';
+import { buildHistory, type HistoryDay } from '../core/analysis/scoring';
+import { contentTokens, matchSigns, tokenize, wordsMatch } from '../core/analysis/wordmatch';
+import { akutLevel } from '../core/context/akut';
 import type {
   Assessment, ContextEntry, DateKey, Entry, GarminDay, PlanItem, PlanSettings, SignMatch,
-} from '../domain/types';
+} from '../core/domain/types';
 import {
   alcoholOf, COL_HIGH, COL_LOW, COL_MEDICATION, medicationOf, moodOf, signalsOf, sleepFromNote, SOURCE_NAME, type DiaryDay,
 } from './bipolarDagbok';

@@ -2,7 +2,7 @@
 // The note is always scrubbed first. The model only says which signs match and writes
 // one sentence; the level is still computed in scoring.ts.
 
-import type { Completer } from '../adapter/types';
+import type { Completer } from '../llm/types';
 import type { PlanItem, PlanSettings, SignMatch } from '../domain/types';
 import { loadPrompt } from '../prompts/loader';
 import { scrub } from '../privacy/scrub';

@@ -1,12 +1,12 @@
-import { createCompleter } from '../src/adapter/complete';
-import { fixedAdapter, referenceAdapter } from '../src/adapter/fake';
-import { loadTestSuite } from '../src/analysis/testcases';
+import { createCompleter } from '../src/core/llm/complete';
+import { fixedAdapter, referenceAdapter } from '../src/core/llm/fake';
+import { loadTestSuite } from '../src/core/analysis/testcases';
 import { anthropicAdapter, chatCompletionsAdapter, LlmHttpError, type FetchLike } from '../src/adapter/http';
 import { isLocalUrl } from '../src/adapter/providers';
-import { toProviderSchema } from '../src/adapter/schema';
-import { loadPrompt, loadSchema } from '../src/prompts/loader';
+import { toProviderSchema } from '../src/core/llm/schema';
+import { loadPrompt, loadSchema } from '../src/core/prompts/loader';
 import { DEFAULT_LLM_CONFIG, destinationKey, estimateMonthlyCost, hasConsent, pruneUsage } from '../src/llm/config';
-import { restorePlaceholders, scrubReversible } from '../src/privacy/scrub';
+import { restorePlaceholders, scrubReversible } from '../src/core/privacy/scrub';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 import { setSecret, deleteSecret } from '../src/platform/secrets';
@@ -14,7 +14,7 @@ import {
   activeAdapter, currentMatcher, differingCases, LLM_KEY_NAME, namesToScrub, runModelTest,
 } from '../src/services/llm';
 import { saveCheckin } from '../src/services/checkin';
-import { wordMatcher } from '../src/analysis/assess';
+import { wordMatcher } from '../src/core/analysis/assess';
 
 // jest-expo resolves the .native file; replace Keychain with memory for the tests.
 jest.mock('../src/platform/secrets', () => {
@@ -198,7 +198,7 @@ describe('Testa modellen', () => {
   it('approves a model that gives the reference answer in every case', async () => {
     const suite = loadTestSuite();
     const report = await runModelTest(createCompleter(referenceAdapter(suite.cases)), 'referenssvar');
-    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.4.0' });
+    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.4.1' });
     expect(report.cases.every((c) => c.ok && c.error == null)).toBe(true);
     expect(differingCases(report)).toEqual([]);
   });

@@ -1,10 +1,10 @@
 import type { FetchLike } from '../src/adapter/http';
-import { explainAssessment } from '../src/analysis/explain';
+import { explainAssessment } from '../src/core/analysis/explain';
 import {
   akutCheck, akutCheckWith, akutLevel, akutLists, akutMatches, akutPhrases, crisisInfo, isAkut, parseAkut, parseAkutLists, splitAkutLines,
-} from '../src/context/akut';
-import { buildContext } from '../src/context/buildContext';
-import { startWithStandard } from '../src/context/standard';
+} from '../src/core/context/akut';
+import { buildContext } from '../src/core/context/buildContext';
+import { startWithStandard } from '../src/services/standard';
 import type { GarminFetch } from '../src/garmin/client';
 import { destinationKey } from '../src/llm/config';
 import { setSecret } from '../src/platform/secrets';

@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.4.0
+version: 2.4.1
 response: data
 ---
 # Testfall
@@ -11,7 +11,7 @@ Testfallen för ampeln och för knappen *Testa modellen*. Varje fall har en ante
 
 **Godkännande.** *Testa modellen* godkänner en ny modell bara om alla fall ger samma nivå som här, och visar vilka fall som skilde sig. En ändrad analysprompt måste klara alla fall med en riktig modell innan den checkas in: kör `npm run prompt:check` (se README). Godkännandet sparas i `prompts/godkand.json`, och ett test stoppar en prompt som ändrats utan nytt godkännande.
 
-Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `sleepStart` är insomningen enligt Garmin. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `trend` är de neutrala raderna som en grön dag ska visa. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
+Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 04:00 hör till dagen innan (dygnet går 04:00–04:00). `sleepStart` är insomningen enligt Garmin. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `trend` är de neutrala raderna som en grön dag ska visa. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
 
 ```json
 {

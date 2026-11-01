@@ -6,7 +6,7 @@ import { loadStandard } from '../context/standard';
 import type { AkutLevel } from '../context/akut';
 import type { ContextEntry, ContextKind, DateKey, Entry, GarminDay, Level, PlanItem, PlanItemKind, PlanSettings } from '../domain/types';
 import { extractJsonBlock, loadPrompt } from '../prompts/loader';
-import { addDays } from './dates';
+import { addDays, DAY_START_HOUR } from './dates';
 import type { HistoryDay } from './scoring';
 
 interface RawDay {
@@ -98,12 +98,12 @@ export interface TestSuite {
   cases: TestCase[];
 }
 
-/** ISO timestamp for an entry on evening `date` at `time`; times before 05:00 fall on the next calendar day. */
+/** ISO timestamp for an entry on day `date` at `time`; times before 04:00 fall on the next calendar day. */
 function timestamp(date: string, time: string): string {
   const [h, m] = time.split(':').map(Number);
   const [y, mo, d] = date.split('-').map(Number);
   const dt = new Date(y, mo - 1, d, h, m, 0, 0);
-  if (h < 5) dt.setDate(dt.getDate() + 1);
+  if (h < DAY_START_HOUR) dt.setDate(dt.getDate() + 1);
   return dt.toISOString();
 }
 

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { displaySentence } from '../../analysis/assess';
+import { displaySentence } from '../../core/analysis/assess';
 import { Pressable, Text, View } from 'react-native';
-import { formatDateSvTitleYear } from '../../analysis/dates';
+import { formatDateSvTitleYear } from '../../core/analysis/dates';
 import { Button, Card, Dot, P, Screen } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';

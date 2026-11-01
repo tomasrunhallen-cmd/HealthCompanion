@@ -1,10 +1,10 @@
-import { createCompleter, InvalidAnswerError } from '../src/adapter/complete';
-import { fixedAdapter, referenceAdapter } from '../src/adapter/fake';
-import { extractJson, validate, type SchemaNode } from '../src/adapter/schema';
-import { assessEntry } from '../src/analysis/assess';
-import { createLlmMatcher } from '../src/analysis/llmMatcher';
-import { loadTestSuite } from '../src/analysis/testcases';
-import { fill, listPrompts, loadPrompt, loadSchema, parsePrompt, render, variablesIn } from '../src/prompts/loader';
+import { createCompleter, InvalidAnswerError } from '../src/core/llm/complete';
+import { fixedAdapter, referenceAdapter } from '../src/core/llm/fake';
+import { extractJson, validate, type SchemaNode } from '../src/core/llm/schema';
+import { assessEntry } from '../src/core/analysis/assess';
+import { createLlmMatcher } from '../src/core/analysis/llmMatcher';
+import { loadTestSuite } from '../src/core/analysis/testcases';
+import { fill, listPrompts, loadPrompt, loadSchema, parsePrompt, render, variablesIn } from '../src/core/prompts/loader';
 
 describe('prompt loader', () => {
   it('loads all prompt files with id and version', () => {

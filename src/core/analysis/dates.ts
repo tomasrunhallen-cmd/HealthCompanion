@@ -1,7 +1,12 @@
-import type { DateKey } from '../domain/types';
+import type { DateKey, Entry } from '../domain/types';
+import { RULES } from './rules';
 
-/** Entries made before this hour count to the previous evening. */
-export const DAY_ROLLOVER_HOUR = 5;
+/**
+ * The day runs from 04:00 to 04:00 in local time (rules/rules.json, dayStartHour). An entry
+ * at 00:30 belongs to the day before. Local time follows the phone, so daylight saving time
+ * and travel are handled by the clock where the entry is made.
+ */
+export const DAY_START_HOUR = RULES.dayStartHour;
 
 function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -11,9 +16,9 @@ export function toDateKey(d: Date): DateKey {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** The evening an entry made at `d` belongs to. */
+/** The day (04:00–04:00, local time) a moment belongs to. */
 export function eveningDateKey(d: Date): DateKey {
-  if (d.getHours() < DAY_ROLLOVER_HOUR) {
+  if (d.getHours() < DAY_START_HOUR) {
     const prev = new Date(d);
     prev.setDate(prev.getDate() - 1);
     return toDateKey(prev);
@@ -70,6 +75,20 @@ export function formatDateSvTitleYear(key: DateKey, now = new Date()): string {
 export function formatTime(iso: string): string {
   const d = new Date(iso);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** "HH:MM" on the phone's clock at `d`. Saved with an entry so a later time zone never changes it. */
+export function localClock(d: Date): string {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * The clock time an entry was made, where it was made: the saved local time, or for entries
+ * saved before it existed, the timestamp read in the phone's current time zone.
+ */
+export function entryClock(entry: Pick<Entry, 'createdAt' | 'localTime'>): { hour: number; minute: number } {
+  const t = entry.localTime ?? formatTime(entry.createdAt);
+  return { hour: Number(t.slice(0, 2)), minute: Number(t.slice(3, 5)) };
 }
 
 /** The Monday of the week `key` falls in. Baselines are recomputed once a week, on Mondays. */

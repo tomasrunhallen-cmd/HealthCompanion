@@ -1,13 +1,12 @@
-import { assessEntry } from '../src/analysis/assess';
-import { explainAssessment } from '../src/analysis/explain';
-import { buildContext } from '../src/context/buildContext';
-import {
-  confirmStandard, loadStandard, parseStandard, replaceStandard, standardNudgeWeek, startWithStandard, unconfirmedStandard,
-} from '../src/context/standard';
-import type { Entry } from '../src/domain/types';
+import { assessEntry } from '../src/core/analysis/assess';
+import { explainAssessment } from '../src/core/analysis/explain';
+import { buildContext } from '../src/core/context/buildContext';
+import { loadStandard, parseStandard, standardNudgeWeek } from '../src/core/context/standard';
+import { confirmStandard, replaceStandard, startWithStandard, unconfirmedStandard } from '../src/services/standard';
+import type { Entry } from '../src/core/domain/types';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
-import { wordMatcher } from '../src/analysis/assess';
+import { wordMatcher } from '../src/core/analysis/assess';
 
 const NOW = new Date(2026, 10, 1, 21, 0);
 

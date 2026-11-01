@@ -1,4 +1,4 @@
-import { loadPrompt } from '../src/prompts/loader';
+import { loadPrompt } from '../src/core/prompts/loader';
 import { analysFingerprint, readApproval } from './promptGate';
 
 // "En ändrad prompt måste klara alla fall innan den checkas in." npm test runs before every

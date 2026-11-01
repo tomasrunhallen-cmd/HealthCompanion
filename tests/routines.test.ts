@@ -3,10 +3,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildContext } from '../src/context/buildContext';
-import { approveHeading, draftFromText } from '../src/plan/importPlan';
-import { routineLog, routineSettings, routineStats, routineSummary, routines, suggestReminderTime, trackedRoutines } from '../src/plan/routines';
-import { saveApprovedRows } from '../src/plan/savePlan';
+import { buildContext } from '../src/core/context/buildContext';
+import { approveHeading, draftFromText } from '../src/core/plan/importPlan';
+import { routineLog, routineSettings, routineStats, routineSummary, routines, suggestReminderTime, trackedRoutines } from '../src/core/plan/routines';
+import { saveApprovedRows } from '../src/services/savePlan';
 import { saveCheckin } from '../src/services/checkin';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';

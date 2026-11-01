@@ -2,7 +2,7 @@
 // the row tree, then the rules table. Pure up to the model step; the review keeps the draft
 // and saves it after every change, so a long plan can be reviewed over several sessions.
 
-import type { Completer } from '../adapter/types';
+import type { Completer } from '../llm/types';
 import { classifyByRules, sortUnknownWithModel, type DraftPlanRow, type RowSource } from './classify';
 import { stripPageFurniture } from './headers';
 import { linesFromText, type SourcePages } from './source';

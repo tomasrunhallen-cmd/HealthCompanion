@@ -1,8 +1,8 @@
 // Fetches sleep, stress and Body Battery from the user's own Garmin account and stores
 // them on the phone. Runs when the app opens and just before an evening check-in.
 
-import { addDays, toDateKey } from '../analysis/dates';
-import type { DateKey, GarminDay } from '../domain/types';
+import { addDays, toDateKey } from '../core/analysis/dates';
+import type { DateKey, GarminDay } from '../core/domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
 import { garminBaseUrl } from '../platform/endpoints';
 import { deleteSecret, getSecret, setSecret } from '../platform/secrets';

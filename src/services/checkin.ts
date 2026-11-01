@@ -1,11 +1,11 @@
 // Evening check-in and "Orkar bara trycka": build the entry, assess it, save both.
 
-import { assessEntry, newId, wordMatcher } from '../analysis/assess';
-import { eveningDateKey } from '../analysis/dates';
-import { parseSleepHours } from '../analysis/sleep';
-import type { Assessment, Entry } from '../domain/types';
-import { akutLevel } from '../context/akut';
-import { setRoutineDone } from '../plan/routines';
+import { assessEntry, newId, wordMatcher } from '../core/analysis/assess';
+import { eveningDateKey, localClock } from '../core/analysis/dates';
+import { parseSleepHours } from '../core/analysis/sleep';
+import type { Assessment, Entry } from '../core/domain/types';
+import { akutLevel } from '../core/context/akut';
+import { setRoutineDone } from './routines';
 import type { Repository } from '../storage/repository';
 import { refreshForCheckin, type GarminOptions } from './garmin';
 import { currentMatcher, type AdapterOptions } from './llm';
@@ -59,6 +59,7 @@ export async function saveCheckin(
     id: newId('e'),
     date,
     createdAt: now.toISOString(),
+    localTime: localClock(now),
     kind: 'checkin',
     transcript: input.transcript.trim(),
     mood: input.mood,
@@ -94,6 +95,7 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     id: newId('e'),
     date: eveningDateKey(now),
     createdAt: now.toISOString(),
+    localTime: localClock(now),
     kind: 'heavy',
     transcript: '',
     mood: null,

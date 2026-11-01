@@ -5,18 +5,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { strToU8, zipSync } from 'fflate';
-import { createCompleter } from '../src/adapter/complete';
-import { fixedAdapter } from '../src/adapter/fake';
-import type { LlmAdapter, SendRequest } from '../src/adapter/types';
-import type { RowKind } from '../src/domain/types';
-import { answerErrors } from '../src/plan/classify';
-import { fieldsFromKind } from '../src/plan/fields';
-import { headingRules, matchHeading } from '../src/plan/headingRules';
+import { createCompleter } from '../src/core/llm/complete';
+import { fixedAdapter } from '../src/core/llm/fake';
+import type { LlmAdapter, SendRequest } from '../src/core/llm/types';
+import type { RowKind } from '../src/core/domain/types';
+import { answerErrors } from '../src/core/plan/classify';
+import { fieldsFromKind } from '../src/core/plan/fields';
+import { headingRules, matchHeading } from '../src/core/plan/headingRules';
 import {
   approveHeading, draftFromPages, draftFromText, reviewSections, sleepWindowIn, sortDraftWithModel, updateRow, windowHours, type PlanDraft,
-} from '../src/plan/importPlan';
-import { saveApprovedRows } from '../src/plan/savePlan';
-import { linesFromDocx, linesFromPdfItems, linesFromText } from '../src/plan/source';
+} from '../src/core/plan/importPlan';
+import { saveApprovedRows } from '../src/services/savePlan';
+import { linesFromDocx, linesFromPdfItems, linesFromText } from '../src/core/plan/source';
 import { emptySnapshot, memoryBackend } from '../src/storage/backend';
 import { Repository, SCHEMA_VERSION } from '../src/storage/repository';
 

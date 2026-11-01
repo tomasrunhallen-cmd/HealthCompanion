@@ -4,7 +4,6 @@
 
 import { addDays } from '../analysis/dates';
 import type { ContextEntry, DateKey, RoutineSettings } from '../domain/types';
-import type { Repository } from '../storage/repository';
 
 /** The settings a routine has, or its defaults: routines for both directions are logged, none remind. */
 export function routineSettings(e: Pick<ContextEntry, 'routine' | 'plan'>): RoutineSettings {
@@ -46,14 +45,6 @@ export function routineLog(entries: ContextEntry[], date: DateKey): Map<string, 
   const out = new Map<string, boolean>();
   for (const e of entries) if (e.kind === 'routine_done' && e.date === date && e.routineId && e.done != null) out.set(e.routineId, e.done);
   return out;
-}
-
-/** One answer per routine and evening; a new answer replaces the old. */
-export async function setRoutineDone(repo: Repository, date: DateKey, routine: ContextEntry, done: boolean | null): Promise<void> {
-  for (const old of repo.contextOf('routine_done').filter((e) => e.date === date && e.routineId === routine.id)) {
-    await repo.removeContextEntry(old.id, false);
-  }
-  if (done != null) await repo.addContextEntry({ kind: 'routine_done', text: routine.text, origin: 'user', date, routineId: routine.id, done }, false);
 }
 
 export interface RoutineStat {

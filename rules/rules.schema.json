@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dagsljus-rules",
+  "title": "Dagsljus regler",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "points",
+    "level",
+    "measuredCapPerDay",
+    "sleepThresholdHoursDefault",
+    "stressFactor",
+    "speechFastFraction",
+    "lateSleepHour",
+    "lateSleepLatestHour",
+    "nightEntryEndHour",
+    "silenceDays",
+    "medicationMissedDays",
+    "jumpThreshold",
+    "jumpWindowDays",
+    "jumpMinSamples",
+    "baselineWindowDays",
+    "baselineMinSamples",
+    "trendDays",
+    "dayStartHour"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 5
+    },
+    "points": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "earlySign",
+        "seriousSign",
+        "measured",
+        "silence",
+        "jump",
+        "heavyDay",
+        "lateSleepNoEntry",
+        "medicationMissed"
+      ],
+      "properties": {
+        "earlySign": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seriousSign": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "measured": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "silence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "jump": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "heavyDay": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lateSleepNoEntry": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "medicationMissed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "level": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "yellowAt",
+        "redAt",
+        "seriousPlusOtherSigns",
+        "redWithHistoryAt",
+        "historyWindowDays",
+        "historyNonGreenDays"
+      ],
+      "properties": {
+        "yellowAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "redAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seriousPlusOtherSigns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "redWithHistoryAt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historyWindowDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historyNonGreenDays": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "measuredCapPerDay": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sleepThresholdHoursDefault": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stressFactor": {
+      "type": "number",
+      "minimum": 0
+    },
+    "speechFastFraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "lateSleepHour": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 23
+    },
+    "lateSleepLatestHour": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 23
+    },
+    "nightEntryEndHour": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 23
+    },
+    "silenceDays": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "medicationMissedDays": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "jumpThreshold": {
+      "type": "number",
+      "minimum": 0
+    },
+    "jumpWindowDays": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "jumpMinSamples": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "baselineWindowDays": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "baselineMinSamples": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "trendDays": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dayStartHour": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 23
+    }
+  }
+}

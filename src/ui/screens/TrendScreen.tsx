@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { eveningDateKey, formatDateSv } from '../../analysis/dates';
-import { buildTrend, type TrendDay } from '../../analysis/trend';
+import { eveningDateKey, formatDateSv } from '../../core/analysis/dates';
+import { buildTrend, type TrendDay } from '../../core/analysis/trend';
 import { Button, Card, Chip, Dot, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';

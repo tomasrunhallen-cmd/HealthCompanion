@@ -1,0 +1,38 @@
+{
+  "$schema": "./rules.schema.json",
+  "version": "1.0.0",
+  "points": {
+    "earlySign": 1,
+    "seriousSign": 2,
+    "measured": 1,
+    "silence": 1,
+    "jump": 1,
+    "heavyDay": 1,
+    "lateSleepNoEntry": 1,
+    "medicationMissed": 1
+  },
+  "level": {
+    "yellowAt": 1,
+    "redAt": 4,
+    "seriousPlusOtherSigns": 2,
+    "redWithHistoryAt": 2,
+    "historyWindowDays": 7,
+    "historyNonGreenDays": 3
+  },
+  "measuredCapPerDay": 2,
+  "sleepThresholdHoursDefault": 5,
+  "stressFactor": 1.3,
+  "speechFastFraction": 0.25,
+  "lateSleepHour": 2,
+  "lateSleepLatestHour": 12,
+  "nightEntryEndHour": 5,
+  "silenceDays": 2,
+  "medicationMissedDays": 2,
+  "jumpThreshold": 2.5,
+  "jumpWindowDays": 7,
+  "jumpMinSamples": 3,
+  "baselineWindowDays": 28,
+  "baselineMinSamples": 3,
+  "trendDays": 3,
+  "dayStartHour": 4
+}

@@ -1,8 +1,8 @@
 // "Stämmer" / "Stämmer inte" after an assessment, with an optional line of text.
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
-import { correctionFor, saveCorrection } from '../context/corrections';
-import type { Assessment } from '../domain/types';
+import { correctionFor, saveCorrection } from '../services/corrections';
+import type { Assessment } from '../core/domain/types';
 import { Button, Card, Chip, Field, P, Row } from './components';
 import { useNav } from './nav';
 import { useDialog, useRepo } from './state';

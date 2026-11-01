@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, Text, View } from 'react-native';
-import { createCompleter } from '../../adapter/complete';
+import { createCompleter } from '../../core/llm/complete';
 import { PROVIDER_ORDER, PROVIDERS, normalizeBaseUrl, type ProviderId } from '../../adapter/providers';
-import { eveningDateKey } from '../../analysis/dates';
+import { eveningDateKey } from '../../core/analysis/dates';
 import { destinationKey, estimateMonthlyCost, hasConsent, importModelOf, isLocalDestination } from '../../llm/config';
 import { deleteSecret, getSecret, secretsPersist, setSecret } from '../../platform/secrets';
 import { buildAdapter, differingCases, LLM_KEY_NAME, runModelTest, type CaseResult, type ModelTestReport } from '../../services/llm';

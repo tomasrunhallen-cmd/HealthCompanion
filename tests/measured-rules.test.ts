@@ -1,7 +1,7 @@
-import { explainAssessment } from '../src/analysis/explain';
-import { score, type HistoryDay } from '../src/analysis/scoring';
-import type { Assessment, Entry, GarminDay, Level } from '../src/domain/types';
-import { addDays } from '../src/analysis/dates';
+import { explainAssessment } from '../src/core/analysis/explain';
+import { score, type HistoryDay } from '../src/core/analysis/scoring';
+import type { Assessment, Entry, GarminDay, Level } from '../src/core/domain/types';
+import { addDays } from '../src/core/analysis/dates';
 
 const PS = { normalState: '', sleepThresholdHours: 5 };
 const TODAY = '2026-11-04'; // a Wednesday; the week's baseline uses green days before Monday 2 November

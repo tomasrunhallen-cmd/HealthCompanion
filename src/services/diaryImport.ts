@@ -1,6 +1,6 @@
 // Import from another diary: parse, map, compute and save. The screen calls these steps.
 
-import type { DateKey } from '../domain/types';
+import type { DateKey } from '../core/domain/types';
 import { parseDiaryFiles, type DiaryImport } from '../import/bipolarDagbok';
 import { buildImport, type BuildResult, type Mapping } from '../import/transform';
 import type { ImportRecord, Repository } from '../storage/repository';

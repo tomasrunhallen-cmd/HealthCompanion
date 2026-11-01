@@ -3,8 +3,8 @@
 
 import React from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
-import { crisisInfo } from '../context/akut';
-import type { PlanItem } from '../domain/types';
+import { crisisInfo } from '../core/context/akut';
+import type { PlanItem } from '../core/domain/types';
 import { Card, P } from './components';
 import { colors, space, type } from './theme';
 

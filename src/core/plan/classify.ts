@@ -4,7 +4,7 @@
 // answer that does not hold is retried once with the error attached; if that also fails,
 // the rows are left for the person to sort ("Behöver din sortering").
 
-import type { Completer } from '../adapter/types';
+import type { Completer } from '../llm/types';
 import { akutLevel } from '../context/akut';
 import type { PlanFields, Polarity, RowKind } from '../domain/types';
 import { loadPrompt } from '../prompts/loader';

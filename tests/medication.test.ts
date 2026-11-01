@@ -1,6 +1,6 @@
-import { explainAssessment } from '../src/analysis/explain';
-import { score } from '../src/analysis/scoring';
-import type { Entry } from '../src/domain/types';
+import { explainAssessment } from '../src/core/analysis/explain';
+import { score } from '../src/core/analysis/scoring';
+import type { Entry } from '../src/core/domain/types';
 import { saveCheckin } from '../src/services/checkin';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';

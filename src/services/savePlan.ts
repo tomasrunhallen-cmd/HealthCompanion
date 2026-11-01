@@ -2,10 +2,10 @@
 // Emergency rows become the person's own emergency phrases; normalläge goes to the plan
 // settings. Removed headers and the draft itself are never saved.
 
-import { newId } from '../analysis/assess';
+import { newId } from '../core/analysis/assess';
 import type { Repository } from '../storage/repository';
-import type { PlanDraft } from './importPlan';
-import { contextKindOf, normalizeFields } from './fields';
+import type { PlanDraft } from '../core/plan/importPlan';
+import { contextKindOf, normalizeFields } from '../core/plan/fields';
 
 export interface SaveSummary {
   saved: number;

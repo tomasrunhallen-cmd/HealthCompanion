@@ -1,4 +1,4 @@
-import type { DateKey, Entry, PlanItem } from '../src/domain/types';
+import type { DateKey, Entry, PlanItem } from '../src/core/domain/types';
 import { GARMIN_TOKEN_PATH, type GarminFetch } from '../src/garmin/client';
 import {
   medicationOf, moodOf, parseCsv, parseDiaryFile, parseDiaryFiles, parseSwedishDate, signalsOf, sleepFromNote,

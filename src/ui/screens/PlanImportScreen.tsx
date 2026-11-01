@@ -6,21 +6,21 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { PROVIDERS } from '../../adapter/providers';
-import type { LlmAdapter } from '../../adapter/types';
-import { replaceStandard, unconfirmedStandard } from '../../context/standard';
-import type { PlanFields, RowKind } from '../../domain/types';
-import { sortVariables, type DraftPlanRow } from '../../plan/classify';
+import type { LlmAdapter } from '../../core/llm/types';
+import { replaceStandard, unconfirmedStandard } from '../../services/standard';
+import type { PlanFields, RowKind } from '../../core/domain/types';
+import { sortVariables, type DraftPlanRow } from '../../core/plan/classify';
 import {
   NEUTRAL_POLARITY, OBSERVER_TEXT, ROW_KIND_TEXT, ROW_KINDS, SEVERITY_TEXT, WHEN_TEXT, WHO_TEXT, normalizeFields, polarityText,
-} from '../../plan/fields';
+} from '../../core/plan/fields';
 import {
   DRAFT_KEY, approveHeading, countBySource, draftFromPages, draftFromText, pendingForModel, reviewSections, sleepWindowIn, sortDraftWithModel,
   updateRow, windowHours, type HeadingCount, type PlanDraft,
-} from '../../plan/importPlan';
-import { saveApprovedRows } from '../../plan/savePlan';
-import { linesFromDocx, linesFromPdf } from '../../plan/source';
+} from '../../core/plan/importPlan';
+import { saveApprovedRows } from '../../services/savePlan';
+import { linesFromDocx, linesFromPdf } from '../../core/plan/source';
 import { pickBinaryFile } from '../../platform/files';
-import { namesFromPlanText } from '../../privacy/scrub';
+import { namesFromPlanText } from '../../core/privacy/scrub';
 import { activeAdapter, trackedCompleter } from '../../services/llm';
 import { Button, Card, Chip, Field, P, Row, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';

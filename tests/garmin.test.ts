@@ -1,14 +1,14 @@
 import type { FetchLike } from '../src/adapter/http';
 import { destinationKey } from '../src/llm/config';
-import { formatMeasurements, measuredDays, NO_MEASUREMENTS } from '../src/analysis/measurements';
-import { score } from '../src/analysis/scoring';
-import type { Entry, GarminDay } from '../src/domain/types';
+import { formatMeasurements, measuredDays, NO_MEASUREMENTS } from '../src/core/analysis/measurements';
+import { score } from '../src/core/analysis/scoring';
+import type { Entry, GarminDay } from '../src/core/domain/types';
 import {
   GarminClient, GarminError, GARMIN_BASE_URL, GARMIN_TOKEN_PATH, jwtExpiryMs, localClock, mergeDays,
   parseBodyBattery, parseSleep, parseStress, type GarminFetch,
 } from '../src/garmin/client';
 import { getSecret } from '../src/platform/secrets';
-import { scrub } from '../src/privacy/scrub';
+import { scrub } from '../src/core/privacy/scrub';
 import { saveCheckin } from '../src/services/checkin';
 import { connectGarmin, disconnectGarmin, GARMIN_KEY_NAME, syncGarmin } from '../src/services/garmin';
 import { LLM_KEY_NAME } from '../src/services/llm';

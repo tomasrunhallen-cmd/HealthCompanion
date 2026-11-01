@@ -1,4 +1,4 @@
-import { namesFromPlanText, scrub } from '../src/privacy/scrub';
+import { namesFromPlanText, scrub } from '../src/core/privacy/scrub';
 
 describe('scrub', () => {
   it('removes personnummer in common formats', () => {

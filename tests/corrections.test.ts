@@ -1,7 +1,7 @@
-import type { Assessment } from '../src/domain/types';
-import { correctionFor, decideSuggestion, saveCorrection } from '../src/context/corrections';
-import { startWithStandard } from '../src/context/standard';
-import { buildContext } from '../src/context/buildContext';
+import type { Assessment } from '../src/core/domain/types';
+import { correctionFor, decideSuggestion, saveCorrection } from '../src/services/corrections';
+import { startWithStandard } from '../src/services/standard';
+import { buildContext } from '../src/core/context/buildContext';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 

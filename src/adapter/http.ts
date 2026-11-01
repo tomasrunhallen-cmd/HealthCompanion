@@ -15,8 +15,8 @@
 //   server rejects response_format; our validator still checks every answer.
 
 import { PROVIDERS, isLocalUrl, normalizeBaseUrl, type ProviderId } from './providers';
-import { toProviderSchema } from './schema';
-import type { LlmAdapter, SendRequest, Usage } from './types';
+import { toProviderSchema } from '../core/llm/schema';
+import type { LlmAdapter, SendRequest, Usage } from '../core/llm/types';
 
 export type FetchLike = (
   url: string,

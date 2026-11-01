@@ -1,14 +1,14 @@
-import { createCompleter } from '../src/adapter/complete';
-import { referenceAdapter } from '../src/adapter/fake';
-import { loadTestSuite } from '../src/analysis/testcases';
-import { modelChanges } from '../src/analysis/modelChanges';
-import { buildContext, CORRECTIONS_SHOWN, PROFILE_BUDGET_CHARS } from '../src/context/buildContext';
-import type { Assessment, ContextEntry, Entry } from '../src/domain/types';
-import { createLlmMatcher } from '../src/analysis/llmMatcher';
+import { createCompleter } from '../src/core/llm/complete';
+import { referenceAdapter } from '../src/core/llm/fake';
+import { loadTestSuite } from '../src/core/analysis/testcases';
+import { modelChanges } from '../src/core/analysis/modelChanges';
+import { buildContext, CORRECTIONS_SHOWN, PROFILE_BUDGET_CHARS } from '../src/core/context/buildContext';
+import type { Assessment, ContextEntry, Entry } from '../src/core/domain/types';
+import { createLlmMatcher } from '../src/core/analysis/llmMatcher';
 import { runModelTest } from '../src/services/llm';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
-import { fixedAdapter } from '../src/adapter/fake';
+import { fixedAdapter } from '../src/core/llm/fake';
 
 const entry: Entry = {
   id: 'e', date: '2026-11-01', createdAt: new Date(2026, 10, 1, 21).toISOString(), kind: 'checkin',

@@ -30,9 +30,9 @@ Run lint and typecheck before declaring any task done.
 
 ## Project rules (Dagsljus)
 
-- Read `README.md` and `PRIVACY.md` first. The traffic light is computed in code (`src/analysis/rules.ts`, `src/analysis/scoring.ts`), never by a language model.
+- Read `README.md` and `PRIVACY.md` first. The traffic light is computed in code (`src/core/analysis/rules.ts`, `src/core/analysis/scoring.ts`), never by a language model.
 - Prompts live only in `prompts/*.md`; `scripts/build-prompts.js` bundles them. Bump `version` on every prompt change.
-- All text sent to a language model must go through `scrub()` in `src/privacy/scrub.ts`.
+- All text sent to a language model must go through `scrub()` in `src/core/privacy/scrub.ts`.
 - App text is Swedish; code and comments are English.
 - Run `npm test` and `npm run typecheck` before declaring a task done.
 

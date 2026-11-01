@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import type { ContextKind, PlanItem, PlanItemKind } from '../../domain/types';
-import { KIND_TEXT } from '../../context/labels';
+import type { ContextKind, PlanItem, PlanItemKind } from '../../core/domain/types';
+import { KIND_TEXT } from '../../core/context/labels';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
-import { newId } from '../../analysis/assess';
-import { confirmStandard } from '../../context/standard';
+import { newId } from '../../core/analysis/assess';
+import { confirmStandard } from '../../services/standard';
 
 const KINDS: { kind: PlanItemKind; title: string; help: string }[] = [
   { kind: 'early', title: 'Tidiga tecken', help: 'Ger gult när de matchar.' },

@@ -4,8 +4,8 @@
 // the app closed) continues where it left off. Stops by itself when Garmin has had nothing
 // for three rounds in a row: the watch was not in use that far back.
 
-import { addDays, toDateKey } from '../analysis/dates';
-import type { DateKey } from '../domain/types';
+import { addDays, toDateKey } from '../core/analysis/dates';
+import type { DateKey } from '../core/domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
 import { garminBaseUrl } from '../platform/endpoints';
 import { getSecret } from '../platform/secrets';

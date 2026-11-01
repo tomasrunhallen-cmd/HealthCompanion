@@ -1,10 +1,10 @@
 // Language model settings, token use and the cost estimate. Pure functions; the
 // repository stores the values and platform/secrets keeps the key.
 
-import { addDays } from '../analysis/dates';
+import { addDays } from '../core/analysis/dates';
 import { PROVIDERS, isLocalUrl, normalizeBaseUrl, type ProviderId } from '../adapter/providers';
-import type { DateKey } from '../domain/types';
-import type { Usage } from '../adapter/types';
+import type { DateKey } from '../core/domain/types';
+import type { Usage } from '../core/llm/types';
 
 export interface ModelTestResult {
   at: string;

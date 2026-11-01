@@ -1,6 +1,6 @@
-import { parseSleepHours, wordsPerMinute } from '../src/analysis/sleep';
-import { draftFromText } from '../src/plan/importPlan';
-import { matchSigns, wordsMatch } from '../src/analysis/wordmatch';
+import { parseSleepHours, wordsPerMinute } from '../src/core/analysis/sleep';
+import { draftFromText } from '../src/core/plan/importPlan';
+import { matchSigns, wordsMatch } from '../src/core/analysis/wordmatch';
 
 describe('crisis plan import without a model', () => {
   const text = `Min krisplan

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
-import { displaySentence, firstStep } from '../../analysis/assess';
-import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../analysis/dates';
-import { silentDaysUntil } from '../../analysis/scoring';
-import { RULES } from '../../analysis/rules';
+import { displaySentence, firstStep } from '../../core/analysis/assess';
+import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
+import { silentDaysUntil } from '../../core/analysis/scoring';
+import { RULES } from '../../core/analysis/rules';
 import { logHeavyDay } from '../../services/checkin';
-import { standardNudgeWeek, startWithStandard, unconfirmedStandard } from '../../context/standard';
+import { standardNudgeWeek } from '../../core/context/standard';
+import { startWithStandard, unconfirmedStandard } from '../../services/standard';
 import { dueNow, runProfileReview } from '../../services/profile';
 import { Platform } from 'react-native';
 import { Button, Card, Dot, P, Row, Screen, Section } from '../components';

@@ -1,0 +1,8 @@
+{
+  "name": "@dagsljus/core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dagsljus core: scoring, level, emergency rule, scrubbing, crisis plan import, prompt loader and context bank. No platform dependencies.",
+  "main": "index.ts",
+  "sideEffects": false
+}

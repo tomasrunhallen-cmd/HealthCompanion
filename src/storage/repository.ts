@@ -1,14 +1,14 @@
 // The app's single source of data. Keeps a cache in memory and writes through to the backend.
 
-import { buildHistory, type HistoryDay } from '../analysis/scoring';
+import { buildHistory, type HistoryDay } from '../core/analysis/scoring';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
   type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
   type Correction, type DateKey, type PlanFields, type RoutineSettings, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
-} from '../domain/types';
-import { addDays } from '../analysis/dates';
-import { fieldsFromKind } from '../plan/fields';
-import type { SentRequest, Usage } from '../adapter/types';
+} from '../core/domain/types';
+import { addDays } from '../core/analysis/dates';
+import { fieldsFromKind } from '../core/plan/fields';
+import type { SentRequest, Usage } from '../core/llm/types';
 import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
 import type { Collection, DocBackend, Snapshot, StorageInfo } from './backend';
 

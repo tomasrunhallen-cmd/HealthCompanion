@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text } from 'react-native';
-import { decideSuggestion } from '../../context/corrections';
-import { KIND_TEXT } from '../../context/labels';
+import { decideSuggestion } from '../../services/corrections';
+import { KIND_TEXT } from '../../core/context/labels';
 import { Button, Card, Field, P, Screen } from '../components';
 import { useRepo } from '../state';
 import { space, type } from '../theme';

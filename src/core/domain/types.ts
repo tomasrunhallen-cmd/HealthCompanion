@@ -1,5 +1,7 @@
 // Core domain types for Dagsljus. All data lives on the device.
 
+import { RULES } from '../analysis/rules';
+
 /** Calendar date in local time, formatted YYYY-MM-DD. */
 export type DateKey = string;
 
@@ -183,10 +185,12 @@ export type SleepSource = 'garmin' | 'transcript';
 
 export interface Entry {
   id: string;
-  /** The evening this entry belongs to. Entries made before 05:00 count to the previous evening. */
+  /** The day this entry belongs to, 04:00–04:00 local time. An entry at 00:30 counts to the day before. */
   date: DateKey;
   /** ISO timestamp of when the entry was saved. */
   createdAt: string;
+  /** "HH:MM" on the phone's clock where the entry was made. Keeps the hour when the phone later changes time zone. */
+  localTime?: string | null;
   kind: EntryKind;
   /** Corrected transcript or typed text. Empty for "Orkar bara trycka". */
   transcript: string;
@@ -350,7 +354,7 @@ export interface AppSettings {
 
 export const DEFAULT_PLAN_SETTINGS: PlanSettings = {
   normalState: '',
-  sleepThresholdHours: 5,
+  sleepThresholdHours: RULES.sleepThresholdHoursDefault,
 };
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {

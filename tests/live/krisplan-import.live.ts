@@ -16,11 +16,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createCompleter } from '../../src/adapter/complete';
+import { createCompleter } from '../../src/core/llm/complete';
 import type { ProviderId } from '../../src/adapter/providers';
-import type { RowKind } from '../../src/domain/types';
-import { sortUnknownWithModel } from '../../src/plan/classify';
-import { draftFromText, sortDraftWithModel } from '../../src/plan/importPlan';
+import type { RowKind } from '../../src/core/domain/types';
+import { sortUnknownWithModel } from '../../src/core/plan/classify';
+import { draftFromText, sortDraftWithModel } from '../../src/core/plan/importPlan';
 import { buildAdapter } from '../../src/services/llm';
 import { nodeFetch } from './nodeFetch';
 

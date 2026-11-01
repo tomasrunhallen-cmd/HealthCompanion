@@ -4,7 +4,7 @@
 import type {
   Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, PlanItem, PlanSettings, Signal, SignalKind, SignMatch,
 } from '../domain/types';
-import { addDays, daysBetween, weekStart } from './dates';
+import { addDays, daysBetween, entryClock, weekStart } from './dates';
 import { RULES } from './rules';
 
 export interface HistoryDay {
@@ -52,9 +52,9 @@ function sv(n: number): string {
 }
 
 /** Minutes after noon, so that 21:00 and 01:15 average to a late evening, not to midday. */
-function minutesAfterNoon(iso: string): number {
-  const d = new Date(iso);
-  return (d.getHours() * 60 + d.getMinutes() - 720 + 1440) % 1440;
+function minutesAfterNoon(entry: Pick<Entry, 'createdAt' | 'localTime'>): number {
+  const { hour, minute } = entryClock(entry);
+  return (hour * 60 + minute - 720 + 1440) % 1440;
 }
 
 function clock(minutesAfterNoonValue: number): string {
@@ -76,7 +76,7 @@ export function computeBaseline(date: DateKey, history: HistoryDay[]): Baseline 
   const wpm = green.map((h) => h.entry.wordsPerMinute).filter((v): v is number => v != null);
   const stress = green.map((h) => h.entry.stressAvg).filter((v): v is number => v != null);
   const sleep = green.map((h) => h.entry.sleepHours).filter((v): v is number => v != null);
-  const times = green.filter((h) => h.entry.kind === 'checkin').map((h) => minutesAfterNoon(h.entry.createdAt));
+  const times = green.filter((h) => h.entry.kind === 'checkin').map((h) => minutesAfterNoon(h.entry));
   return {
     wordsPerMinute: enough(wpm) ? Math.round(mean(wpm)!) : null,
     stressAvg: enough(stress) ? round1(mean(stress)!) : null,
@@ -138,7 +138,7 @@ function rawLevel(
   const L = RULES.level;
   const serious = counted.some((s) => s.kind === 'serious_sign');
   // "Ett allvarligt tecken matchar tillsammans med minst ett annat tecken".
-  const seriousPlusOther = serious && counted.length >= 2;
+  const seriousPlusOther = serious && counted.length >= L.seriousPlusOtherSigns;
   // The first rule that applies is the one shown to the user.
   if (points >= L.redAt) return { level: 'red', points, reason: 'points_red' };
   if (seriousPlusOther) return { level: 'red', points, reason: 'serious_plus_other' };
@@ -205,11 +205,13 @@ function adjustMeasured(signals: Signal[], entry: Entry, yesterday: Set<SignalKi
 }
 
 function entryHour(entry: Entry): number {
-  return new Date(entry.createdAt).getHours();
+  return entryClock(entry).hour;
 }
 
-export const TREND_SLEEP = 'Din sömn har blivit kortare tre nätter i rad.';
-export const TREND_STRESS = 'Din stress har ökat tre dagar i rad.';
+const WORD: Record<number, string> = { 2: 'två', 3: 'tre', 4: 'fyra', 5: 'fem', 6: 'sex', 7: 'sju' };
+const nWord = WORD[RULES.trendDays] ?? String(RULES.trendDays);
+export const TREND_SLEEP = `Din sömn har blivit kortare ${nWord} nätter i rad.`;
+export const TREND_STRESS = `Din stress har ökat ${nWord} dagar i rad.`;
 
 /**
  * Sleep shorter, or stress higher, three days in a row while still within the limit:
@@ -227,16 +229,19 @@ export function trendLines(
     const d = addDays(entry.date, -offset);
     return { g: garmin[d], e: history.find((h) => h.entry.date === d)?.entry };
   };
+  const n = RULES.trendDays;
   const series = (pick: (g: GarminDay | undefined, e: Entry | undefined) => number | null | undefined, today: number | null) => {
-    const vals = [pick(day(2).g, day(2).e), pick(day(1).g, day(1).e), today];
+    const vals = [...Array.from({ length: n - 1 }, (_, i) => pick(day(n - 1 - i).g, day(n - 1 - i).e)), today];
     return vals.every((v) => v != null) ? (vals as number[]) : null;
   };
+  const falling = (v: number[]) => v.every((x, i) => i === 0 || v[i - 1] > x);
+  const rising = (v: number[]) => v.every((x, i) => i === 0 || v[i - 1] < x);
   const out: string[] = [];
   const sleep = series((g, e) => g?.sleepHours ?? e?.sleepHours, entry.sleepHours);
-  if (sleep && sleep[0] > sleep[1] && sleep[1] > sleep[2] && sleep[2] >= planSettings.sleepThresholdHours) out.push(TREND_SLEEP);
+  if (sleep && falling(sleep) && sleep[n - 1] >= planSettings.sleepThresholdHours) out.push(TREND_SLEEP);
   const stress = series((g, e) => g?.stressAvg ?? e?.stressAvg, entry.stressAvg);
   const stressLimit = baseline.stressAvg != null ? baseline.stressAvg * RULES.stressFactor : Infinity;
-  if (stress && stress[0] < stress[1] && stress[1] < stress[2] && stress[2] <= stressLimit) out.push(TREND_STRESS);
+  if (stress && rising(stress) && stress[n - 1] <= stressLimit) out.push(TREND_STRESS);
   return out;
 }
 
@@ -333,11 +338,12 @@ export function score(input: ScoreInput): ScoreResult {
 
   // Medication not taken, by the user's own answer, yesterday and today.
   const med = input.medication ?? {};
-  if (med[entry.date] === false && med[addDays(entry.date, -1)] === false) {
+  const missedDays = Array.from({ length: RULES.medicationMissedDays }, (_, i) => addDays(entry.date, -i));
+  if (missedDays.every((d) => med[d] === false)) {
     signals.push({
       kind: 'medication_missed',
       points: RULES.points.medicationMissed,
-      label: 'Medicin inte tagen i går och i dag',
+      label: RULES.medicationMissedDays === 2 ? 'Medicin inte tagen i går och i dag' : `Medicin inte tagen ${RULES.medicationMissedDays} dagar i rad`,
       measured: false,
     });
   }

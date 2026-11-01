@@ -7,7 +7,7 @@ import {
   type ColorValue, type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Level } from '../domain/types';
+import type { Level } from '../core/domain/types';
 import { colors, LEVEL_TEXT, levelColor, levelSoft, MIN_TOUCH, radius, space, type } from './theme';
 
 /**

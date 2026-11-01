@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
-import { addDays, formatDateSv, formatTime, toDateKey } from '../../analysis/dates';
+import { addDays, formatDateSv, formatTime, toDateKey } from '../../core/analysis/dates';
 import { GARMIN_KEY_PAGE } from '../../garmin/client';
 import { secretsPersist } from '../../platform/secrets';
 import { connectGarmin, disconnectGarmin, syncGarmin } from '../../services/garmin';

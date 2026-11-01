@@ -1,7 +1,7 @@
 import { decryptBackup, encryptBackup, fromBase64, toBase64, utf8Decode, utf8Encode } from '../src/backup/crypto';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
-import type { Assessment, Entry } from '../src/domain/types';
+import type { Assessment, Entry } from '../src/core/domain/types';
 
 let seed = 1;
 const rnd = (n: number) => Uint8Array.from({ length: n }, () => (seed = (seed * 1103515245 + 12345) & 0xff));

@@ -1,6 +1,6 @@
-import { explainAssessment } from '../src/analysis/explain';
-import { levelFromSignals } from '../src/analysis/scoring';
-import type { Assessment, Entry, Signal } from '../src/domain/types';
+import { explainAssessment } from '../src/core/analysis/explain';
+import { levelFromSignals } from '../src/core/analysis/scoring';
+import type { Assessment, Entry, Signal } from '../src/core/domain/types';
 
 const entry: Entry = {
   id: 'e1', date: '2026-10-31', createdAt: new Date(2026, 9, 31, 22, 5).toISOString(), kind: 'checkin',

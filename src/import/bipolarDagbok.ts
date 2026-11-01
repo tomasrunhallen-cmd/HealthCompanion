@@ -2,7 +2,7 @@
 // One row per day: date, weekday, two mood fields, medication, many yes/no columns and a
 // free-text note. A day that was not filled in has "-" in every field. Pure functions.
 
-import type { DateKey } from '../domain/types';
+import type { DateKey } from '../core/domain/types';
 
 export const SOURCE_NAME = 'Bipolär dagbok';
 

@@ -2,11 +2,11 @@
 // changes from the scrubbed notes (language model, when one is set up). All results are
 // proposals the user approves or rejects one at a time.
 
-import { eveningDateKey, addDays, toDateKey } from '../analysis/dates';
+import { eveningDateKey, addDays, toDateKey } from '../core/analysis/dates';
 import {
   askModelForProfile, courseOfPeriod, courseSuggestion, DEFAULT_PROFILE_STATE, notesForWindow, profileUpdateDue,
   type Due, type ProfileUpdateState,
-} from '../context/profileUpdate';
+} from '../core/context/profileUpdate';
 import type { Repository } from '../storage/repository';
 import { activeAdapter, namesToScrub, trackedCompleter, type AdapterOptions } from './llm';
 

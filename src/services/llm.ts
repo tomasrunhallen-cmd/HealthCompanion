@@ -2,19 +2,19 @@
 // behind "Testa modellen". Nothing is sent unless the user has configured a provider
 // and confirmed where the text goes (consent is stored per provider and address).
 
-import { createCompleter } from '../adapter/complete';
+import { createCompleter } from '../core/llm/complete';
 import { createAdapter, type FetchLike } from '../adapter/http';
 import type { ProviderId } from '../adapter/providers';
-import type { Completer, LlmAdapter } from '../adapter/types';
-import { assessEntry, seriousActions, wordMatcher, type SignMatcher } from '../analysis/assess';
-import { eveningDateKey } from '../analysis/dates';
-import { createLlmMatcher } from '../analysis/llmMatcher';
-import { loadTestSuite } from '../analysis/testcases';
-import { akutLevel, type AkutLevel } from '../context/akut';
-import { PLAN_KINDS, type ContextEntry, type Level } from '../domain/types';
+import type { Completer, LlmAdapter } from '../core/llm/types';
+import { assessEntry, seriousActions, wordMatcher, type SignMatcher } from '../core/analysis/assess';
+import { eveningDateKey } from '../core/analysis/dates';
+import { createLlmMatcher } from '../core/analysis/llmMatcher';
+import { loadTestSuite } from '../core/analysis/testcases';
+import { akutLevel, type AkutLevel } from '../core/context/akut';
+import { PLAN_KINDS, type ContextEntry, type Level } from '../core/domain/types';
 import { hasConsent, importModelOf, type LlmConfig } from '../llm/config';
-import { loadPrompt } from '../prompts/loader';
-import { namesFromPlanText } from '../privacy/scrub';
+import { loadPrompt } from '../core/prompts/loader';
+import { namesFromPlanText } from '../core/privacy/scrub';
 import { getSecret } from '../platform/secrets';
 import type { Repository } from '../storage/repository';
 

@@ -1,6 +1,6 @@
-import { exportAll, exportLayer, parseLayer } from '../src/context/markdown';
-import { startWithStandard } from '../src/context/standard';
-import type { ContextLayer } from '../src/domain/types';
+import { exportAll, exportLayer, parseLayer } from '../src/core/context/markdown';
+import { startWithStandard } from '../src/services/standard';
+import type { ContextLayer } from '../src/core/domain/types';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 

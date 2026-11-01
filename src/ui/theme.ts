@@ -10,7 +10,7 @@
 // level also has a word and its own symbol (LevelSymbol in components.tsx).
 
 import { Appearance, DynamicColorIOS, Platform, PlatformColor, type ColorValue } from 'react-native';
-import type { Level } from '../domain/types';
+import type { Level } from '../core/domain/types';
 
 interface Pair {
   light: string;

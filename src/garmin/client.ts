@@ -14,7 +14,7 @@
 // - Field names are not in Garmin's public pages; they come from two independent
 //   open-source clients of the same API and are parsed defensively.
 
-import type { DateKey, GarminDay } from '../domain/types';
+import type { DateKey, GarminDay } from '../core/domain/types';
 
 export const GARMIN_BASE_URL = 'https://personal.connectapi.garmin.com';
 export const GARMIN_TOKEN_PATH = '/personalapitoken-service/personal-api/personal-api-key/token';

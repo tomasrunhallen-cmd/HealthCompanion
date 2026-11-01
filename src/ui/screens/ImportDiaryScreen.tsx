@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Text } from 'react-native';
-import { formatDateSvYear as formatDateSv } from '../../analysis/dates';
+import { formatDateSvYear as formatDateSv } from '../../core/analysis/dates';
 import { MOOD_BALANCED, MOOD_VALUES, SOURCE_NAME, type DiaryImport } from '../../import/bipolarDagbok';
 import { signalCounts, suggestMapping, type BuildResult, type Mapping } from '../../import/transform';
 import { pickTextFiles } from '../../platform/files';

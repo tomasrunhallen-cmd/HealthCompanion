@@ -1,10 +1,10 @@
-import { assessEntry, displaySentence, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep, seriousActions, type SignMatcher } from '../src/analysis/assess';
-import { addDays, eveningDateKey } from '../src/analysis/dates';
-import { buildTrend } from '../src/analysis/trend';
-import { computeBaseline, levelFromSignals, score, silentDaysBefore, silentDaysUntil, trendLines } from '../src/analysis/scoring';
-import { loadTestSuite } from '../src/analysis/testcases';
-import { matchSigns } from '../src/analysis/wordmatch';
-import type { Entry, PlanItem } from '../src/domain/types';
+import { assessEntry, displaySentence, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep, seriousActions, type SignMatcher } from '../src/core/analysis/assess';
+import { addDays, eveningDateKey } from '../src/core/analysis/dates';
+import { buildTrend } from '../src/core/analysis/trend';
+import { computeBaseline, levelFromSignals, score, silentDaysBefore, silentDaysUntil, trendLines } from '../src/core/analysis/scoring';
+import { loadTestSuite } from '../src/core/analysis/testcases';
+import { matchSigns } from '../src/core/analysis/wordmatch';
+import type { Entry, PlanItem } from '../src/core/domain/types';
 
 const suite = loadTestSuite();
 
@@ -153,9 +153,10 @@ describe('silence', () => {
     expect(silentDaysUntil('2026-10-20', [])).toBe(0);
   });
 
-  it('entries before 05:00 belong to the previous evening', () => {
+  it('entries before 04:00 belong to the previous day', () => {
     expect(eveningDateKey(new Date(2026, 9, 21, 1, 15))).toBe('2026-10-20');
-    expect(eveningDateKey(new Date(2026, 9, 21, 5, 0))).toBe('2026-10-21');
+    expect(eveningDateKey(new Date(2026, 9, 21, 3, 59))).toBe('2026-10-20');
+    expect(eveningDateKey(new Date(2026, 9, 21, 4, 0))).toBe('2026-10-21');
   });
 });
 

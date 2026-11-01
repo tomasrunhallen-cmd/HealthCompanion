@@ -6,7 +6,7 @@
 
 import { addDays, daysBetween, formatDateSv } from '../analysis/dates';
 import { normalize } from '../analysis/wordmatch';
-import type { Completer } from '../adapter/types';
+import type { Completer } from '../llm/types';
 import type { Assessment, ContextEntry, ContextKind, DateKey, Entry, PlanItem, Suggestion } from '../domain/types';
 import { loadPrompt } from '../prompts/loader';
 import { scrub } from '../privacy/scrub';

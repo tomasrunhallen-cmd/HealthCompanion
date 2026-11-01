@@ -1,7 +1,7 @@
-import { assessEntry, SERIOUS_INTRO, seriousActions, wordMatcher, type SignMatcher } from '../src/analysis/assess';
-import { loadTestSuite, type TestCase } from '../src/analysis/testcases';
-import { akutLevel } from '../src/context/akut';
-import type { Assessment } from '../src/domain/types';
+import { assessEntry, SERIOUS_INTRO, seriousActions, wordMatcher, type SignMatcher } from '../src/core/analysis/assess';
+import { loadTestSuite, type TestCase } from '../src/core/analysis/testcases';
+import { akutLevel } from '../src/core/context/akut';
+import type { Assessment } from '../src/core/domain/types';
 
 const suite = loadTestSuite();
 const byId = (id: string) => {
@@ -34,7 +34,7 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.4.0');
+    expect(suite.version).toBe('2.4.1');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [

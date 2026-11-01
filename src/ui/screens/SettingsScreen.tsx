@@ -5,7 +5,7 @@ import { pickImportFile, randomBytes, saveExportFile } from '../../platform/file
 import { clearPin, lockSupport, setPin, usesPin, type LockSupport } from '../../platform/lock';
 import { cancelHint, cancelReminder, reminderSupported, reminderViaCalendar, scheduleReminder } from '../../platform/reminder';
 import type { ExportData } from '../../storage/repository';
-import { toDateKey } from '../../analysis/dates';
+import { toDateKey } from '../../core/analysis/dates';
 import { PROVIDERS } from '../../adapter/providers';
 import { hasConsent } from '../../llm/config';
 import { deleteSecret } from '../../platform/secrets';

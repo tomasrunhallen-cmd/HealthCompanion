@@ -1,13 +1,13 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
 import { Platform, Text, useColorScheme, View } from 'react-native';
-import { eveningDateKey } from '../../analysis/dates';
-import { parseSleepHours } from '../../analysis/sleep';
-import { akutLevel } from '../../context/akut';
+import { eveningDateKey } from '../../core/analysis/dates';
+import { parseSleepHours } from '../../core/analysis/sleep';
+import { akutLevel } from '../../core/context/akut';
 import { CrisisCard } from '../CrisisCard';
 import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
-import { routineLog, trackedRoutines } from '../../plan/routines';
+import { routineLog, trackedRoutines } from '../../core/plan/routines';
 import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';

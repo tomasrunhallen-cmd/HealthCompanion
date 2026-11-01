@@ -11,7 +11,7 @@
 // DAGSLJUS_LLM_BASE_URL is needed for openai-compatible. Keep the key in the environment,
 // never in a file in the repository.
 
-import { createCompleter } from '../../src/adapter/complete';
+import { createCompleter } from '../../src/core/llm/complete';
 import type { ProviderId } from '../../src/adapter/providers';
 import { differingCases, runModelTest, buildAdapter } from '../../src/services/llm';
 import { analysFingerprint, writeApproval } from '../promptGate';

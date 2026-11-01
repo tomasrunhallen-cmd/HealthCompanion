@@ -4,13 +4,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { assessEntry, firstStep, wordMatcher } from '../src/analysis/assess';
-import { buildContext } from '../src/context/buildContext';
-import { crisisInfo } from '../src/context/akut';
-import type { Entry, PlanItem, Signal } from '../src/domain/types';
-import { approveHeading, draftFromText } from '../src/plan/importPlan';
-import { actionsFor, directionSentence, ladderOf, routinesFor, showValueAnchors, signDirection } from '../src/plan/guidance';
-import { saveApprovedRows } from '../src/plan/savePlan';
+import { assessEntry, firstStep, wordMatcher } from '../src/core/analysis/assess';
+import { buildContext } from '../src/core/context/buildContext';
+import { crisisInfo } from '../src/core/context/akut';
+import type { Entry, PlanItem, Signal } from '../src/core/domain/types';
+import { approveHeading, draftFromText } from '../src/core/plan/importPlan';
+import { actionsFor, directionSentence, ladderOf, routinesFor, showValueAnchors, signDirection } from '../src/core/plan/guidance';
+import { saveApprovedRows } from '../src/services/savePlan';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 

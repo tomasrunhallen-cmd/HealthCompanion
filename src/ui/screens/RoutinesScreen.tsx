@@ -4,10 +4,10 @@
 
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
-import { eveningDateKey } from '../../analysis/dates';
-import type { ContextEntry, RoutineSettings } from '../../domain/types';
-import { polarityText } from '../../plan/fields';
-import { routineSettings, routineStats, routines, suggestReminderTime } from '../../plan/routines';
+import { eveningDateKey } from '../../core/analysis/dates';
+import type { ContextEntry, RoutineSettings } from '../../core/domain/types';
+import { polarityText } from '../../core/plan/fields';
+import { routineSettings, routineStats, routines, suggestReminderTime } from '../../core/plan/routines';
 import { cancelHint, cancelRoutineReminder, reminderSupported, reminderViaCalendar, scheduleRoutineReminder } from '../../platform/reminder';
 import { Button, Card, Field, P, Row, Screen, Section, Toggle } from '../components';
 import { useDialog, useRepo } from '../state';

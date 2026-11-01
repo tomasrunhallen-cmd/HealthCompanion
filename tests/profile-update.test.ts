@@ -1,7 +1,7 @@
-import { fixedAdapter } from '../src/adapter/fake';
-import type { Assessment, Entry } from '../src/domain/types';
-import { decideSuggestion } from '../src/context/corrections';
-import { courseOfPeriod, endedPeriods, profileUpdateDue, suggestionsFromAnswer } from '../src/context/profileUpdate';
+import { fixedAdapter } from '../src/core/llm/fake';
+import type { Assessment, Entry } from '../src/core/domain/types';
+import { decideSuggestion } from '../src/services/corrections';
+import { courseOfPeriod, endedPeriods, profileUpdateDue, suggestionsFromAnswer } from '../src/core/context/profileUpdate';
 import { destinationKey } from '../src/llm/config';
 import { setSecret } from '../src/platform/secrets';
 import { LLM_KEY_NAME } from '../src/services/llm';
