@@ -133,7 +133,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 175 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 183 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -165,7 +165,7 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Matchningen tål böjningar och ord emellan. En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 35 fraser och bör prövas mot verkliga formuleringar.
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
 
-- **Testfallet för rött går inte ihop med reglerna.** Fyra timmars sömn, 180 ord per minut och inlägg 01:15 ger tre poäng. Specen kräver fyra poäng för rött. Jag har lagt till regeln *tre eller fler mätta tecken samma dag ger rött*, så att testfallet går igenom. Alternativet är att sänka gränsen för rött till tre poäng, vilket påverkar fler dagar. Regeln står i `src/analysis/rules.ts` och bör stämmas av med din vårdkontakt.
+- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn- och stressreglerna 0 poäng den dagen, och bedömningen säger det. Reglerna står i `src/analysis/rules.ts` och `src/analysis/scoring.ts` och bör stämmas av med din vårdkontakt.
 - **Orkar bara trycka ger gult.** Specen säger att dagen loggas som tung och att första gula steget visas. Jag har gjort det till ett tecken värt en poäng, så att nivån fortfarande räknas i koden.
 - **Inlägg före 05:00 hör till kvällen innan.** Annars skulle ett inlägg 01:15 räknas som en ny dag och ge falsk tystnad.
 - **Ett inlägg per kväll.** En ny avstämning samma kväll ersätter den förra, efter bekräftelse.
@@ -179,7 +179,7 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **Rader som inte står i planen markeras.** När modellen sorterar krisplanen kontrollerar appen att varje rad finns i den inklistrade texten. Rader som inte gör det får en röd varning. Alla rader måste fortfarande godkännas en och en.
 - **Garmins fältnamn kommer inte från Garmin.** Garmins egna sidor och deras Python-klient anger värd, token och sökvägar. Fältnamnen i svaren, som `sleepTimeSeconds` och `overallStressLevel`, kommer från två oberoende öppna klienter för samma API. Garmin publicerar dem bara i sin Swagger-dokumentation, som jag inte kunde läsa. Appen tolkar svaren försiktigt och hoppar över fält som saknas.
 - **Minuter med hög stress i stället för högsta stress.** Specen vill spara högsta stress per dag. Garmins stressendpoint ger snitt och tid i varje stressnivå, men inget maxvärde som jag kunnat bekräfta. Appen sparar därför minuter med hög stress.
-- **Sen insomning ger två poäng som ett tecken.** Specen säger att insomning efter 02:00 utan inlägg räknas som två tecken. Appen ger ett tecken värt två poäng. *Utan inlägg* tolkas som inget inlägg kvällen innan natten. Insomning från 12:00 räknas som dagsömn och ger inget.
+- **Sen insomning ger en poäng.** Specen sa två tecken, men det räknade samma natt dubbelt. *Utan inlägg* tolkas som inget inlägg kvällen innan natten. Insomning från 12:00 räknas som dagsömn och ger inget.
 - **Kort sömn två nätter i rad räknas även utan inlägg.** Gårdagens sömn tas från Garmin när det inte finns något inlägg den dagen.
 - **Ingen hämtning i bakgrunden.** Specen vill hämta en gång per morgon i bakgrunden. Det kräver en ny modul och en utvecklingsbuild, och iOS bestämmer själv när det sker. Appen hämtar i stället när den öppnas, högst var trettionde minut, och alltid precis före kvällens avstämning.
 - **Apple Hälsa som reserv är inte byggd.** Specen föreslår att läsa sömn från Apple Hälsa utan Garmin-nyckel. Det kräver en ny modul och en utvecklingsbuild, och Garmin skriver troligen ingen stress dit. Utan Garmin tas sömnen ur anteckningen som förut.

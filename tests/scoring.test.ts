@@ -24,12 +24,12 @@ describe('the four mandatory test cases from the spec (prompts/testfall.md)', ()
     });
   }
 
-  it('the red case is red only through measured signs', () => {
+  it('the short-night case is yellow: measured signs only count towards red from the second day', () => {
     const c = suite.cases.find((x) => x.id === 'kort-somn-snabbt-tal-natt')!;
     const r = score({ entry: c.entry, matches: [], plan: suite.plan, planSettings: suite.planSettings, history: c.history });
     expect(r.signals.map((s) => s.kind).sort()).toEqual(['night_entry', 'sleep_low', 'speech_fast']);
     expect(r.points).toBe(3);
-    expect(r.level).toBe('red');
+    expect(r.level).toBe('yellow');
   });
 
   it('the sms case matches the plan sign with a verbatim quote', () => {

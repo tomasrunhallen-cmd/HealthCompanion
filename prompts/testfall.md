@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 1.0.0
+version: 1.1.0
 response: data
 ---
 # Testfall
@@ -56,8 +56,8 @@ Varje fall har en anteckning, mätvärden och en historik. Historiken räknas ba
     },
     {
       "id": "kort-somn-snabbt-tal-natt",
-      "name": "Fyra timmars sömn, 180 ord per minut och inlägg 01:15 ger rött",
-      "expected": "red",
+      "name": "Fyra timmars sömn, 180 ord per minut och inlägg 01:15 ger gult första dagen",
+      "expected": "yellow",
       "history": "gron_vecka",
       "entry": {
         "time": "01:15",

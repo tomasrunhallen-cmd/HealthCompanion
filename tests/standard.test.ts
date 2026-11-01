@@ -57,7 +57,7 @@ describe('standard content', () => {
     expect(explainAssessment(e, a, null).conclusion).toContain('standardtecken som du inte bekräftat');
   });
 
-  it('measured signs can still give red on their own, and confirmed rows count fully', async () => {
+  it('standard rows never decide red, and confirmed rows count fully', async () => {
     const repo = await Repository.create(memoryBackend());
     await startWithStandard(repo, NOW);
     // Short sleep two nights running and an entry at 01:15: three measured signs, no standard rows.
@@ -65,7 +65,8 @@ describe('standard content', () => {
     const yesterday = { entry: entry('Vanlig dag.', { id: 'y', date: '2026-10-31', sleepHours: 4, sleepSource: 'garmin' as const }), level: 'yellow' as const };
     const measured = await assessEntry({ entry: night, plan: repo.plan(), planSettings: repo.planSettings(), history: [yesterday], matcher: wordMatcher, context: repo.contextEntries(), now: NOW });
     expect(measured.signals.map((s) => s.kind).sort()).toEqual(['night_entry', 'sleep_low', 'sleep_low_consecutive']);
-    expect(measured).toMatchObject({ level: 'red', levelReason: 'measured_three' });
+    expect(measured.signals.every((s) => !s.unconfirmedStandard)).toBe(true);
+    expect(measured).toMatchObject({ level: 'yellow', points: 3 });
 
     for (const row of unconfirmedStandard(repo)) await confirmStandard(repo, row.id, NOW);
     const a = await assessEntry({ entry: entry(ALL_STANDARD_SIGNS), plan: repo.plan(), planSettings: repo.planSettings(), history: [], matcher: wordMatcher, context: repo.contextEntries(), now: NOW });

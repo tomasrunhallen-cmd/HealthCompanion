@@ -55,6 +55,7 @@ export function CheckinScreen() {
   const [busy, setBusy] = useState(false);
   const hasMedication = repo.contextOf('medication').length > 0;
   const [medication, setMedication] = useState<boolean | null>(null);
+  const [strain, setStrain] = useState(false);
   const sleep = useMemo(() => parseSleepHours(text), [text]);
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
   const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
@@ -64,7 +65,7 @@ export function CheckinScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication }, new Date(), { browser: Platform.OS === 'web' });
+      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain }, new Date(), { browser: Platform.OS === 'web' });
       nav.replace({ name: 'result', entryId: entry.id, fresh: true });
     } finally {
       setBusy(false);
@@ -132,6 +133,12 @@ export function CheckinScreen() {
           </Row>
         </View>
       ) : null}
+      <View style={{ marginBottom: space.l }}>
+        <Row>
+          <Chip label="Alkohol, sjuk eller hård träning i går?" selected={strain} onPress={() => setStrain(!strain)} />
+        </Row>
+        {strain ? <Text style={[type.small, { marginTop: space.xs }]}>Sömn och stress räknas inte i dag.</Text> : null}
+      </View>
       <Scale label="Stämning" value={mood} onChange={setMood} low="1 Mycket låg" high="10 Mycket hög" />
       <Scale label="Energi" value={energy} onChange={setEnergy} low="1 Ingen" high="10 Väldigt mycket" />
     </Screen>

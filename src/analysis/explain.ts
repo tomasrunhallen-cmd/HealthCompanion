@@ -28,7 +28,7 @@ function reasonOf(a: Assessment): LevelReason {
   if (a.level === 'yellow') return 'points';
   if (a.points >= L.redAt) return 'points_red';
   if (a.signals.some((s) => s.kind === 'serious_sign') && a.signals.length >= 2) return 'serious_plus_other';
-  if (a.signals.filter((s) => s.measured).length >= L.redMeasuredSigns) return 'measured_three';
+  if (a.signals.filter((s) => s.measured).length >= 3) return 'measured_three';
   return 'recent_days';
 }
 
@@ -45,7 +45,9 @@ function conclusion(a: Assessment): string {
     case 'serious_plus_other':
       return 'Ett allvarligt tecken tillsammans med ett annat tecken ger rött, oavsett poäng.';
     case 'measured_three':
-      return `${L.redMeasuredSigns} mätta tecken samma dag ger rött, oavsett poäng.`;
+      return 'Tre mätta tecken samma dag gav rött enligt en regel som numera är borttagen.';
+    case 'measured_first_day':
+      return `${p} hade gett rött, men mätta tecken som sömn och stress räknas bara mot rött när de fanns även dagen innan. I dag är första dagen, så det blir gult.`;
     case 'akut':
       return 'Det du skrev liknar formuleringar om att inte vilja leva eller att skada dig. Då visar appen alltid rött och krisnumren, oavsett poäng. Anteckningen skickades inte till någon språkmodell.';
     case 'standard_cap':
@@ -81,6 +83,7 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
         : `Stress ${entry.stressAvg} i dag, ingen baslinje än`,
     );
   }
+  if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn och stress räknades därför bort i dag');
   if (garmin?.bodyBatteryWake != null) data.push(`Body Battery ${garmin.bodyBatteryWake} vid uppvaknandet`);
   if (entry.kind === 'checkin') data.push(`Inlägget gjordes ${formatTime(entry.createdAt)}`);
 

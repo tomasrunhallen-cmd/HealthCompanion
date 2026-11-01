@@ -17,6 +17,8 @@ export interface CheckinInput {
   wordsPerMinute: number | null;
   /** Asked only when the user has medication in grund. Null: not answered. */
   medicationTaken?: boolean | null;
+  /** "Alkohol, sjuk eller hård träning i går?" One tap; yes puts the sleep and stress rules at 0. */
+  strainYesterday?: boolean;
 }
 
 /** One medication answer per evening; a new answer replaces the old. */
@@ -58,6 +60,7 @@ export async function saveCheckin(
     sleepHours: sleep,
     sleepSource,
     stressAvg: g?.stressAvg ?? null,
+    ...(input.strainYesterday ? { strainYesterday: true } : {}),
   };
   const assessment = await assessEntry({
     entry,

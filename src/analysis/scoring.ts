@@ -2,7 +2,7 @@
 // compute signals, points and level. Pure and fully testable.
 
 import type {
-  Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, PlanItem, PlanSettings, Signal, SignMatch,
+  Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, PlanItem, PlanSettings, Signal, SignalKind, SignMatch,
 } from '../domain/types';
 import { addDays, daysBetween, weekStart } from './dates';
 import { RULES } from './rules';
@@ -102,40 +102,102 @@ export function silentDaysUntil(today: DateKey, entries: Entry[]): number {
   return Math.max(0, daysBetween(last, today) - 1);
 }
 
+/** Measured signs under the daily cap. Night entries and silence are not among them. */
+export const CAPPED_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive', 'stress_high', 'late_sleep_no_entry', 'speech_fast'];
+/** Signs that count as 0 after alcohol, illness or hard training the day before. */
+export const EXCUSABLE_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive', 'stress_high'];
+
 /**
- * Level from signals. Unconfirmed standard rows may give yellow but never red: red is
- * judged without them, and a day that would only be red because of them becomes yellow.
+ * Level from signals. Yellow uses every point. Red is judged only on signals that may give
+ * red: not unconfirmed standard rows, and not measured signs that were not there the day
+ * before. A day that would be red only through those becomes yellow.
  */
 export function levelFromSignals(
   signals: Signal[],
   recentNonGreenDays: number,
 ): { level: Level; points: number; reason: LevelReason } {
   const all = rawLevel(signals, recentNonGreenDays);
-  if (all.level !== 'red' || !signals.some((s) => s.unconfirmedStandard)) return all;
-  const firm = rawLevel(signals.filter((s) => !s.unconfirmedStandard), recentNonGreenDays);
+  if (all.level !== 'red') return all;
+  const firstDay = (s: Signal) => CAPPED_KINDS.includes(s.kind) && !s.persistent;
+  const firm = rawLevel(signals.filter((s) => !s.unconfirmedStandard && !firstDay(s)), recentNonGreenDays);
   if (firm.level === 'red') return { ...firm, points: all.points };
-  return { level: 'yellow', points: all.points, reason: 'standard_cap' };
+  const withoutStandard = rawLevel(signals.filter((s) => !s.unconfirmedStandard), recentNonGreenDays);
+  return { level: 'yellow', points: all.points, reason: withoutStandard.level === 'red' ? 'measured_first_day' : 'standard_cap' };
 }
 
 function rawLevel(
   signals: Signal[],
   recentNonGreenDays: number,
 ): { level: Level; points: number; reason: LevelReason } {
-  const points = signals.reduce((sum, s) => sum + s.points, 0);
+  const counted = signals.filter((s) => s.points > 0);
+  const points = counted.reduce((sum, s) => sum + s.points, 0);
   const L = RULES.level;
-  const serious = signals.some((s) => s.kind === 'serious_sign');
-  const measuredCount = signals.filter((s) => s.measured).length;
+  const serious = counted.some((s) => s.kind === 'serious_sign');
   // "Ett allvarligt tecken matchar tillsammans med minst ett annat tecken".
-  const seriousPlusOther = serious && signals.length >= 2;
+  const seriousPlusOther = serious && counted.length >= 2;
   // The first rule that applies is the one shown to the user.
   if (points >= L.redAt) return { level: 'red', points, reason: 'points_red' };
   if (seriousPlusOther) return { level: 'red', points, reason: 'serious_plus_other' };
-  if (measuredCount >= L.redMeasuredSigns) return { level: 'red', points, reason: 'measured_three' };
   if (points >= L.redWithHistoryAt && recentNonGreenDays >= L.historyNonGreenDays) {
     return { level: 'red', points, reason: 'recent_days' };
   }
   if (points >= L.yellowAt) return { level: 'yellow', points, reason: 'points' };
   return { level: 'green', points, reason: 'nothing' };
+}
+
+/** Which capped measured signs were there the day before, from yesterday's entry and Garmin. */
+function yesterdaysMeasured(
+  date: DateKey,
+  history: HistoryDay[],
+  garmin: Record<DateKey, GarminDay>,
+  planSettings: PlanSettings,
+  baseline: Baseline,
+): Set<SignalKind> {
+  const out = new Set<SignalKind>();
+  const yDate = addDays(date, -1);
+  const yEntry = history.find((h) => h.entry.date === yDate)?.entry;
+  const yG = garmin[yDate];
+  const excused = !!yEntry?.strainYesterday;
+  const sleep = yG?.sleepHours ?? yEntry?.sleepHours ?? null;
+  if (!excused && sleep != null && sleep < planSettings.sleepThresholdHours) {
+    out.add('sleep_low');
+    out.add('sleep_low_consecutive');
+  }
+  const stress = yG?.stressAvg ?? yEntry?.stressAvg ?? null;
+  if (!excused && stress != null && baseline.stressAvg != null && stress > baseline.stressAvg * RULES.stressFactor) out.add('stress_high');
+  if (yG?.sleepStart) {
+    const h = Number(yG.sleepStart.slice(0, 2));
+    if (h >= RULES.lateSleepHour && h < RULES.lateSleepLatestHour && !history.some((x) => x.entry.date === addDays(yDate, -1))) {
+      out.add('late_sleep_no_entry');
+    }
+  }
+  if (yEntry?.wordsPerMinute != null && baseline.wordsPerMinute != null &&
+      yEntry.wordsPerMinute > baseline.wordsPerMinute * (1 + RULES.speechFastFraction)) out.add('speech_fast');
+  return out;
+}
+
+/**
+ * Applies, in order: the excuse (alcohol, illness or hard training yesterday puts sleep and
+ * stress at 0), the mark for signs that persisted from the day before, and the daily cap
+ * on measured signs.
+ */
+function adjustMeasured(signals: Signal[], entry: Entry, yesterday: Set<SignalKind>): Signal[] {
+  let used = 0;
+  return signals.map((s) => {
+    if (!CAPPED_KINDS.includes(s.kind)) return s;
+    let next: Signal = { ...s, persistent: yesterday.has(s.kind) };
+    if (entry.strainYesterday && EXCUSABLE_KINDS.includes(s.kind)) {
+      next = { ...next, points: 0, excused: true, label: `${s.label}, räknas bort: alkohol, sjuk eller hård träning i går` };
+    }
+    if (next.points > 0) {
+      const room = Math.max(0, RULES.measuredCapPerDay - used);
+      if (next.points > room) {
+        next = { ...next, points: room, capped: true, label: `${next.label}, räknas inte: mätta tecken ger högst ${RULES.measuredCapPerDay} poäng per dag` };
+      }
+      used += next.points;
+    }
+    return next;
+  });
 }
 
 function entryHour(entry: Entry): number {
@@ -218,7 +280,7 @@ export function score(input: ScoreInput): ScoreResult {
     });
   }
 
-  // Fell asleep after 02:00 by the watch, and no entry the evening before: two signs.
+  // Fell asleep after 02:00 by the watch, and no entry the evening before.
   const start = garmin[entry.date]?.sleepStart;
   if (start) {
     const hour = Number(start.slice(0, 2));
@@ -284,8 +346,9 @@ export function score(input: ScoreInput): ScoreResult {
       .map((h) => h.entry.date),
   ).size;
 
-  const { level, points, reason } = levelFromSignals(signals, recentNonGreen);
-  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals, baseline };
+  const adjusted = adjustMeasured(signals, entry, yesterdaysMeasured(entry.date, history, garmin, planSettings, baseline));
+  const { level, points, reason } = levelFromSignals(adjusted, recentNonGreen);
+  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline };
 }
 
 /** Builds history pairs from stored entries and assessments. */

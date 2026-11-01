@@ -211,13 +211,13 @@ function gday(date: string, over: Partial<GarminDay> = {}): GarminDay {
 const PLAN_SETTINGS = { normalState: '', sleepThresholdHours: 5 };
 
 describe('scoring with Garmin', () => {
-  it('falling asleep after 02:00 with no entry the evening before gives two points', () => {
+  it('falling asleep after 02:00 with no entry the evening before gives one point', () => {
     const r = score({
       entry: entry('2026-10-30', { sleepHours: 6 }), matches: [], plan: [], planSettings: PLAN_SETTINGS,
       history: [{ entry: entry('2026-10-28'), level: 'green' }],
       garmin: { '2026-10-30': gday('2026-10-30', { sleepStart: '02:40', sleepHours: 6 }) },
     });
-    expect(r.signals).toEqual([expect.objectContaining({ kind: 'late_sleep_no_entry', points: 2, measured: true })]);
+    expect(r.signals).toEqual([expect.objectContaining({ kind: 'late_sleep_no_entry', points: 1, measured: true })]);
     expect(r.level).toBe('yellow');
   });
 

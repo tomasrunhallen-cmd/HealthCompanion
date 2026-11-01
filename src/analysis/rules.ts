@@ -9,9 +9,15 @@ export const RULES = {
     silence: 1,
     jump: 1,
     heavyDay: 1,
-    /** "Insomning efter 02:00 samtidigt som inget inlägg gjorts räknas som två tecken." */
-    lateSleepNoEntry: 2,
+    /** Fell asleep after 02:00 with no entry the evening before. */
+    lateSleepNoEntry: 1,
   },
+  /**
+   * Measured signs (sleep under the limit, stress over baseline, late sleep, words per
+   * minute) give at most this many points together per day, so one bad night is not
+   * counted several times.
+   */
+  measuredCapPerDay: 2,
   /** Words per minute more than this fraction above baseline is a sign. */
   speechFastFraction: 0.25,
   /** Daily stress average above baseline times this factor is a sign. */
@@ -27,7 +33,7 @@ export const RULES = {
   /** Baselines are computed on green days within this window. */
   baselineWindowDays: 28,
   baselineMinSamples: 3,
-  /** Sleep onset from this hour (Garmin) together with no entry the evening before gives two signs. */
+  /** Sleep onset from this hour (Garmin) together with no entry the evening before is a sign. */
   lateSleepHour: 2,
   /** Onsets from this hour on are daytime sleep, not a late night. */
   lateSleepLatestHour: 12,
@@ -38,11 +44,5 @@ export const RULES = {
     redWithHistoryAt: 2,
     historyWindowDays: 7,
     historyNonGreenDays: 3,
-    /**
-     * ASSUMPTION, flagged in README: red when this many measured signs occur on the same day.
-     * The spec's test case "4 h sleep, 180 wpm, entry at 01:15 gives red" only adds up to
-     * 3 points under the other rules, so the spec cannot be met without an extra rule.
-     */
-    redMeasuredSigns: 3,
   },
 } as const;

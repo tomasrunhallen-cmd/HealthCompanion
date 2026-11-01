@@ -146,6 +146,8 @@ export interface Entry {
   sleepSource: SleepSource | null;
   /** Daily average stress (Garmin, step 3). */
   stressAvg: number | null;
+  /** "Alkohol, sjuk eller hård träning i går?" Yes: the sleep and stress rules give 0 points that day. */
+  strainYesterday?: boolean | null;
 }
 
 /** One day of measured values from the user's own Garmin account. */
@@ -195,6 +197,12 @@ export interface Signal {
   measured: boolean;
   /** From a standard row the user has not confirmed: it may give yellow, never red. */
   unconfirmedStandard?: boolean;
+  /** A measured sign that was also there the day before; only then can it count towards red. */
+  persistent?: boolean;
+  /** Counted as 0: alcohol, illness or hard training the day before. */
+  excused?: boolean;
+  /** Reduced by the daily cap on measured signs. */
+  capped?: boolean;
 }
 
 export type MatchMethod = 'wordmatch' | 'llm' | 'llm_fallback' | 'none';
@@ -206,7 +214,8 @@ export type LevelReason =
   | 'points_red' // 4 points or more
   | 'serious_plus_other' // a serious sign together with another sign
   | 'recent_days' // 2 points after several yellow or red days
-  | 'measured_three' // three measured signs the same day
+  | 'measured_three' // old rule, kept to explain assessments saved before it was removed
+  | 'measured_first_day' // would be red only through measured signs that were not there the day before: yellow
   | 'standard_cap' // would be red only through unconfirmed standard rows: yellow
   | 'akut'; // the note matched the emergency word list
 

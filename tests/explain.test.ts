@@ -46,9 +46,13 @@ describe('explaining an assessment', () => {
 
   it('names the rule behind a red level', () => {
     const three = [sig('sleep_low', 1, 'a'), sig('speech_fast', 1, 'b'), sig('night_entry', 1, 'c')];
-    expect(levelFromSignals(three, 0).reason).toBe('measured_three');
+    expect(levelFromSignals(three, 0)).toMatchObject({ level: 'yellow', reason: 'points' });
     expect(explainAssessment(entry, assessment({ level: 'red', points: 3, signals: three, levelReason: 'measured_three' }), null).conclusion)
-      .toBe('3 mätta tecken samma dag ger rött, oavsett poäng.');
+      .toBe('Tre mätta tecken samma dag gav rött enligt en regel som numera är borttagen.');
+    const firstDay = [sig('sleep_low', 1, 'a'), sig('stress_high', 1, 'b'), sig('early_sign', 1, 'c', false), sig('night_entry', 1, 'd')];
+    expect(levelFromSignals(firstDay, 0)).toMatchObject({ level: 'yellow', reason: 'measured_first_day' });
+    expect(explainAssessment(entry, assessment({ level: 'yellow', points: 4, signals: firstDay, levelReason: 'measured_first_day' }), null).conclusion)
+      .toContain('räknas bara mot rött när de fanns även dagen innan');
     const serious = [sig('serious_sign', 2, 'Slutar äta', false), sig('silence', 1, 'tyst')];
     expect(levelFromSignals(serious, 0).reason).toBe('serious_plus_other');
     const two = [sig('early_sign', 1, 'x', false), sig('silence', 1, 'y')];
