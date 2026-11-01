@@ -1,5 +1,6 @@
 import { cancelOrphanRoutineReminders } from '../platform/reminder';
 import { checkSleepNotice } from '../services/sleepNotice';
+import { inQuietHours } from '../core/analysis/signals';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Text, View } from 'react-native';
@@ -162,7 +163,7 @@ export default function App() {
         const sleep = () => {
           if (checking) return;
           checking = true;
-          void checkSleepNotice(r).finally(() => { checking = false; });
+          void checkSleepNotice(r, new Date(), { quiet: (now) => inQuietHours(r.settings().quietHours, now) }).finally(() => { checking = false; });
         };
         sleep();
         r.subscribe(() => {

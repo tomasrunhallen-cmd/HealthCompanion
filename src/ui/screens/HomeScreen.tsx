@@ -13,6 +13,7 @@ import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
 import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
 import { RoutinesToday } from '../RoutinesToday';
+import { suggestionsOnHome } from '../../core/analysis/signals';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -36,6 +37,7 @@ export function HomeScreen() {
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
   const sleepNote = todaysSleepNotice(repo);
+  const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   const [reviewing, setReviewing] = useState(false);
 
   const review = async () => {
@@ -87,6 +89,19 @@ export function HomeScreen() {
     }
   };
 
+  // Lågt läge: only the check-in and Hjälp nu (in the top bar). Everything else waits.
+  if (settings.lowMode) {
+    return (
+      <Screen title="Dagsljus">
+        <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
+        <Button big title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'} onPress={() => nav.push({ name: 'checkin' })} />
+        <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
+        <P muted style={{ textAlign: 'center', marginTop: space.l }}>Lågt läge: bara avstämningen och Hjälp nu visas.</P>
+        <Button kind="ghost" title="Lämna lågt läge" onPress={() => repo.updateSettings({ lowMode: false })} />
+      </Screen>
+    );
+  }
+
   return (
     <Screen title="Dagsljus">
       <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
@@ -104,7 +119,7 @@ export function HomeScreen() {
         </Card>
       )}
 
-      {repo.pendingSuggestions().length > 0 && (
+      {showSuggestions && repo.pendingSuggestions().length > 0 && (
         <Pressable onPress={() => nav.push({ name: 'suggestions' })} accessibilityRole="button">
           <Card tone="accent">
             <Text style={type.h2}>{repo.pendingSuggestions().length === 1 ? 'Ett förslag väntar' : `${repo.pendingSuggestions().length} förslag väntar`}</Text>
@@ -114,7 +129,7 @@ export function HomeScreen() {
         </Pressable>
       )}
 
-      {due && (
+      {showSuggestions && due && (
         <Card tone="accent">
           <Text style={type.h2}>Dags att se över din profil</Text>
           <P style={{ marginTop: space.xs, marginBottom: space.m }}>
@@ -205,6 +220,7 @@ export function HomeScreen() {
         </Card>
       </Section>
 
+      <Button kind="ghost" title="Lågt läge: bara avstämningen" onPress={() => repo.updateSettings({ lowMode: true })} />
     </Screen>
   );
 }

@@ -223,8 +223,10 @@ function tabIcon(name: SymbolName, fallback: string) {
 }
 
 function TabsNavigator() {
+  // Lågt läge hides the tab bar: the home screen holds the check-in, the top bar Hjälp nu.
+  const low = !!useRepo().settings().lowMode;
   return (
-    <Tabs.Navigator screenOptions={{ headerShown: false }}>
+    <Tabs.Navigator screenOptions={{ headerShown: false, tabBarStyle: low ? { display: 'none' } : undefined }}>
       <Tabs.Screen name="homeTab" component={HomeStack} options={{ title: 'Hem', tabBarIcon: tabIcon({ ios: 'house.fill', android: 'home', web: 'home' }, '⌂') }} />
       <Tabs.Screen name="checkinTab" component={CheckinStack} options={{ title: 'Avstämning', tabBarIcon: tabIcon({ ios: 'square.and.pencil', android: 'edit_note', web: 'edit_note' }, '✎') }} />
       <Tabs.Screen name="trendTab" component={TrendStack} options={{ title: 'Trend', tabBarIcon: tabIcon({ ios: 'chart.line.uptrend.xyaxis', android: 'monitoring', web: 'monitoring' }, '↗') }} />

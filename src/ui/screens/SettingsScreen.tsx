@@ -13,10 +13,16 @@ import { LLM_KEY_NAME } from '../../services/llm';
 import { GARMIN_KEY_NAME } from '../../services/garmin';
 import { signOutUser } from '../../cloud/firebase';
 import { healthAvailable, healthUnavailableReason } from '../../platform/health';
-import { Button, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
+import { PACE_TEXT } from '../../core/analysis/signals';
+import { Button, Segmented, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
+
+function shiftClock(t: string, minutes: number): string {
+  const total = (Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)) + minutes + 24 * 60) % (24 * 60);
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
 
 function pad(n: number) {
   return n < 10 ? `0${n}` : String(n);
@@ -164,6 +170,43 @@ export function SettingsScreen() {
                 ? 'En lokal notis på din telefon. Den skickas aldrig till någon annan.'
                 : 'Påminnelser finns bara i appen på telefonen.')}
           </P>
+        </Card>
+      </Section>
+
+      <Section title="Signaler">
+        <Card>
+          <Toggle
+            label="Tysta timmar"
+            hint={s.quietHours ? `${s.quietHours.start}–${s.quietHours.end}. Appen skickar inga egna notiser då. Påminnelser du själv ställt in kommer som vanligt.` : 'Inga egna notiser från appen under natten.'}
+            value={!!s.quietHours}
+            onChange={(on) => repo.updateSettings({ quietHours: on ? { start: '22:00', end: '07:00' } : null })}
+          />
+          {s.quietHours ? (
+            <>
+              <Row style={{ marginTop: space.xs }}>
+                <Text style={[type.body, { flex: 1 }]}>Från</Text>
+                <Button kind="secondary" title="−30" onPress={() => repo.updateSettings({ quietHours: { ...s.quietHours!, start: shiftClock(s.quietHours!.start, -30) } })} />
+                <Text style={[type.h2, { minWidth: 72, textAlign: 'center' }]}>{s.quietHours.start}</Text>
+                <Button kind="secondary" title="+30" onPress={() => repo.updateSettings({ quietHours: { ...s.quietHours!, start: shiftClock(s.quietHours!.start, 30) } })} />
+              </Row>
+              <Row style={{ marginTop: space.xs }}>
+                <Text style={[type.body, { flex: 1 }]}>Till</Text>
+                <Button kind="secondary" title="−30" onPress={() => repo.updateSettings({ quietHours: { ...s.quietHours!, end: shiftClock(s.quietHours!.end, -30) } })} />
+                <Text style={[type.h2, { minWidth: 72, textAlign: 'center' }]}>{s.quietHours.end}</Text>
+                <Button kind="secondary" title="+30" onPress={() => repo.updateSettings({ quietHours: { ...s.quietHours!, end: shiftClock(s.quietHours!.end, 30) } })} />
+              </Row>
+            </>
+          ) : null}
+          <Segmented
+            label="Förslag från appen visas"
+            value={s.suggestionPace ?? 'direct'}
+            onChange={(suggestionPace) => repo.updateSettings({ suggestionPace })}
+            options={(['direct', 'weekly', 'visit'] as const).map((v) => ({ value: v, label: PACE_TEXT[v] }))}
+          />
+          <Text style={[type.small, { marginTop: space.xs }]}>En gång i veckan betyder på måndagar. Bara inför återbesök betyder att förslagen bara visas under Inför återbesök.</Text>
+          <View style={{ marginTop: space.m }}>
+            <Toggle label="Lågt läge" hint="Bara kvällens avstämning och Hjälp nu visas." value={!!s.lowMode} onChange={(lowMode) => repo.updateSettings({ lowMode })} />
+          </View>
         </Card>
       </Section>
 

@@ -403,7 +403,16 @@ export interface AppSettings {
    * point up or down. Their routines then show in "Rutiner i dag" next to the daily ones.
    */
   planMode?: { direction: 'up' | 'down'; since: DateKey } | null;
+  /** Kontroll över signaler: no notices of the app's own between these times ("HH:MM"). */
+  quietHours?: { start: string; end: string } | null;
+  /** How often proposals and the profile review show on the home screen. */
+  suggestionPace?: SuggestionPace;
+  /** Lågt läge: only the check-in and Hjälp nu are shown. */
+  lowMode?: boolean;
 }
+
+/** direct: as soon as there is one. weekly: on Mondays. visit: only under Inför återbesök. */
+export type SuggestionPace = 'direct' | 'weekly' | 'visit';
 
 export const DEFAULT_PLAN_SETTINGS: PlanSettings = {
   normalState: '',

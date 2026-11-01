@@ -8,6 +8,7 @@ import { polarityWord } from '../../core/plan/fields';
 import { sharePdf } from '../../platform/pdf';
 import { addVisitTopic, removeVisitTopic, visitHtml, visitSummary } from '../../services/visit';
 import { Button, Card, Dot, Field, P, Row, Screen, Section, Segmented } from '../components';
+import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { LEVEL_TEXT, space, type } from '../theme';
 
@@ -16,6 +17,7 @@ const dec = (n: number | null) => (n == null ? '–' : String(n).replace('.', ',
 export function VisitScreen() {
   const repo = useRepo();
   const dialog = useDialog();
+  const nav = useNav();
   const [days, setDays] = useState<'14' | '30'>('14');
   const [topic, setTopic] = useState('');
   const s = visitSummary(repo, Number(days) as 14 | 30);
@@ -38,6 +40,13 @@ export function VisitScreen() {
     >
       <P muted>En sammanställning att ta med till vården. Anteckningarna följer aldrig med. Appen skickar inget, du väljer själv vem som får PDF:en.</P>
       <Segmented label="Period" value={days} onChange={setDays} options={[{ value: '14', label: '14 dagar' }, { value: '30', label: '30 dagar' }]} />
+
+      {repo.pendingSuggestions().length && repo.settings().suggestionPace === 'visit' ? (
+        <Card tone="accent">
+          <P>{repo.pendingSuggestions().length === 1 ? 'Ett förslag väntar' : `${repo.pendingSuggestions().length} förslag väntar`} från appen. Du har valt att se förslagen här.</P>
+          <Button kind="ghost" title="Granska förslagen" onPress={() => nav.push({ name: 'suggestions' })} />
+        </Card>
+      ) : null}
 
       <Section title="Saker jag vill ta upp">
         <Card>
