@@ -89,7 +89,26 @@ describe('measured signals', () => {
 
   it('baseline uses green days only', () => {
     const withYellow = [...greenWeek, { entry: entry({ date: '2026-10-12', wordsPerMinute: 300 }), level: 'yellow' as const }];
-    expect(computeBaseline('2026-10-20', withYellow)).toEqual({ wordsPerMinute: 120, stressAvg: 30, greenDays: 7 });
+    // 2026-10-20 is a Tuesday: the week's baseline uses green days before Monday 2026-10-19.
+    expect(computeBaseline('2026-10-20', withYellow)).toEqual({
+      wordsPerMinute: 120, stressAvg: 30, greenDays: 6, sleepHours: 7.5, entryTime: '21:00', weekOf: '2026-10-19',
+    });
+  });
+
+  it('baseline is the same for every day of a week and changes on Monday', () => {
+    const days = ['2026-10-19', '2026-10-21', '2026-10-25'].map((d) => computeBaseline(d, greenWeek));
+    expect(days.every((b) => JSON.stringify(b) === JSON.stringify(days[0]))).toBe(true);
+    expect(computeBaseline('2026-10-26', greenWeek).greenDays).toBe(7);
+  });
+
+  it('usual check-in time averages across midnight', () => {
+    const late = ['21:30', '23:30', '01:30'].map((t, i) => {
+      const date = addDays('2026-10-12', i);
+      const [h, m] = t.split(':').map(Number);
+      const at = new Date(2026, 9, 12 + i + (h < 5 ? 1 : 0), h, m);
+      return { entry: entry({ date, createdAt: at.toISOString() }), level: 'green' as const };
+    });
+    expect(computeBaseline('2026-10-20', late).entryTime).toBe('23:30');
   });
 
   it('baseline needs at least three green days', () => {

@@ -81,6 +81,16 @@ export function HomeScreen() {
         </Card>
       )}
 
+      {repo.pendingSuggestions().length > 0 && (
+        <Pressable onPress={() => nav.push({ name: 'suggestions' })} accessibilityRole="button">
+          <Card tone="accent">
+            <Text style={type.h2}>{repo.pendingSuggestions().length === 1 ? 'Ett förslag väntar' : `${repo.pendingSuggestions().length} förslag väntar`}</Text>
+            <P style={{ marginTop: space.xs }}>Appen ändrar inget om dig förrän du godkänt det.</P>
+            <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Granska ›</Text>
+          </Card>
+        </Pressable>
+      )}
+
       {nudgeWeek != null && (
         <Card tone="accent">
           <Text style={type.h2}>Din plan bygger på standardinnehåll</Text>

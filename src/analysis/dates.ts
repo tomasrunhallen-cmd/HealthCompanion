@@ -58,3 +58,10 @@ export function formatTime(iso: string): string {
   const d = new Date(iso);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+/** The Monday of the week `key` falls in. Baselines are recomputed once a week, on Mondays. */
+export function weekStart(key: DateKey): DateKey {
+  const [y, m, d] = key.split('-').map(Number);
+  const day = new Date(y, m - 1, d, 12).getDay(); // 0 = Sunday
+  return addDays(key, -((day + 6) % 7));
+}

@@ -20,6 +20,7 @@ import { PrivacyScreen } from './screens/PrivacyScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SignInScreen } from './screens/SignInScreen';
+import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { DialogProvider, RepoProvider } from './state';
 import { colors, space, type } from './theme';
 
@@ -33,6 +34,8 @@ function renderRoute(route: Route) {
     case 'settings': return <SettingsScreen />;
     case 'llm': return <LlmSettingsScreen />;
     case 'garmin': return <GarminScreen />;
+    case 'suggestions': return <SuggestionsScreen />;
+    case 'knowledge': return <SuggestionsScreen />;
     case 'privacy': return <PrivacyScreen />;
     case 'history': return <HistoryScreen />;
   }

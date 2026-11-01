@@ -2,7 +2,7 @@
 // analys prompt. The model gets them as background for its sentence; the level is still
 // computed in scoring.ts. Garmin values win over values estimated from the note.
 
-import type { DateKey, Entry, GarminDay, SleepSource } from '../domain/types';
+import type { Baseline, DateKey, Entry, GarminDay, SleepSource } from '../domain/types';
 import { addDays, formatDateSv } from './dates';
 import type { HistoryDay } from './scoring';
 
@@ -76,7 +76,9 @@ function mean(values: number[]): number | null {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 }
 
-export function formatMeasurements(days: MeasuredDay[], stressBaseline: number | null = null): string {
+export function formatMeasurements(days: MeasuredDay[], baseline: number | Partial<Baseline> | null = null): string {
+  const b: Partial<Baseline> = typeof baseline === 'number' ? { stressAvg: baseline } : baseline ?? {};
+  const stressBaseline = b.stressAvg ?? null;
   if (!days.some(hasAny)) return NO_MEASUREMENTS;
   const [today, ...week] = days;
   const lines: string[] = ['Värdena är mätta av personens klocka (Garmin) om inget annat står.', ''];
@@ -107,5 +109,7 @@ export function formatMeasurements(days: MeasuredDay[], stressBaseline: number |
   if (weekStress != null) summary.push(`stress ${dec(weekStress)}`);
   if (summary.length) lines.push('', `Snitt veckan innan: ${summary.join(', ')}.`);
   if (stressBaseline != null) lines.push(`Personens vanliga stress på gröna dagar: ${dec(stressBaseline)}.`);
+  if (b.sleepHours != null) lines.push(`Personens vanliga sömn på gröna dagar: ${dec(b.sleepHours)} h.`);
+  if (b.entryTime) lines.push(`Personens vanliga tid för kvällens inlägg: ${b.entryTime}.`);
   return lines.join('\n');
 }

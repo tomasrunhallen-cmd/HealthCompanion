@@ -190,7 +190,7 @@ export function buildContext(day: ContextDay, planSettings: Pick<PlanSettings, '
     used: Array.from(new Set(used)),
     variables: {
       normallage,
-      matvarden: formatMeasurements(measuredDays(entry, earlier, day.garmin), computeBaseline(entry.date, earlier).stressAvg),
+      matvarden: formatMeasurements(measuredDays(entry, earlier, day.garmin), computeBaseline(entry.date, earlier)),
       grund: grundText(entries, used),
       profil: profilText(entries, used),
       dagligt: dagligtText(entries, { ...day, history: earlier }, used),

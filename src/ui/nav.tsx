@@ -13,6 +13,8 @@ export type Route =
   | { name: 'settings' }
   | { name: 'llm' }
   | { name: 'garmin' }
+  | { name: 'suggestions' }
+  | { name: 'knowledge' }
   | { name: 'privacy' }
   | { name: 'history' };
 

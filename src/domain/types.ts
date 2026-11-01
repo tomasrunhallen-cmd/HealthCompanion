@@ -80,6 +80,33 @@ export interface ContextEntry {
   correction?: Correction | null;
 }
 
+/**
+ * A change the app proposes to the context bank. Nothing in it touches the bank until the
+ * user approves it. Kept apart from the bank, in its own list.
+ */
+export interface Suggestion {
+  id: string;
+  /** Same key = same proposal; only one can be pending at a time. */
+  key: string;
+  type: 'false_alarm' | 'own_sign' | 'profile' | 'course';
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  decidedAt: string | null;
+  /** What approving does. */
+  change: {
+    action: 'add' | 'update' | 'remove' | 'confirm';
+    kind: ContextKind;
+    text: string;
+    /** For update, remove and confirm. */
+    targetId?: string | null;
+  };
+  /** Why, in plain Swedish. */
+  reason: string;
+  /** Verbatim quotes the proposal rests on. */
+  quotes: string[];
+  source: 'corrections' | 'profile_update';
+}
+
 export const PLAN_KINDS: PlanItemKind[] = ['early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut'];
 
 export const LAYER_OF: Record<ContextKind, ContextLayer> = {
@@ -211,6 +238,12 @@ export interface Baseline {
   wordsPerMinute: number | null;
   stressAvg: number | null;
   greenDays: number;
+  /** Average sleep on green days (Garmin or estimated). */
+  sleepHours?: number | null;
+  /** Usual time of the evening check-in, "HH:MM". */
+  entryTime?: string | null;
+  /** The Monday the baseline was computed for: it is recomputed once a week. */
+  weekOf?: DateKey;
 }
 
 export interface SignMatch {

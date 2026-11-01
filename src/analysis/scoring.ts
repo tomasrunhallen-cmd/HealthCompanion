@@ -4,7 +4,7 @@
 import type {
   Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, PlanItem, PlanSettings, Signal, SignMatch,
 } from '../domain/types';
-import { addDays, daysBetween } from './dates';
+import { addDays, daysBetween, weekStart } from './dates';
 import { RULES } from './rules';
 
 export interface HistoryDay {
@@ -47,18 +47,39 @@ function sv(n: number): string {
   return String(round1(n)).replace('.', ',');
 }
 
-/** Baselines from green days in the last 28 days before `date`. */
+/** Minutes after noon, so that 21:00 and 01:15 average to a late evening, not to midday. */
+function minutesAfterNoon(iso: string): number {
+  const d = new Date(iso);
+  return (d.getHours() * 60 + d.getMinutes() - 720 + 1440) % 1440;
+}
+
+function clock(minutesAfterNoonValue: number): string {
+  const total = (Math.round(minutesAfterNoonValue) + 720) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Baselines from green days in the 28 days before the Monday of `date`'s week. They are
+ * recomputed once a week, so a whole week is judged against the same baseline. Pure code.
+ */
 export function computeBaseline(date: DateKey, history: HistoryDay[]): Baseline {
-  const from = addDays(date, -RULES.baselineWindowDays);
+  const monday = weekStart(date);
+  const from = addDays(monday, -RULES.baselineWindowDays);
   const green = history.filter(
-    (h) => h.level === 'green' && h.entry.date >= from && h.entry.date < date,
+    (h) => h.level === 'green' && h.entry.date >= from && h.entry.date < monday,
   );
+  const enough = (v: number[]) => v.length >= RULES.baselineMinSamples;
   const wpm = green.map((h) => h.entry.wordsPerMinute).filter((v): v is number => v != null);
   const stress = green.map((h) => h.entry.stressAvg).filter((v): v is number => v != null);
+  const sleep = green.map((h) => h.entry.sleepHours).filter((v): v is number => v != null);
+  const times = green.filter((h) => h.entry.kind === 'checkin').map((h) => minutesAfterNoon(h.entry.createdAt));
   return {
-    wordsPerMinute: wpm.length >= RULES.baselineMinSamples ? Math.round(mean(wpm)!) : null,
-    stressAvg: stress.length >= RULES.baselineMinSamples ? round1(mean(stress)!) : null,
+    wordsPerMinute: enough(wpm) ? Math.round(mean(wpm)!) : null,
+    stressAvg: enough(stress) ? round1(mean(stress)!) : null,
     greenDays: green.length,
+    sleepHours: enough(sleep) ? round1(mean(sleep)!) : null,
+    entryTime: enough(times) ? clock(mean(times)!) : null,
+    weekOf: monday,
   };
 }
 

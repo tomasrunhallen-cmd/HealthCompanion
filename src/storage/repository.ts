@@ -4,7 +4,7 @@ import { buildHistory, type HistoryDay } from '../analysis/scoring';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
   type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
-  type Correction, type DateKey, type Entry, type GarminDay, type PlanItem, type PlanItemKind, type PlanSettings,
+  type Correction, type DateKey, type Suggestion, type Entry, type GarminDay, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
 import { addDays } from '../analysis/dates';
 import type { SentRequest, Usage } from '../adapter/types';
@@ -240,6 +240,21 @@ export class Repository {
     for (const day of days) if (day.date > cutoff) next[day.date] = day;
     this.snap.kv.garmin = next;
     await this.backend.put('kv', 'garmin', next);
+    this.changed();
+  }
+
+  // ---- suggestions: proposals waiting for the user, never part of the bank itself ----
+  suggestions(): Suggestion[] {
+    return (this.snap.kv.suggestions as Suggestion[] | undefined) ?? [];
+  }
+
+  pendingSuggestions(): Suggestion[] {
+    return this.suggestions().filter((s) => s.status === 'pending');
+  }
+
+  async saveSuggestions(list: Suggestion[]): Promise<void> {
+    this.snap.kv.suggestions = list;
+    await this.backend.put('kv', 'suggestions', list);
     this.changed();
   }
 

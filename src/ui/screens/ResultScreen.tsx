@@ -4,6 +4,7 @@ import { actionsForLevel, firstStep } from '../../analysis/assess';
 import { formatDateSv, formatTime } from '../../analysis/dates';
 import { explainAssessment } from '../../analysis/explain';
 import { CrisisCard } from '../CrisisCard';
+import { CorrectionBox } from '../CorrectionBox';
 import type { Signal } from '../../domain/types';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -103,6 +104,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           <P style={{ marginTop: space.xs, fontWeight: '600' }}>{why.conclusion}</P>
         </Card>
       </Section>
+
+      <CorrectionBox assessment={a} />
 
       {actions.length > 0 && (
         <Section title={a.level === 'red' ? 'Åtgärder vid rött' : 'Åtgärder vid gult'}>
