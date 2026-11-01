@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.2.0
+version: 2.3.0
 response: data
 ---
 # Testfall
@@ -11,7 +11,7 @@ Testfallen för ampeln och för knappen *Testa modellen*. Varje fall har en ante
 
 **Godkännande.** *Testa modellen* godkänner en ny modell bara om alla fall ger samma nivå som här, och visar vilka fall som skilde sig. En ändrad analysprompt måste klara alla fall med en riktig modell innan den checkas in: kör `npm run prompt:check` (se README). Godkännandet sparas i `prompts/godkand.json`, och ett test stoppar en prompt som ändrats utan nytt godkännande.
 
-Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
+Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `sleepStart` är insomningen enligt Garmin. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
 
 ```json
 {
@@ -19,58 +19,407 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
     "normalState": "Jag sover sju till åtta timmar, jobbar dagtid och träffar vänner på helgerna.",
     "sleepThresholdHours": 5,
     "signs": [
-      { "id": "s1", "kind": "early", "text": "Svarar inte på sms" },
-      { "id": "s2", "kind": "early", "text": "Handlar saker jag inte behöver" },
-      { "id": "s3", "kind": "early", "text": "Massor av nya projekt samtidigt" },
-      { "id": "s4", "kind": "serious", "text": "Slutar äta" },
-      { "id": "s5", "kind": "serious", "text": "Känner att andra är emot mig" }
+      {
+        "id": "s1",
+        "kind": "early",
+        "text": "Svarar inte på sms"
+      },
+      {
+        "id": "s2",
+        "kind": "early",
+        "text": "Handlar saker jag inte behöver"
+      },
+      {
+        "id": "s3",
+        "kind": "early",
+        "text": "Massor av nya projekt samtidigt"
+      },
+      {
+        "id": "s4",
+        "kind": "serious",
+        "text": "Slutar äta"
+      },
+      {
+        "id": "s5",
+        "kind": "serious",
+        "text": "Känner att andra är emot mig"
+      }
     ],
     "actions": [
-      { "kind": "action_yellow", "text": "Håll fasta tider för sömn och mat" },
-      { "kind": "action_red", "text": "Ring min vårdkontakt i dag" },
-      { "kind": "action_red", "text": "Be någon jag litar på att vara med mig i kväll" }
+      {
+        "kind": "action_yellow",
+        "text": "Håll fasta tider för sömn och mat"
+      },
+      {
+        "kind": "action_red",
+        "text": "Ring min vårdkontakt i dag"
+      },
+      {
+        "kind": "action_red",
+        "text": "Be någon jag litar på att vara med mig i kväll"
+      }
     ],
     "context": [
-      { "kind": "false_alarm", "text": "Storhandla inför helger och fester är inte att handla saker jag inte behöver" },
-      { "kind": "medication", "text": "Tar min medicin varje kväll" }
+      {
+        "kind": "false_alarm",
+        "text": "Storhandla inför helger och fester är inte att handla saker jag inte behöver"
+      },
+      {
+        "kind": "medication",
+        "text": "Tar min medicin varje kväll"
+      }
     ]
   },
   "histories": {
     "gron_vecka": [
-      { "daysAgo": 1, "time": "21:00", "mood": 6, "energy": 5, "wordsPerMinute": 120, "sleepHours": 7.5, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 2, "time": "21:15", "mood": 6, "energy": 6, "wordsPerMinute": 118, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 3, "time": "20:45", "mood": 5, "energy": 5, "wordsPerMinute": 125, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 4, "time": "21:30", "mood": 6, "energy": 5, "wordsPerMinute": 122, "sleepHours": 7.5, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 5, "time": "21:05", "mood": 7, "energy": 6, "wordsPerMinute": 119, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 6, "time": "20:50", "mood": 6, "energy": 5, "wordsPerMinute": 121, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 7, "time": "21:20", "mood": 6, "energy": 6, "wordsPerMinute": 117, "sleepHours": 7.5, "stressAvg": 30, "level": "green" }
+      {
+        "daysAgo": 1,
+        "time": "21:00",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 120,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 2,
+        "time": "21:15",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 3,
+        "time": "20:45",
+        "mood": 5,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:30",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "21:05",
+        "mood": 7,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "20:50",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:20",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      }
     ],
     "gron_vecka_sedan_tyst": [
-      { "daysAgo": 3, "time": "21:00", "mood": 6, "energy": 5, "wordsPerMinute": 120, "sleepHours": 7.5, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 4, "time": "21:15", "mood": 6, "energy": 6, "wordsPerMinute": 118, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 5, "time": "20:45", "mood": 5, "energy": 5, "wordsPerMinute": 125, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 6, "time": "21:30", "mood": 6, "energy": 5, "wordsPerMinute": 122, "sleepHours": 7.5, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 7, "time": "21:05", "mood": 7, "energy": 6, "wordsPerMinute": 119, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 8, "time": "20:50", "mood": 6, "energy": 5, "wordsPerMinute": 121, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 9, "time": "21:20", "mood": 6, "energy": 6, "wordsPerMinute": 117, "sleepHours": 7.5, "stressAvg": 30, "level": "green" }
+      {
+        "daysAgo": 3,
+        "time": "21:00",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 120,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:15",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "20:45",
+        "mood": 5,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "21:30",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:05",
+        "mood": 7,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 8,
+        "time": "20:50",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 9,
+        "time": "21:20",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      }
     ],
     "kort_somn_i_gar": [
-      { "daysAgo": 1, "time": "21:00", "mood": 6, "energy": 5, "wordsPerMinute": 120, "sleepHours": 4.5, "stressAvg": 30, "level": "yellow" },
-      { "daysAgo": 2, "time": "21:15", "mood": 6, "energy": 6, "wordsPerMinute": 118, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 3, "time": "20:45", "mood": 5, "energy": 5, "wordsPerMinute": 125, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 4, "time": "21:30", "mood": 6, "energy": 5, "wordsPerMinute": 122, "sleepHours": 7.5, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 5, "time": "21:05", "mood": 7, "energy": 6, "wordsPerMinute": 119, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 6, "time": "20:50", "mood": 6, "energy": 5, "wordsPerMinute": 121, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 7, "time": "21:20", "mood": 6, "energy": 6, "wordsPerMinute": 117, "sleepHours": 7.5, "stressAvg": 30, "level": "green" }
+      {
+        "daysAgo": 1,
+        "time": "21:00",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 120,
+        "sleepHours": 4.5,
+        "stressAvg": 30,
+        "level": "yellow"
+      },
+      {
+        "daysAgo": 2,
+        "time": "21:15",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 3,
+        "time": "20:45",
+        "mood": 5,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:30",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "21:05",
+        "mood": 7,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "20:50",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:20",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      }
     ],
     "tre_gula_dagar": [
-      { "daysAgo": 1, "time": "21:00", "mood": 6, "energy": 5, "wordsPerMinute": 120, "sleepHours": 7.5, "stressAvg": 30, "level": "yellow" },
-      { "daysAgo": 2, "time": "21:15", "mood": 6, "energy": 6, "wordsPerMinute": 118, "sleepHours": 7, "stressAvg": 30, "level": "yellow" },
-      { "daysAgo": 3, "time": "20:45", "mood": 5, "energy": 5, "wordsPerMinute": 125, "sleepHours": 8, "stressAvg": 30, "level": "yellow" },
-      { "daysAgo": 4, "time": "21:30", "mood": 6, "energy": 5, "wordsPerMinute": 122, "sleepHours": 7.5, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 5, "time": "21:05", "mood": 7, "energy": 6, "wordsPerMinute": 119, "sleepHours": 7, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 6, "time": "20:50", "mood": 6, "energy": 5, "wordsPerMinute": 121, "sleepHours": 8, "stressAvg": 30, "level": "green" },
-      { "daysAgo": 7, "time": "21:20", "mood": 6, "energy": 6, "wordsPerMinute": 117, "sleepHours": 7.5, "stressAvg": 30, "level": "green" }
+      {
+        "daysAgo": 1,
+        "time": "21:00",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 120,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "yellow"
+      },
+      {
+        "daysAgo": 2,
+        "time": "21:15",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "yellow"
+      },
+      {
+        "daysAgo": 3,
+        "time": "20:45",
+        "mood": 5,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "yellow"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:30",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "21:05",
+        "mood": 7,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "20:50",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:20",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      }
+    ],
+    "gron_vecka_utan_igar": [
+      {
+        "daysAgo": 2,
+        "time": "21:15",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 3,
+        "time": "20:45",
+        "mood": 5,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:30",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "21:05",
+        "mood": 7,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "20:50",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:20",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      }
     ]
   },
   "cases": [
@@ -106,7 +455,10 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Svarar inte på sms", "quote": "Orkade inte svara på sms i dag" }
+          {
+            "sign": "Svarar inte på sms",
+            "quote": "Orkade inte svara på sms i dag"
+          }
         ]
       }
     },
@@ -125,7 +477,10 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Svarar inte på sms", "quote": "Har låtit alla meddelanden från vänner ligga olästa" }
+          {
+            "sign": "Svarar inte på sms",
+            "quote": "Har låtit alla meddelanden från vänner ligga olästa"
+          }
         ]
       }
     },
@@ -179,7 +534,10 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Känner att andra är emot mig", "quote": "Känner att alla på jobbet är emot mig" }
+          {
+            "sign": "Känner att andra är emot mig",
+            "quote": "Känner att alla på jobbet är emot mig"
+          }
         ]
       }
     },
@@ -199,8 +557,14 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Slutar äta", "quote": "Har slutat äta ordentligt" },
-          { "sign": "Handlar saker jag inte behöver", "quote": "Köpte dessutom två dyra jackor som jag inte behöver" }
+          {
+            "sign": "Slutar äta",
+            "quote": "Har slutat äta ordentligt"
+          },
+          {
+            "sign": "Handlar saker jag inte behöver",
+            "quote": "Köpte dessutom två dyra jackor som jag inte behöver"
+          }
         ]
       }
     },
@@ -259,27 +623,9 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
     },
     {
       "id": "festkvall",
-      "name": "Festkväll med alkohol (4 h sömn, stress 48 mot 30, snabbt tal) ger högst gult",
+      "name": "Festkväll med alkohol (insomning 03:00, 4 h sömn, stress 48 mot 30) ger gult",
       "expected": "yellow",
-      "history": "gron_vecka",
-      "entry": {
-        "time": "21:30",
-        "note": "Festkväll i går med vänner, drack en del vin och kom hem sent. Seg och trött i dag.",
-        "mood": 6,
-        "energy": 5,
-        "wordsPerMinute": 165,
-        "sleepHours": 4,
-        "stressAvg": 48
-      },
-      "reference": {
-        "matches": []
-      }
-    },
-    {
-      "id": "festkvall-markerad",
-      "name": "Samma festkväll med ”Alkohol, sjuk eller hård träning i går?” ger grönt",
-      "expected": "green",
-      "history": "gron_vecka",
+      "history": "gron_vecka_utan_igar",
       "entry": {
         "time": "21:30",
         "note": "Festkväll i går med vänner, drack en del vin och kom hem sent. Seg och trött i dag.",
@@ -288,7 +634,27 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "wordsPerMinute": 121,
         "sleepHours": 4,
         "stressAvg": 48,
-        "strainYesterday": true
+        "sleepStart": "03:00"
+      },
+      "reference": {
+        "matches": []
+      }
+    },
+    {
+      "id": "festkvall-markerad",
+      "name": "Samma festkväll med ja på ”Alkohol, sjuk eller hård träning i går?” ger grönt",
+      "expected": "green",
+      "history": "gron_vecka_utan_igar",
+      "entry": {
+        "time": "21:30",
+        "note": "Festkväll i går med vänner, drack en del vin och kom hem sent. Seg och trött i dag.",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 4,
+        "stressAvg": 48,
+        "strainYesterday": true,
+        "sleepStart": "03:00"
       },
       "reference": {
         "matches": []
@@ -309,8 +675,14 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Handlar saker jag inte behöver", "quote": "Beställde en drönare och en ny kamera som jag inte behöver" },
-          { "sign": "Massor av nya projekt samtidigt", "quote": "Har dragit igång massor av nya projekt samtidigt" }
+          {
+            "sign": "Handlar saker jag inte behöver",
+            "quote": "Beställde en drönare och en ny kamera som jag inte behöver"
+          },
+          {
+            "sign": "Massor av nya projekt samtidigt",
+            "quote": "Har dragit igång massor av nya projekt samtidigt"
+          }
         ]
       }
     },
@@ -329,8 +701,14 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Handlar saker jag inte behöver", "quote": "Beställde en drönare och en ny kamera som jag inte behöver" },
-          { "sign": "Massor av nya projekt samtidigt", "quote": "Har dragit igång massor av nya projekt samtidigt" }
+          {
+            "sign": "Handlar saker jag inte behöver",
+            "quote": "Beställde en drönare och en ny kamera som jag inte behöver"
+          },
+          {
+            "sign": "Massor av nya projekt samtidigt",
+            "quote": "Har dragit igång massor av nya projekt samtidigt"
+          }
         ]
       }
     },
@@ -408,8 +786,14 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Svarar inte på sms", "quote": "Har inte svarat på sms på hela dagen" },
-          { "sign": "Massor av nya projekt samtidigt", "quote": "Har dragit igång massor av nya projekt samtidigt igen" }
+          {
+            "sign": "Svarar inte på sms",
+            "quote": "Har inte svarat på sms på hela dagen"
+          },
+          {
+            "sign": "Massor av nya projekt samtidigt",
+            "quote": "Har dragit igång massor av nya projekt samtidigt igen"
+          }
         ]
       }
     },
@@ -429,10 +813,22 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       },
       "reference": {
         "matches": [
-          { "sign": "Sover mindre", "quote": "Sover mindre än vanligt" },
-          { "sign": "Många nya idéer", "quote": "har många nya idéer hela tiden" },
-          { "sign": "Pratar fortare än vanligt", "quote": "Pratar fortare än vanligt" },
-          { "sign": "Drar mig undan", "quote": "drar mig undan från alla" }
+          {
+            "sign": "Sover mindre",
+            "quote": "Sover mindre än vanligt"
+          },
+          {
+            "sign": "Många nya idéer",
+            "quote": "har många nya idéer hela tiden"
+          },
+          {
+            "sign": "Pratar fortare än vanligt",
+            "quote": "Pratar fortare än vanligt"
+          },
+          {
+            "sign": "Drar mig undan",
+            "quote": "drar mig undan från alla"
+          }
         ]
       }
     },

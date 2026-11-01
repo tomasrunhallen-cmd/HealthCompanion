@@ -157,8 +157,8 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 | Precis under gult: 5 h sömn, 150 ord per minut, stress 39 mot 30 | grönt |
 | Precis på gult: samma dag med 4,9 h sömn | gult |
 | Fyra timmars sömn, 180 ord per minut, inlägg 01:15 | gult |
-| Festkväll med alkohol: 4 h sömn, stress 48 mot 30, snabbt tal | gult |
-| Samma festkväll med *Alkohol, sjuk eller hård träning i går?* | grönt |
+| Festkväll med alkohol: insomning 03:00, 4 h sömn, stress 48 mot 30 (1,6 gånger det vanliga) | gult |
+| Samma festkväll med ja på *Alkohol, sjuk eller hård träning i går?* | grönt |
 | En kort natt och två tidiga tecken | gult |
 | Samma dag efter två korta nätter i rad | rött |
 | Medicin inte tagen två kvällar i rad | gult |
@@ -205,7 +205,7 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
 
 - **Ett allvarligt tecken visar planens åtgärder vid rött, också när ampeln är gul.** Ampel och poäng ändras inte. Bedömningen säger "Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:" och listar stegen vid rött. *Testa modellen* kontrollerar också detta, så att en modell som tar ett allvarligt tecken för ett tidigt inte godkänns.
-- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn- och stressreglerna 0 poäng den dagen, och bedömningen säger det. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Reglerna står i `src/analysis/rules.ts` och `src/analysis/scoring.ts` och bör stämmas av med din vårdkontakt.
+- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn under gränsen, stress över baslinjen och insomning efter 02:00 0 poäng den dagen, och bedömningen säger det. En festkväll med insomning 03:00, 4 timmars sömn och stress 1,6 gånger det vanliga ger alltså gult utan ja och grönt med ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Reglerna står i `src/analysis/rules.ts` och `src/analysis/scoring.ts` och bör stämmas av med din vårdkontakt.
 - **Orkar bara trycka ger gult.** Specen säger att dagen loggas som tung och att första gula steget visas. Jag har gjort det till ett tecken värt en poäng, så att nivån fortfarande räknas i koden.
 - **Inlägg före 05:00 hör till kvällen innan.** Annars skulle ett inlägg 01:15 räknas som en ny dag och ge falsk tystnad.
 - **Ett inlägg per kväll.** En ny avstämning samma kväll ersätter den förra, efter bekräftelse.

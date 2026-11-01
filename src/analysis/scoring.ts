@@ -106,8 +106,8 @@ export function silentDaysUntil(today: DateKey, entries: Entry[]): number {
 
 /** Measured signs under the daily cap. Night entries and silence are not among them. */
 export const CAPPED_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive', 'stress_high', 'late_sleep_no_entry', 'speech_fast'];
-/** Signs that count as 0 after alcohol, illness or hard training the day before. */
-export const EXCUSABLE_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive', 'stress_high'];
+/** Signs that count as 0 after alcohol, illness or hard training the day before: every measured sleep sign and stress. */
+export const EXCUSABLE_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive', 'stress_high', 'late_sleep_no_entry'];
 
 /**
  * Level from signals. Yellow uses every point. Red is judged only on signals that may give
@@ -179,8 +179,8 @@ function yesterdaysMeasured(
 }
 
 /**
- * Applies, in order: the excuse (alcohol, illness or hard training yesterday puts sleep and
- * stress at 0), the mark for signs that persisted from the day before, and the daily cap
+ * Applies, in order: the excuse (alcohol, illness or hard training yesterday puts sleep,
+ * late sleep and stress at 0), the mark for signs that persisted from the day before, and the daily cap
  * on measured signs.
  */
 function adjustMeasured(signals: Signal[], entry: Entry, yesterday: Set<SignalKind>): Signal[] {

@@ -83,7 +83,7 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
         : `Stress ${entry.stressAvg} i dag, ingen baslinje än`,
     );
   }
-  if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn och stress räknades därför bort i dag');
+  if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');
   if (garmin?.bodyBatteryWake != null) data.push(`Body Battery ${garmin.bodyBatteryWake} vid uppvaknandet`);
   if (entry.kind === 'checkin') data.push(`Inlägget gjordes ${formatTime(entry.createdAt)}`);
 

@@ -92,7 +92,7 @@ describe('adapter with fake implementation', () => {
     const modelCases = suite.cases.filter((c) => c.reference);
     expect(modelCases.length).toBeGreaterThanOrEqual(16);
     for (const c of modelCases) {
-      const a = await assessEntry({ entry: c.entry, plan: c.plan, planSettings: c.planSettings, history: c.history, matcher, context: c.context });
+      const a = await assessEntry({ entry: c.entry, plan: c.plan, planSettings: c.planSettings, history: c.history, garmin: c.garmin, matcher, context: c.context });
       expect({ id: c.id, level: a.level }).toEqual({ id: c.id, level: c.expected });
       expect(a.method).toBe('llm');
       expect(a.promptVersion).toBe('1.2.0');

@@ -140,7 +140,7 @@ export async function runModelTest(
   const cases: CaseResult[] = [];
   for (const c of suite.cases) {
     const context = [...own, ...c.context];
-    const base = { entry: c.entry, plan: c.plan, planSettings: c.planSettings, history: c.history, context };
+    const base = { entry: c.entry, plan: c.plan, planSettings: c.planSettings, history: c.history, garmin: c.garmin, context };
     const akut = akutLevel(c.entry.transcript, userAkut);
     if (akut || c.expectedAkut) {
       // The same order as the check-in: the emergency rule first, and no model on a match.

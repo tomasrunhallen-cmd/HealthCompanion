@@ -4,7 +4,7 @@
 import { entriesFromPlan } from '../context/buildContext';
 import { loadStandard } from '../context/standard';
 import type { AkutLevel } from '../context/akut';
-import type { ContextEntry, ContextKind, Entry, Level, PlanItem, PlanItemKind, PlanSettings } from '../domain/types';
+import type { ContextEntry, ContextKind, DateKey, Entry, GarminDay, Level, PlanItem, PlanItemKind, PlanSettings } from '../domain/types';
 import { extractJsonBlock, loadPrompt } from '../prompts/loader';
 import { addDays } from './dates';
 import type { HistoryDay } from './scoring';
@@ -37,6 +37,8 @@ interface RawCase {
     wordsPerMinute: number | null;
     sleepHours: number | null;
     stressAvg?: number | null;
+    /** Sleep onset "HH:MM" by the watch, for the late-sleep rule. */
+    sleepStart?: string;
     strainYesterday?: boolean;
     /** Medication answer per evening, keyed by days ago (0 is today). */
     medication?: Record<string, boolean>;
@@ -72,6 +74,8 @@ export interface TestCase {
   /** The plan this case is judged against: the test plan, or the standard content. */
   plan: PlanItem[];
   planSettings: PlanSettings;
+  /** The watch's day for the case's evening, when the case has a sleep onset. */
+  garmin: Record<DateKey, GarminDay>;
   /** The case's context bank: its plan, the test plan's other grund rows and medication answers. */
   context: ContextEntry[];
   /** Null for emergency cases, which never reach a model. */
@@ -157,11 +161,20 @@ export function loadTestSuite(referenceDate = '2026-10-20'): TestSuite {
         return { planItemId: item.id, sign: m.sign, quote: m.quote };
       });
     }
+    const garmin: Record<DateKey, GarminDay> = e.sleepStart
+      ? {
+          [referenceDate]: {
+            date: referenceDate, sleepHours: e.sleepHours, deepMinutes: null, remMinutes: null, sleepStart: e.sleepStart,
+            sleepEnd: null, stressAvg: e.stressAvg ?? null, stressHighMinutes: null, bodyBatteryWake: null, fetchedAt: APPROVED,
+          },
+        }
+      : {};
     return {
       id: c.id,
       name: c.name,
       expected: c.expected,
       history,
+      garmin,
       plan: casePlan,
       planSettings,
       context: [...entriesFromPlan(casePlan, planSettings.normalState), ...extra, ...medication],

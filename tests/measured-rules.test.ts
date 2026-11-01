@@ -26,19 +26,19 @@ const partyGarmin = g(TODAY, { sleepStart: '03:00', sleepEnd: '07:00', sleepHour
 const partyEntry = (over: Partial<Entry> = {}) => entry(TODAY, { sleepHours: 4, stressAvg: 48, ...over });
 
 describe('measured signs are not counted twice', () => {
-  it('a party night with alcohol yesterday gives at most yellow, and says what was left out', () => {
+  it('a party night with yes to alcohol yesterday gives green: sleep, late sleep and stress count 0', () => {
     const e = partyEntry({ strainYesterday: true });
     const r = score({ entry: e, matches: [], plan: [], planSettings: PS, history: greenWeeks, garmin: { [TODAY]: partyGarmin } });
-    expect(r.level).not.toBe('red');
-    expect(r.level).toBe('yellow');
+    expect(r.level).toBe('green');
+    expect(r.points).toBe(0);
     expect(r.signals.map((s) => [s.kind, s.points, !!s.excused])).toEqual([
       ['sleep_low', 0, true],
       ['stress_high', 0, true],
-      ['late_sleep_no_entry', 1, false],
+      ['late_sleep_no_entry', 0, true],
     ]);
-    expect(r.signals[0].label).toContain('räknas bort: alkohol, sjuk eller hård träning i går');
+    expect(r.signals[2].label).toContain('räknas bort: alkohol, sjuk eller hård träning i går');
     const why = explainAssessment(e, { ...r, id: 'a', entryId: e.id, date: TODAY, createdAt: '', sentence: '', method: 'wordmatch', model: null, promptId: null, promptVersion: null, levelReason: r.reason } as Assessment, partyGarmin);
-    expect(why.data).toContain('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn och stress räknades därför bort i dag');
+    expect(why.data).toContain('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');
   });
 
   it('the same party night without the excuse is still at most yellow: capped at 2 points, first day', () => {
