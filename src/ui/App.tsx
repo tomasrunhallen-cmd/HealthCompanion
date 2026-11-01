@@ -1,4 +1,5 @@
 import { cancelOrphanRoutineReminders } from '../platform/reminder';
+import { checkSleepNotice } from '../services/sleepNotice';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Text, View } from 'react-native';
@@ -156,7 +157,18 @@ export default function App() {
         // A routine removed elsewhere (Det appen vet, import) takes its daily reminder with it.
         const kept = () => r.contextOf('routine').filter((e) => e.routine?.reminder).map((e) => e.id);
         void cancelOrphanRoutineReminders(kept());
-        r.subscribe(() => void cancelOrphanRoutineReminders(kept()));
+        // The sleep notice is checked when the app opens and when new sleep data is saved.
+        let checking = false;
+        const sleep = () => {
+          if (checking) return;
+          checking = true;
+          void checkSleepNotice(r).finally(() => { checking = false; });
+        };
+        sleep();
+        r.subscribe(() => {
+          void cancelOrphanRoutineReminders(kept());
+          sleep();
+        });
       })
       .catch((e: Error) => live && setError(e.message));
     return () => {

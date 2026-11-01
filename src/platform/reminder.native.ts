@@ -86,3 +86,11 @@ export async function cancelOrphanRoutineReminders(keep: string[]): Promise<void
     }
   }
 }
+
+/** A notice shown at once, e.g. the sleep notice. Only if the person allows notifications. */
+export async function notifyNow(id: string, title: string, body: string): Promise<boolean> {
+  const perm = await Notifications.getPermissionsAsync();
+  if (!perm.granted) return false;
+  await Notifications.scheduleNotificationAsync({ identifier: id, content: { title, body }, trigger: null });
+  return true;
+}

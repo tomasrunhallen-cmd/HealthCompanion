@@ -13,6 +13,7 @@ import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
 import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
 import { RoutinesToday } from '../RoutinesToday';
+import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
 
@@ -34,6 +35,7 @@ export function HomeScreen() {
   const settings = repo.settings();
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
+  const sleepNote = todaysSleepNotice(repo);
   const [reviewing, setReviewing] = useState(false);
 
   const review = async () => {
@@ -146,6 +148,15 @@ export function HomeScreen() {
           </P>
         </Card>
       )}
+
+      {sleepNote ? (
+        <Card tone="accent">
+          <Text style={type.h2} accessibilityRole="header">{sleepNote.title}</Text>
+          <P style={{ marginTop: space.xs }}>{sleepNote.body}</P>
+          <P muted style={{ marginTop: space.xs }}>Det här ger inga poäng. Det är bara en påminnelse om din egen plan.</P>
+          <Button kind="ghost" title="Okej" onPress={() => repo.kvSet(NOTICE_KEY, { ...sleepNote, dismissed: true })} />
+        </Card>
+      ) : null}
 
       {todayAssessment ? (
         <Pressable onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })} accessibilityRole="button">

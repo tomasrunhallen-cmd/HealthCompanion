@@ -54,3 +54,8 @@ export async function cancelRoutineReminder(_id: string): Promise<void> {}
 
 /** Calendar events are the person's own; the app cannot remove them. */
 export async function cancelOrphanRoutineReminders(_keep: string[]): Promise<void> {}
+
+/** The web cannot show a notice by itself; the home screen shows it instead. */
+export async function notifyNow(_id: string, _title: string, _body: string): Promise<boolean> {
+  return false;
+}

@@ -20,3 +20,8 @@ export async function scheduleRoutineReminder(_id: string, _text: string, _hour:
 export async function cancelRoutineReminder(_id: string): Promise<void> {}
 
 export async function cancelOrphanRoutineReminders(_keep: string[]): Promise<void> {}
+
+/** A notice shown at once. Only on the phone; the web shows it on the home screen instead. */
+export async function notifyNow(_id: string, _title: string, _body: string): Promise<boolean> {
+  return false;
+}
