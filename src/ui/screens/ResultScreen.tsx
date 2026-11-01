@@ -8,7 +8,7 @@ import { correctionFor } from '../../services/corrections';
 import { MEDICAL_REMINDER } from '../../legal';
 import type { Signal } from '../../core/domain/types';
 import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../core/plan/guidance';
-import { routineSummary, routinesToday as routinesTodayList } from '../../core/plan/routines';
+import { greenDayLine, routineSummary, routinesToday as routinesTodayList } from '../../core/plan/routines';
 import { SOURCE_TEXT } from '../../core/analysis/sources';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -60,6 +60,9 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const actions = actionsForLevel(a.level, plan, dir);
   const routines = a.level === 'yellow' ? routinesFor(repo.contextOf('routine'), dir) : [];
   const todays = routinesTodayList(repo.contextEntries(), repo.settings().planMode);
+  const greenLine = a.level === 'green' && !a.akut
+    ? greenDayLine(repo.contextEntries(), a.date, { measured: repo.measuredDays(), window: repo.planSettings().sleepWindow ?? null })
+    : null;
   const routinesToday = routineSummary(repo.contextEntries(), a.date, todays.daily.length + todays.extra.length);
   const anchors = showValueAnchors(a, repo.assessments()) ? repo.contextOf('value_anchor').filter((e) => e.approvedAt) : [];
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
@@ -104,6 +107,11 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         <P style={{ textAlign: 'center', marginTop: space.m }}>{displaySentence(a)}</P>
         {direction && a.level !== 'green' ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{direction}</P> : null}
       </Card>
+
+      {greenLine ? (
+        // Gröna dagar: what the person did, never that all is well.
+        <P muted style={{ textAlign: 'center', marginBottom: space.m }}>{greenLine}</P>
+      ) : null}
 
       {a.level === 'green' && a.trend?.length ? (
         // A neutral observation: no points, no colour.

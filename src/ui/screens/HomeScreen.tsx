@@ -14,6 +14,7 @@ import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
 import { RoutinesToday } from '../RoutinesToday';
 import { suggestionsOnHome } from '../../core/analysis/signals';
+import { greenDayLine } from '../../core/plan/routines';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -37,6 +38,7 @@ export function HomeScreen() {
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
   const sleepNote = todaysSleepNotice(repo);
+  const greenLine = greenDayLine(repo.contextEntries(), today, { measured: repo.measuredDays(), window: repo.planSettings().sleepWindow ?? null });
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   const [reviewing, setReviewing] = useState(false);
 
@@ -183,6 +185,7 @@ export function HomeScreen() {
               </Text>
             </Row>
             <P style={{ marginTop: space.s }}>{displaySentence(todayAssessment)}</P>
+            {todayAssessment.level === 'green' && greenLine ? <P muted style={{ marginTop: space.xs }}>{greenLine}</P> : null}
             <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Visa bedömningen ›</Text>
           </Card>
         </Pressable>
