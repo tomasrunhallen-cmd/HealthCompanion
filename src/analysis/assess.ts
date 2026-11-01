@@ -96,7 +96,9 @@ export async function assessEntry(args: {
     // Any failure falls back to word matching, and the method shows it.
     result = { ...(await wordMatcher.match(entry.transcript, signs, planSettings)), method: 'llm_fallback' };
   }
-  const scored = score({ entry, matches: result.matches, plan, planSettings, history, garmin });
+  const medication: Record<DateKey, boolean> = {};
+  for (const e of bank) if (e.kind === 'medication_taken' && e.date && e.taken != null) medication[e.date] = e.taken;
+  const scored = score({ entry, matches: result.matches, plan, planSettings, history, garmin, medication });
   if (args.akut) {
     // The emergency rule always gives red, whatever the points and also in standard mode.
     scored.signals.unshift({ kind: 'akut', points: 0, label: 'Formulering om att inte vilja leva eller att skada sig', measured: false });

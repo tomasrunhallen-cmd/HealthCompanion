@@ -182,6 +182,7 @@ export type SignalKind =
   | 'energy_jump'
   | 'heavy_day'
   | 'late_sleep_no_entry'
+  | 'medication_missed'
   | 'akut';
 
 export interface Signal {

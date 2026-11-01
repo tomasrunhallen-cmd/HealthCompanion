@@ -11,6 +11,8 @@ export const RULES = {
     heavyDay: 1,
     /** Fell asleep after 02:00 with no entry the evening before. */
     lateSleepNoEntry: 1,
+    /** "Nej" to the medication question two evenings in a row. */
+    medicationMissed: 1,
   },
   /**
    * Measured signs (sleep under the limit, stress over baseline, late sleep, words per

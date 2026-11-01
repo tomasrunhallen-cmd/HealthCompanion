@@ -22,6 +22,8 @@ export interface ScoreInput {
   history: HistoryDay[];
   /** Measured days from Garmin, keyed by calendar date. Optional. */
   garmin?: Record<DateKey, GarminDay>;
+  /** The check-in's medication answer per evening: true taken, false not taken. Unanswered days are absent. */
+  medication?: Record<DateKey, boolean>;
 }
 
 export interface ScoreResult {
@@ -293,6 +295,17 @@ export function score(input: ScoreInput): ScoreResult {
         measured: true,
       });
     }
+  }
+
+  // Medication not taken, by the user's own answer, yesterday and today.
+  const med = input.medication ?? {};
+  if (med[entry.date] === false && med[addDays(entry.date, -1)] === false) {
+    signals.push({
+      kind: 'medication_missed',
+      points: RULES.points.medicationMissed,
+      label: 'Medicin inte tagen i går och i dag',
+      measured: false,
+    });
   }
 
   const silent = silentDaysBefore(entry.date, history);
