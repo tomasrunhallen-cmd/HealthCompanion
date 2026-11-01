@@ -52,6 +52,7 @@ export function MeScreen() {
       </Section>
       <Section title="Det appen vet">
         <Card style={{ paddingVertical: 0 }}>
+          <ListRow title="Inför återbesök" detail="14 eller 30 dagar, och det du vill ta upp" to={{ name: 'visit' }} />
           <ListRow title="Det appen vet om mig" to={{ name: 'knowledge' }} />
           <ListRow title="Alla dagar" to={{ name: 'history' }} last />
         </Card>

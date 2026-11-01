@@ -30,6 +30,7 @@ import { PlanScreen } from './screens/PlanScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
 import { RecomputeScreen } from './screens/RecomputeScreen';
 import { RoutinesScreen } from './screens/RoutinesScreen';
+import { VisitScreen } from './screens/VisitScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
@@ -78,6 +79,7 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   importDiary: ImportDiaryScreen,
   routines: RoutinesScreen,
   recompute: RecomputeScreen,
+  visit: VisitScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -101,6 +103,7 @@ const TITLE: Record<RouteName, string> = {
   importDiary: 'Importera',
   routines: 'Rutiner',
   recompute: 'Räkna om',
+  visit: 'Återbesök',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };
