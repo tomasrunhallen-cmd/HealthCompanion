@@ -8,7 +8,7 @@ import type { PlanItem } from '../domain/types';
 import { tokenize, wordsMatch } from '../analysis/wordmatch';
 
 const NEGATIONS = new Set(['inte', 'aldrig', 'ingen', 'inget', 'inga', 'ej']);
-/** Words allowed between the words of a phrase ("vill verkligen inte leva"). */
+/** Words allowed between the words of a phrase ("vill verkligen inte leva"). A negation there makes the hit mild. */
 const MAX_GAP = 2;
 
 export function parseAkut(source: string): string[] {
@@ -41,13 +41,24 @@ function tokenEq(a: string, b: string): boolean {
   return a === b || (Math.min(a.length, b.length) >= 4 && wordsMatch(a, b));
 }
 
-/** True when the phrase's words occur in order, with at most MAX_GAP non-negation words between. */
-function phraseIn(words: string[], phrase: string[]): boolean {
-  if (!phrase.length) return false;
+/** Words before a phrase that can negate it, within the same clause ("har aldrig haft självmordstankar"). */
+const NEGATION_LOOKBACK = 2;
+
+/**
+ * Where the phrase's words occur in order, with at most MAX_GAP words between. `negated`
+ * is true when a negation that is not part of the phrase stands between its words or just
+ * before it ("vill inte dö", "tänker inte göra mig illa"). A plain occurrence wins over a
+ * negated one.
+ */
+function phraseIn(words: string[], phrase: string[]): { found: boolean; negated: boolean } {
+  if (!phrase.length) return { found: false, negated: false };
+  const own = (w: string) => phrase.includes(w);
+  let negatedHit = false;
   for (let start = 0; start < words.length; start++) {
     if (!tokenEq(words[start], phrase[0])) continue;
     let pos = start;
     let ok = true;
+    let negated = words.slice(Math.max(0, start - NEGATION_LOOKBACK), start).some((w) => NEGATIONS.has(w) && !own(w));
     for (let k = 1; k < phrase.length && ok; k++) {
       ok = false;
       for (let gap = 0; gap <= MAX_GAP && pos + 1 + gap < words.length; gap++) {
@@ -57,25 +68,64 @@ function phraseIn(words: string[], phrase: string[]): boolean {
           ok = true;
           break;
         }
-        if (NEGATIONS.has(w) && !phrase.includes(w)) break;
+        if (NEGATIONS.has(w) && !own(w)) negated = true;
       }
     }
-    if (ok) return true;
+    if (ok && !negated) return { found: true, negated: false };
+    if (ok) negatedHit = true;
   }
-  return false;
+  return { found: negatedHit, negated: negatedHit };
 }
 
-/** The phrases that occur in the note. Empty when none. */
+/** Clauses: a negation in one clause does not touch a phrase in the next ("mår inte bra, vill dö"). */
+function clauses(note: string): string[][] {
+  return note
+    .split(/[.!?…,;:\n]+/)
+    .map((c) => tokenize(c))
+    .filter((c) => c.length > 0);
+}
+
+export type AkutLevel = 'full' | 'mild';
+
+export interface AkutResult {
+  /** full: crisis card, red day, nothing sent. mild: gentler card, level unchanged, nothing sent to the model. */
+  level: AkutLevel | null;
+  phrases: string[];
+}
+
+export function akutCheck(note: string, userPhrases: string[] = []): AkutResult {
+  const parts = clauses(note);
+  if (!parts.length) return { level: null, phrases: [] };
+  const full: string[] = [];
+  const mild: string[] = [];
+  for (const p of [...akutPhrases(), ...userPhrases].filter((x) => x.trim())) {
+    const tokens = tokenize(p);
+    let hit: { found: boolean; negated: boolean } = { found: false, negated: false };
+    for (const words of parts) {
+      const h = phraseIn(words, tokens);
+      if (h.found && !h.negated) { hit = h; break; }
+      if (h.found) hit = h;
+    }
+    if (hit.found) (hit.negated ? mild : full).push(p);
+  }
+  if (full.length) return { level: 'full', phrases: full };
+  if (mild.length) return { level: 'mild', phrases: mild };
+  return { level: null, phrases: [] };
+}
+
+/** The phrases that occur in the note without a negation. Empty when none. */
 export function akutMatches(note: string, userPhrases: string[] = []): string[] {
-  const words = tokenize(note);
-  if (!words.length) return [];
-  return [...akutPhrases(), ...userPhrases]
-    .filter((p) => p.trim())
-    .filter((p) => phraseIn(words, tokenize(p)));
+  const r = akutCheck(note, userPhrases);
+  return r.level === 'full' ? r.phrases : [];
 }
 
+/** A full match: the crisis card, a red day, nothing fetched or sent. */
 export function isAkut(note: string, userPhrases: string[] = []): boolean {
-  return akutMatches(note, userPhrases).length > 0;
+  return akutCheck(note, userPhrases).level === 'full';
+}
+
+export function akutLevel(note: string, userPhrases: string[] = []): AkutLevel | null {
+  return akutCheck(note, userPhrases).level;
 }
 
 export interface CrisisNumber {
@@ -97,12 +147,12 @@ export function crisisInfo(plan: PlanItem[]): { steps: string[]; numbers: Crisis
   };
 }
 
-/** Crisis plan lines that match the list stay on the phone: they are taken out before a model sees the plan. */
+/** Crisis plan lines that match the list, negated or not, stay on the phone: they are taken out before a model sees the plan. */
 export function splitAkutLines(text: string, userPhrases: string[] = []): { kept: string; akut: string[] } {
   const kept: string[] = [];
   const akut: string[] = [];
   for (const line of text.split(/\r?\n/)) {
-    if (line.trim() && isAkut(line, userPhrases)) akut.push(line.replace(/^\s*(?:[-–—•*·]|\d+[.)])\s+/, '').trim());
+    if (line.trim() && akutLevel(line, userPhrases) != null) akut.push(line.replace(/^\s*(?:[-–—•*·]|\d+[.)])\s+/, '').trim());
     else kept.push(line);
   }
   return { kept: kept.join('\n'), akut };

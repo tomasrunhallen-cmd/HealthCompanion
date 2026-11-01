@@ -62,7 +62,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         {formatDateSv(a.date)}, inlägg {formatTime(entry.createdAt)}
       </Text>
 
-      {a.akut ? <CrisisCard plan={plan} /> : null}
+      {a.akut ? <CrisisCard plan={plan} /> : a.akutMild ? <CrisisCard plan={plan} mild /> : null}
 
       <Card tone={a.level} style={{ alignItems: 'center', borderColor: levelColor(a.level) }}>
         <LevelLight level={a.level} />

@@ -50,7 +50,7 @@ En gång i månaden, och när en period med gult eller rött är över, kan anv�
 
 ## Akutregeln
 
-En anteckning jämförs på telefonen med en ordlista för tankar på att inte vilja leva eller att skada sig, plus användarens egna akuta formuleringar ur krisplanen. Jämförelsen görs innan något skickas och fungerar utan nätverk. Vid träff visas krisplanens steg vid rött och krisnumren direkt. Anteckningen skickas då inte till språkmodellen, och appen hämtar inte heller något från Garmin. Ordlistan och de egna formuleringarna skickas aldrig till en modell, inte heller vid krisplansimport: rader som träffar listan stannar på telefonen.
+En anteckning jämförs på telefonen med en ordlista för tankar på att inte vilja leva eller att skada sig, plus användarens egna akuta formuleringar ur krisplanen. Jämförelsen görs innan något skickas och fungerar utan nätverk. Vid träff visas krisplanens steg vid rött och krisnumren direkt. Anteckningen skickas då inte till språkmodellen, och appen hämtar inte heller något från Garmin. Står formuleringen med en negation, som i "jag vill inte dö", visas en mildare krisruta och dagen räknas som vanligt, men anteckningen skickas inte heller då till språkmodellen. Ordlistan och de egna formuleringarna skickas aldrig till en modell, inte heller vid krisplansimport: rader som träffar listan stannar på telefonen.
 
 ## Vad som aldrig händer
 

@@ -8,7 +8,7 @@ import { KIND_LABEL, KIND_ORDER, parsePlanText, type DraftKind, type DraftRow } 
 import { namesFromPlanText, scrubReversible } from '../../privacy/scrub';
 import { activeAdapter, structurePlanWithModel, trackedCompleter } from '../../services/llm';
 import { replaceStandard, unconfirmedStandard } from '../../context/standard';
-import { isAkut, splitAkutLines } from '../../context/akut';
+import { akutLevel, splitAkutLines } from '../../context/akut';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -112,7 +112,7 @@ export function PlanImportScreen() {
   };
 
   // Rows about not wanting to live or self-harm are suggested as the user's own emergency phrases.
-  const markAkut = (list: DraftRow[]): DraftRow[] => list.map((r) => (isAkut(r.text) ? { ...r, kind: 'akut' } : r));
+  const markAkut = (list: DraftRow[]): DraftRow[] => list.map((r) => (akutLevel(r.text) != null ? { ...r, kind: 'akut' } : r));
   const split = useMemo(() => splitAkutLines(text), [text]);
 
   const structure = () => {

@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { eveningDateKey } from '../../analysis/dates';
 import { parseSleepHours } from '../../analysis/sleep';
-import { isAkut } from '../../context/akut';
+import { akutLevel } from '../../context/akut';
 import { CrisisCard } from '../CrisisCard';
 import { saveCheckin } from '../../services/checkin';
 import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
@@ -57,7 +57,7 @@ export function CheckinScreen() {
   const [medication, setMedication] = useState<boolean | null>(null);
   const sleep = useMemo(() => parseSleepHours(text), [text]);
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
-  const akut = useMemo(() => isAkut(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
+  const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
   const garmin = repo.garminDay(eveningDateKey(new Date()));
   const garminSleep = garmin?.sleepHours ?? null;
 
@@ -100,7 +100,7 @@ export function CheckinScreen() {
               : 'Tips: skriv till exempel ”sov sex timmar” så räknas sömnen med.'
         }
       />
-      {akut ? <CrisisCard plan={repo.plan()} /> : null}
+      {akut ? <CrisisCard plan={repo.plan()} mild={akut === 'mild'} /> : null}
       {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
         <Card>
           <Text style={type.label}>FRÅN GARMIN</Text>

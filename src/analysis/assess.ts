@@ -81,6 +81,8 @@ export async function assessEntry(args: {
   context?: ContextEntry[];
   /** The note matched the emergency word list (checked by the caller, before any model). */
   akut?: boolean;
+  /** A negated match: shown gently, the level is computed as usual. */
+  akutMild?: boolean;
   now?: Date;
 }): Promise<Assessment> {
   const { entry, plan, planSettings, history, matcher, garmin } = args;
@@ -121,5 +123,6 @@ export async function assessEntry(args: {
     levelReason: scored.reason,
     recentNonGreenDays: scored.recentNonGreenDays,
     ...(args.akut ? { akut: true } : {}),
+    ...(args.akutMild && !args.akut ? { akutMild: true } : {}),
   };
 }

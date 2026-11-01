@@ -8,12 +8,15 @@ import type { PlanItem } from '../domain/types';
 import { Card, P } from './components';
 import { colors, space, type } from './theme';
 
-export function CrisisCard({ plan }: { plan: PlanItem[] }) {
+export const MILD_TITLE = 'Om du har tankar på att inte vilja leva finns det hjälp att få';
+
+/** `mild`: the note mentioned it with a negation ("vill inte dö"). Same help, gentler words. */
+export function CrisisCard({ plan, mild = false }: { plan: PlanItem[]; mild?: boolean }) {
   const { steps, numbers } = crisisInfo(plan);
   return (
-    <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
-      <Text style={type.h2} accessibilityRole="header">Du behöver inte vara ensam med det här</Text>
-      <P style={{ marginTop: space.xs }}>Det du skrev låter som att du har det mycket svårt just nu.</P>
+    <Card style={{ borderColor: mild ? colors.border : colors.red, borderWidth: mild ? 1 : 2 }}>
+      <Text style={type.h2} accessibilityRole="header">{mild ? MILD_TITLE : 'Du behöver inte vara ensam med det här'}</Text>
+      {mild ? null : <P style={{ marginTop: space.xs }}>Det du skrev låter som att du har det mycket svårt just nu.</P>}
 
       <Text style={[type.label, { marginTop: space.m }]}>DIN PLAN VID RÖTT</Text>
       {steps.length ? (

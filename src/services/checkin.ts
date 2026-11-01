@@ -4,7 +4,7 @@ import { assessEntry, newId, wordMatcher } from '../analysis/assess';
 import { eveningDateKey } from '../analysis/dates';
 import { parseSleepHours } from '../analysis/sleep';
 import type { Assessment, Entry } from '../domain/types';
-import { isAkut } from '../context/akut';
+import { akutLevel } from '../context/akut';
 import type { Repository } from '../storage/repository';
 import { refreshForCheckin, type GarminOptions } from './garmin';
 import { currentMatcher, type AdapterOptions } from './llm';
@@ -35,7 +35,10 @@ export async function saveCheckin(
   const date = eveningDateKey(now);
   // The emergency rule runs first, in code, before anything can leave the phone. On a
   // match nothing is fetched or sent: the crisis numbers must show at once, also offline.
-  const akut = isAkut(input.transcript, repo.contextOf('akut').map((e) => e.text));
+  const level = akutLevel(input.transcript, repo.contextOf('akut').map((e) => e.text));
+  const akut = level === 'full';
+  // A negated match ("vill inte dö") shows a gentler card; the note still never goes to a model.
+  const akutMild = level === 'mild';
   if (input.medicationTaken != null) await setMedicationTaken(repo, date, input.medicationTaken);
   // Fresh numbers for today's stress; on failure the stored values are used.
   if (!akut) await refreshForCheckin(repo, { ...garminOptions, now });
@@ -63,10 +66,11 @@ export async function saveCheckin(
     history: repo.history(),
     // The configured language model when there is one; word matching otherwise, and
     // always word matching when the emergency rule matched.
-    matcher: akut ? wordMatcher : await currentMatcher(repo, { now: () => now, ...adapterOptions }),
+    matcher: akut || akutMild ? wordMatcher : await currentMatcher(repo, { now: () => now, ...adapterOptions }),
     garmin: repo.garminDays(),
     context: repo.contextEntries(),
     akut,
+    akutMild,
     now,
   });
   await repo.saveEntry(entry, assessment);

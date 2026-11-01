@@ -189,6 +189,6 @@ export function notesForWindow(entries: Entry[], assessments: Assessment[], peri
   return entries
     .filter((e) => e.date >= period.from && e.date <= period.to && e.transcript.trim())
     .map((e) => ({ e, a: assessments.find((a) => a.entryId === e.id) }))
-    .filter(({ a }) => !a?.akut)
+    .filter(({ a }) => !a?.akut && !a?.akutMild)
     .map(({ e, a }) => ({ date: e.date, level: a ? levelText[a.level] : 'okänt', text: e.transcript }));
 }

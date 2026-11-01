@@ -232,6 +232,8 @@ export interface Assessment {
   recentNonGreenDays?: number;
   /** The note matched the emergency word list: crisis numbers shown, note not sent to a model. */
   akut?: boolean;
+  /** A match with a negation ("vill inte dö"): a gentler crisis card, level unchanged, note not sent to a model. */
+  akutMild?: boolean;
 }
 
 export interface Baseline {

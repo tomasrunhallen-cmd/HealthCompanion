@@ -1,6 +1,6 @@
 import type { FetchLike } from '../src/adapter/http';
 import { explainAssessment } from '../src/analysis/explain';
-import { akutMatches, akutPhrases, crisisInfo, isAkut, parseAkut, splitAkutLines } from '../src/context/akut';
+import { akutCheck, akutLevel, akutMatches, akutPhrases, crisisInfo, isAkut, parseAkut, splitAkutLines } from '../src/context/akut';
 import { buildContext } from '../src/context/buildContext';
 import { startWithStandard } from '../src/context/standard';
 import type { GarminFetch } from '../src/garmin/client';
@@ -23,6 +23,33 @@ jest.mock('../src/platform/secrets', () => {
 });
 
 const NOW = new Date(2026, 10, 1, 21, 0);
+
+describe('negation gives a mild match, not none', () => {
+  it('a negation between the words or just before the phrase makes the match mild', () => {
+    expect(akutLevel('Jag vill inte dö.')).toBe('mild');
+    expect(akutLevel('Jag vill inte dö, jag är bara trött')).toBe('mild');
+    expect(akutLevel('Jag tänker inte göra mig illa')).toBe('mild');
+    expect(akutLevel('Har aldrig haft självmordstankar')).toBe('mild');
+  });
+
+  it('the new phrases match in full', () => {
+    expect(akutLevel('Jag vet inte om jag orkar leva')).toBe('full');
+    expect(akutLevel('Vill inte vara med längre')).toBe('full');
+    expect(akutLevel('Orkar inte finnas')).toBe('full');
+    expect(akutLevel('Jag vill inte leva')).toBe('full');
+  });
+
+  it('a negation in another clause does not soften a full match, and full wins over mild', () => {
+    expect(akutLevel('Mår inte bra, vill dö')).toBe('full');
+    expect(akutLevel('Det gick inte. Vill dö.')).toBe('full');
+    expect(akutCheck('Jag vill inte dö. Men jag vill inte leva heller.')).toMatchObject({ level: 'full', phrases: ['vill inte leva'] });
+    expect(akutLevel('Lugn dag, inte mycket hände')).toBeNull();
+  });
+
+  it('negated crisis plan lines also stay on the phone', () => {
+    expect(splitAkutLines('- Tänker inte göra mig illa\n- Sover mindre').akut).toEqual(['Tänker inte göra mig illa']);
+  });
+});
 
 describe('emergency word list', () => {
   it('is read from context/akut.md', () => {
@@ -103,6 +130,29 @@ describe('the emergency rule in a check-in', () => {
     const { assessment } = await saveCheckin(repo, { transcript: 'Jag vill sova för evigt.', mood: 3, energy: 3, wordsPerMinute: null }, NOW, { fetch: online as unknown as FetchLike }, { fetch: online as unknown as GarminFetch });
     expect(online).not.toHaveBeenCalled();
     expect(assessment.level).toBe('red');
+  });
+
+  it('"Jag vill inte dö" shows the mild card, the day is not red, nothing is sent to the model', async () => {
+    const repo = await connectedRepo();
+    const llm = jest.fn<ReturnType<FetchLike>, Parameters<FetchLike>>();
+    const garmin = counting();
+    const { entry, assessment } = await saveCheckin(repo, { transcript: 'Jag vill inte dö, jag är bara trött.', mood: 4, energy: 3, wordsPerMinute: null }, NOW, { fetch: llm as unknown as FetchLike }, { fetch: garmin });
+    expect(llm).not.toHaveBeenCalled();
+    expect(assessment).toMatchObject({ akutMild: true, method: 'wordmatch', model: null });
+    expect(assessment.akut).toBeUndefined();
+    expect(assessment.level).not.toBe('red');
+    expect(assessment.signals.some((s) => s.kind === 'akut')).toBe(false);
+    expect(crisisInfo(repo.plan()).numbers.map((n) => n.number)).toEqual(['112', '1177', '90101']);
+    expect(explainAssessment(entry, assessment, null).data).toContain('Anteckningen nämnde tankar på att inte vilja leva, med en negation. Krisrutan visades, men dagen räknades som vanligt. Anteckningen skickades inte till någon språkmodell');
+  });
+
+  it('"Jag vill inte leva" gives a red day and the full card without network', async () => {
+    const repo = await connectedRepo();
+    const offline = counting();
+    const { assessment } = await saveCheckin(repo, { transcript: 'Jag vill inte leva.', mood: 2, energy: 2, wordsPerMinute: null }, NOW, { fetch: offline }, { fetch: offline });
+    expect(offline.calls).toBe(0);
+    expect(assessment).toMatchObject({ akut: true, level: 'red', levelReason: 'akut' });
+    expect(assessment.akutMild).toBeUndefined();
   });
 
   it('the user\'s emergency phrases never go into the prompt variables', async () => {

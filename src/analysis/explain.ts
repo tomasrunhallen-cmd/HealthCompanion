@@ -85,6 +85,7 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   if (entry.kind === 'checkin') data.push(`Inlägget gjordes ${formatTime(entry.createdAt)}`);
 
   if (a.akut) data.push('Anteckningen jämfördes bara på telefonen. Den skickades inte till någon språkmodell');
+  else if (a.akutMild) data.push('Anteckningen nämnde tankar på att inte vilja leva, med en negation. Krisrutan visades, men dagen räknades som vanligt. Anteckningen skickades inte till någon språkmodell');
   else if (a.method === 'llm') data.push(`Tecknen tolkades av ${a.model ?? 'din språkmodell'}, med dagens och veckans mätvärden som bakgrund`);
   else if (a.method === 'llm_fallback') data.push('Språkmodellen svarade inte, så tecknen hittades med ordmatchning');
   else if (a.method === 'wordmatch') data.push('Tecknen hittades med ordmatchning på telefonen');

@@ -133,7 +133,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 169 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 175 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -155,14 +155,14 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 
 - **`buildContext`** i `src/context/buildContext.ts` bygger promptens variabler ur banken. Rensningen körs på resultatet.
 - **Standardläget** laddar `context/standard.md`. Obekräftade standardrader kan bara ge gult.
-- **Akutregeln** i `src/context/akut.ts` matchar `context/akut.md` och användarens egna formuleringar i koden, före och oberoende av modellen.
+- **Akutregeln** i `src/context/akut.ts` matchar `context/akut.md` och användarens egna formuleringar i koden, före och oberoende av modellen. Träff utan negation ger röd dag och krisruta. Träff med negation ger en mildare krisruta utan att ändra nivån.
 - **Lärandet** sker bara genom förslag: rättelser (tre likadana om samma tecken), profilgenomgång varje månad och efter en period, och förlopp räknat i koden. Inget når banken utan godkännande.
 - **Baslinjer** för sömn, stress, ord per minut och klocktid räknas om varje måndag ur gröna dagar de senaste 28 dagarna.
 - **Export och import** av kontexten ger tre läsbara markdownfiler, `grund.md`, `profil.md` och `dagligt.md`.
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 
-- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Matchningen tål böjningar och ord emellan, men inte en negation emellan, så "vill inte dö" ger ingen träff. Listan bör prövas mot verkliga formuleringar.
+- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Matchningen tål böjningar och ord emellan. En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 35 fraser och bör prövas mot verkliga formuleringar.
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
 
 - **Testfallet för rött går inte ihop med reglerna.** Fyra timmars sömn, 180 ord per minut och inlägg 01:15 ger tre poäng. Specen kräver fyra poäng för rött. Jag har lagt till regeln *tre eller fler mätta tecken samma dag ger rött*, så att testfallet går igenom. Alternativet är att sänka gränsen för rött till tre poäng, vilket påverkar fler dagar. Regeln står i `src/analysis/rules.ts` och bör stämmas av med din vårdkontakt.
