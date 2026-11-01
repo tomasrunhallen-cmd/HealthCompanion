@@ -1,4 +1,5 @@
 import React from 'react';
+import { displaySentence } from '../../analysis/assess';
 import { Pressable, Text, View } from 'react-native';
 import { formatDateSvTitle } from '../../analysis/dates';
 import { Card, Dot, P, Screen } from '../components';
@@ -24,7 +25,7 @@ export function HistoryScreen() {
                   <Text style={[type.body, { fontWeight: '700' }]}>{formatDateSvTitle(e.date)}</Text>
                   <Text style={type.small} numberOfLines={2}>
                     {a ? `${LEVEL_TEXT[a.level]} · ` : ''}
-                    {e.kind === 'heavy' ? 'Orkar bara trycka' : a?.sentence ?? ''}
+                    {e.kind === 'heavy' ? 'Orkar bara trycka' : a ? displaySentence(a) : ''}
                   </Text>
                 </View>
                 <Text style={{ color: colors.accent, fontSize: 20 }}>›</Text>

@@ -34,13 +34,13 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.3.0');
+    expect(suite.version).toBe('2.4.0');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [
       'lugn-dag', 'orkade-inte-svara', 'allvarligt-plus-annat', 'kant-falsklarm', 'omskrivet-tecken', 'negation',
       'precis-under-gult', 'precis-pa-gult', 'festkvall', 'tva-korta-natter-tva-tecken', 'medicin-missad-tva-dagar',
-      'standard-allvarligt', 'akut-full', 'akut-mild', 'akut-sammansatt',
+      'standard-allvarligt', 'akut-full', 'akut-mild', 'akut-sammansatt', 'kortare-somn-tre-natter',
     ]) byId(id);
   });
 
@@ -54,6 +54,8 @@ describe('prompts/testfall.md', () => {
       const a = await run(c);
       expect(a.level).toBe(c.expected);
       expect(seriousActions(a, c.plan) != null).toBe(c.expectedRedActions);
+      expect(a.trend ?? []).toEqual(c.expectedTrend);
+      if (a.level === 'green' && !a.akut) expect(a.sentence).toBe('Inget av dina tecken syntes i dag.');
     });
   }
 });

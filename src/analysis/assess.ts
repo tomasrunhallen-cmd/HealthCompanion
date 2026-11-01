@@ -9,6 +9,8 @@ import { matchSigns } from './wordmatch';
 import { score, type HistoryDay } from './scoring';
 
 export const NOTHING_STANDS_OUT = 'Inget i anteckningen avviker från ditt normalläge.';
+/** Green always says this, whatever the model wrote: never that all is well. */
+export const GREEN_SENTENCE = 'Inget av dina tecken syntes i dag.';
 export const AKUT_SENTENCE = 'Det du skrev låter som att du har det mycket svårt just nu. Du behöver inte vara ensam med det.';
 
 export interface MatchResult {
@@ -51,6 +53,11 @@ export function templateSentence(signals: Signal[]): string {
   const first = signals[0];
   if (first) return `Det som stack ut i dag: ${first.label.charAt(0).toLowerCase()}${first.label.slice(1)}.`;
   return NOTHING_STANDS_OUT;
+}
+
+/** The sentence to show. Green assessments saved before the fixed text get it too. */
+export function displaySentence(a: Pick<Assessment, 'level' | 'sentence' | 'akut'>): string {
+  return a.level === 'green' && !a.akut ? GREEN_SENTENCE : a.sentence;
 }
 
 export function actionsForLevel(level: Level, plan: PlanItem[]): PlanItem[] {
@@ -120,7 +127,9 @@ export async function assessEntry(args: {
   }
   const sentence = args.akut
     ? AKUT_SENTENCE
-    : result.sentence?.trim() || templateSentence(scored.signals);
+    : scored.level === 'green'
+      ? GREEN_SENTENCE
+      : result.sentence?.trim() || templateSentence(scored.signals);
   return {
     id: newId('a'),
     entryId: entry.id,
@@ -139,5 +148,6 @@ export async function assessEntry(args: {
     recentNonGreenDays: scored.recentNonGreenDays,
     ...(args.akut ? { akut: true } : {}),
     ...(args.akutMild && !args.akut ? { akutMild: true } : {}),
+    ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : {}),
   };
 }

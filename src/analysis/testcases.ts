@@ -29,6 +29,8 @@ interface RawCase {
   plan?: 'standard';
   /** A serious sign matched, so the plan's red actions must show whatever the level. */
   redActions?: boolean;
+  /** Neutral trend lines the green day must show. */
+  trend?: string[];
   entry: {
     time: string;
     note: string;
@@ -84,6 +86,8 @@ export interface TestCase {
   expectedAkut: AkutLevel | null;
   /** The assessment must show the plan's actions at red (a serious sign matched). */
   expectedRedActions: boolean;
+  /** Neutral trend lines on a green day; empty for most cases. */
+  expectedTrend: string[];
 }
 
 export interface TestSuite {
@@ -181,6 +185,7 @@ export function loadTestSuite(referenceDate = '2026-10-20'): TestSuite {
       reference,
       expectedAkut,
       expectedRedActions: !!c.redActions,
+      expectedTrend: c.trend ?? [],
       entry: {
         id: `${c.id}_entry`, date: referenceDate, createdAt: timestamp(referenceDate, e.time),
         kind: 'checkin', transcript: e.note, mood: e.mood, energy: e.energy,

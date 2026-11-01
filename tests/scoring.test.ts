@@ -1,6 +1,6 @@
-import { assessEntry, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep, seriousActions } from '../src/analysis/assess';
+import { assessEntry, displaySentence, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep, seriousActions, type SignMatcher } from '../src/analysis/assess';
 import { addDays, eveningDateKey } from '../src/analysis/dates';
-import { computeBaseline, levelFromSignals, score, silentDaysBefore, silentDaysUntil } from '../src/analysis/scoring';
+import { computeBaseline, levelFromSignals, score, silentDaysBefore, silentDaysUntil, trendLines } from '../src/analysis/scoring';
 import { loadTestSuite } from '../src/analysis/testcases';
 import { matchSigns } from '../src/analysis/wordmatch';
 import type { Entry, PlanItem } from '../src/domain/types';
@@ -201,5 +201,52 @@ describe('a serious sign shows the plan\'s actions at red', () => {
   it('gives nothing without a serious sign, or when the emergency rule has its own card', () => {
     expect(seriousActions({ signals: [{ ...serious, kind: 'early_sign', points: 1 }] }, plan)).toBeNull();
     expect(seriousActions({ signals: [serious], akut: true }, plan)).toBeNull();
+  });
+});
+
+describe('green text and trend lines', () => {
+  const PS = { normalState: '', sleepThresholdHours: 5 };
+  const day = (date: string, over: Partial<Entry> = {}): Entry => ({
+    id: `t_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: 'Vanlig dag.',
+    mood: 6, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+  });
+  const calm = (last: string, n: number) => Array.from({ length: n }, (_, i) => ({ entry: day(addDays(last, -i)), level: 'green' as const }));
+  const T = '2026-11-04';
+
+  it('green always says "Inget av dina tecken syntes i dag.", whatever the model wrote', async () => {
+    const chatty: SignMatcher = { async match() { return { matches: [], sentence: 'Allt ser bra ut i dag!', method: 'llm', model: 'm', promptId: 'analys', promptVersion: '1.2.0' }; } };
+    const a = await assessEntry({ entry: day(T), plan: [], planSettings: PS, history: calm(addDays(T, -1), 10), matcher: chatty });
+    expect(a.level).toBe('green');
+    expect(a.sentence).toBe('Inget av dina tecken syntes i dag.');
+    expect(displaySentence({ level: 'green', sentence: 'Inget i anteckningen avviker från ditt normalläge.' })).toBe('Inget av dina tecken syntes i dag.');
+  });
+
+  it('three nights 6,5, 6,0 and 5,5 h give green with the sleep line and no points', async () => {
+    const history = [...calm(addDays(T, -3), 10), { entry: day(addDays(T, -2), { sleepHours: 6.5 }), level: 'green' as const }, { entry: day(addDays(T, -1), { sleepHours: 6 }), level: 'green' as const }];
+    const a = await assessEntry({ entry: day(T, { sleepHours: 5.5 }), plan: [], planSettings: PS, history, matcher: wordMatcher });
+    expect([a.level, a.points, a.trend]).toEqual(['green', 0, ['Din sömn har blivit kortare tre nätter i rad.']]);
+  });
+
+  it('no line when one of the nights is missing, not shorter each night, or under the limit (then it scores instead)', () => {
+    const base = calm(addDays(T, -3), 10);
+    const bl = { wordsPerMinute: null, stressAvg: 30, greenDays: 10, sleepHours: 7.5, entryTime: null, weekOf: '2026-11-02' };
+    const h = (a: number, b: number) => [...base, { entry: day(addDays(T, -2), { sleepHours: a }), level: 'green' as const }, { entry: day(addDays(T, -1), { sleepHours: b }), level: 'green' as const }];
+    expect(trendLines(day(T, { sleepHours: 5.5 }), h(6.5, 6.5), {}, PS, bl)).toEqual([]);
+    expect(trendLines(day(T, { sleepHours: 4.5 }), h(6.5, 6), {}, PS, bl)).toEqual([]);
+    expect(trendLines(day(T, { sleepHours: 5.5 }), base, {}, PS, bl)).toEqual([]);
+  });
+
+  it('stress rising three days but within 1,3 times the usual gives the stress line', () => {
+    const bl = { wordsPerMinute: null, stressAvg: 30, greenDays: 10, sleepHours: 7.5, entryTime: null, weekOf: '2026-11-02' };
+    const history = [{ entry: day(addDays(T, -2), { stressAvg: 31 }), level: 'green' as const }, { entry: day(addDays(T, -1), { stressAvg: 34 }), level: 'green' as const }];
+    expect(trendLines(day(T, { stressAvg: 38 }), history, {}, PS, bl)).toEqual(['Din stress har ökat tre dagar i rad.']);
+    expect(trendLines(day(T, { stressAvg: 40 }), history, {}, PS, bl)).toEqual([]);
+  });
+
+  it('the trend line is kept off yellow and red days', async () => {
+    const history = [...calm(addDays(T, -3), 10), { entry: day(addDays(T, -2), { sleepHours: 6.5 }), level: 'green' as const }, { entry: day(addDays(T, -1), { sleepHours: 6 }), level: 'green' as const }];
+    const a = await assessEntry({ entry: { ...day(T, { sleepHours: 5.5 }), kind: 'heavy', transcript: '' }, plan: [], planSettings: PS, history, matcher: wordMatcher });
+    expect(a.level).toBe('yellow');
+    expect(a.trend).toBeUndefined();
   });
 });

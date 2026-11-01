@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.3.0
+version: 2.4.0
 response: data
 ---
 # Testfall
@@ -11,7 +11,7 @@ Testfallen för ampeln och för knappen *Testa modellen*. Varje fall har en ante
 
 **Godkännande.** *Testa modellen* godkänner en ny modell bara om alla fall ger samma nivå som här, och visar vilka fall som skilde sig. En ändrad analysprompt måste klara alla fall med en riktig modell innan den checkas in: kör `npm run prompt:check` (se README). Godkännandet sparas i `prompts/godkand.json`, och ett test stoppar en prompt som ändrats utan nytt godkännande.
 
-Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `sleepStart` är insomningen enligt Garmin. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
+Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlägget gjordes; inlägg före 05:00 hör till kvällen innan. `sleepStart` är insomningen enligt Garmin. `medication` är svaret på medicinfrågan per kväll, räknat i dagar bakåt (0 är i dag). `plan: "standard"` kör fallet med standardinnehållet obekräftat i stället för testplanens tecken. `trend` är de neutrala raderna som en grön dag ska visa. `redActions: true` betyder att ett allvarligt tecken syntes och att bedömningen ska visa planens åtgärder vid rött, även när nivån är gul.
 
 ```json
 {
@@ -420,6 +420,78 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "stressAvg": 30,
         "level": "green"
       }
+    ],
+    "kortare_somn": [
+      {
+        "daysAgo": 1,
+        "time": "21:00",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 120,
+        "sleepHours": 6.0,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 2,
+        "time": "21:15",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 6.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 3,
+        "time": "20:45",
+        "mood": 5,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:30",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "21:05",
+        "mood": 7,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "20:50",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 30,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:20",
+        "mood": 6,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 30,
+        "level": "green"
+      }
     ]
   },
   "cases": [
@@ -710,6 +782,26 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
             "quote": "Har dragit igång massor av nya projekt samtidigt"
           }
         ]
+      }
+    },
+    {
+      "id": "kortare-somn-tre-natter",
+      "name": "Sömn 6,5, 6,0 och 5,5 timmar tre nätter i rad ger grönt med en neutral rad om sömnen",
+      "expected": "green",
+      "history": "kortare_somn",
+      "trend": [
+        "Din sömn har blivit kortare tre nätter i rad."
+      ],
+      "entry": {
+        "time": "21:10",
+        "note": "Vanlig dag på jobbet. Lagade middag och läste en stund.",
+        "mood": 6,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 5.5
+      },
+      "reference": {
+        "matches": []
       }
     },
     {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { actionsForLevel, firstStep, SERIOUS_INTRO, seriousActions } from '../../analysis/assess';
+import { actionsForLevel, displaySentence, firstStep, SERIOUS_INTRO, seriousActions } from '../../analysis/assess';
 import { formatDateSv, formatTime } from '../../analysis/dates';
 import { explainAssessment } from '../../analysis/explain';
 import { CrisisCard } from '../CrisisCard';
@@ -68,8 +68,15 @@ export function ResultScreen({ entryId }: { entryId: string }) {
 
       <Card tone={a.level} style={{ alignItems: 'center', borderColor: levelColor(a.level) }}>
         <LevelLight level={a.level} />
-        <P style={{ textAlign: 'center', marginTop: space.m }}>{a.sentence}</P>
+        <P style={{ textAlign: 'center', marginTop: space.m }}>{displaySentence(a)}</P>
       </Card>
+
+      {a.level === 'green' && a.trend?.length ? (
+        // A neutral observation: no points, no colour.
+        <View style={{ marginBottom: space.l }}>
+          {a.trend.map((line) => <P key={line} muted style={{ textAlign: 'center' }}>{line}</P>)}
+        </View>
+      ) : null}
 
       {serious && (
         <Card style={{ borderColor: colors.red, borderWidth: 2 }}>

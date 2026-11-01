@@ -244,6 +244,8 @@ export interface Assessment {
   akut?: boolean;
   /** A match with a negation ("vill inte dö"): a gentler crisis card, level unchanged, note not sent to a model. */
   akutMild?: boolean;
+  /** Neutral lines on a green day: sleep or stress moved the wrong way three days in a row, still within the limit. No points, no colour. */
+  trend?: string[];
 }
 
 export interface Baseline {

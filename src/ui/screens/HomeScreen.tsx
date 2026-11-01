@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { firstStep } from '../../analysis/assess';
+import { displaySentence, firstStep } from '../../analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../analysis/dates';
 import { silentDaysUntil } from '../../analysis/scoring';
 import { RULES } from '../../analysis/rules';
@@ -152,7 +152,7 @@ export function HomeScreen() {
                 I kväll: {LEVEL_TEXT[todayAssessment.level]}
               </Text>
             </Row>
-            <P style={{ marginTop: space.s }}>{todayAssessment.sentence}</P>
+            <P style={{ marginTop: space.s }}>{displaySentence(todayAssessment)}</P>
             <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Visa bedömningen ›</Text>
           </Card>
         </Pressable>

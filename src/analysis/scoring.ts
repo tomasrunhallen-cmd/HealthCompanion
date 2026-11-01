@@ -27,6 +27,8 @@ export interface ScoreInput {
 }
 
 export interface ScoreResult {
+  /** Neutral trend lines, see trendLines. Never points. */
+  trend: string[];
   level: Level;
   points: number;
   reason: LevelReason;
@@ -206,6 +208,38 @@ function entryHour(entry: Entry): number {
   return new Date(entry.createdAt).getHours();
 }
 
+export const TREND_SLEEP = 'Din sömn har blivit kortare tre nätter i rad.';
+export const TREND_STRESS = 'Din stress har ökat tre dagar i rad.';
+
+/**
+ * Sleep shorter, or stress higher, three days in a row while still within the limit:
+ * one neutral line each, for green days. Gives no points and no colour. Garmin first,
+ * then the entry, for each of the two earlier days.
+ */
+export function trendLines(
+  entry: Entry,
+  history: HistoryDay[],
+  garmin: Record<DateKey, GarminDay>,
+  planSettings: PlanSettings,
+  baseline: Baseline,
+): string[] {
+  const day = (offset: number) => {
+    const d = addDays(entry.date, -offset);
+    return { g: garmin[d], e: history.find((h) => h.entry.date === d)?.entry };
+  };
+  const series = (pick: (g: GarminDay | undefined, e: Entry | undefined) => number | null | undefined, today: number | null) => {
+    const vals = [pick(day(2).g, day(2).e), pick(day(1).g, day(1).e), today];
+    return vals.every((v) => v != null) ? (vals as number[]) : null;
+  };
+  const out: string[] = [];
+  const sleep = series((g, e) => g?.sleepHours ?? e?.sleepHours, entry.sleepHours);
+  if (sleep && sleep[0] > sleep[1] && sleep[1] > sleep[2] && sleep[2] >= planSettings.sleepThresholdHours) out.push(TREND_SLEEP);
+  const stress = series((g, e) => g?.stressAvg ?? e?.stressAvg, entry.stressAvg);
+  const stressLimit = baseline.stressAvg != null ? baseline.stressAvg * RULES.stressFactor : Infinity;
+  if (stress && stress[0] < stress[1] && stress[1] < stress[2] && stress[2] <= stressLimit) out.push(TREND_STRESS);
+  return out;
+}
+
 export function score(input: ScoreInput): ScoreResult {
   const { entry, matches, plan, planSettings } = input;
   const garmin = input.garmin ?? {};
@@ -361,7 +395,8 @@ export function score(input: ScoreInput): ScoreResult {
 
   const adjusted = adjustMeasured(signals, entry, yesterdaysMeasured(entry.date, history, garmin, planSettings, baseline));
   const { level, points, reason } = levelFromSignals(adjusted, recentNonGreen);
-  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline };
+  const trend = trendLines(entry, history, garmin, planSettings, baseline);
+  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend };
 }
 
 /** Builds history pairs from stored entries and assessments. */
