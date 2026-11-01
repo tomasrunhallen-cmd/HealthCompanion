@@ -5,6 +5,7 @@ import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../
 import { silentDaysUntil } from '../../analysis/scoring';
 import { RULES } from '../../analysis/rules';
 import { logHeavyDay } from '../../services/checkin';
+import { standardNudgeWeek, startWithStandard, unconfirmedStandard } from '../../context/standard';
 import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -24,6 +25,19 @@ export function HomeScreen() {
   const plan = repo.plan();
   const hasSigns = plan.some((p) => p.kind === 'early' || p.kind === 'serious');
   const firstYellow = firstStep('yellow', plan);
+  const settings = repo.settings();
+  const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
+
+  const chooseStandard = async () => {
+    const ok = await dialog.confirm({
+      title: 'Börja med standard?',
+      message:
+        'Appen lägger in allmänna tecken och åtgärder som ofta står i krisplaner. De kan bara ge gult, aldrig rött, ' +
+        'tills du bekräftat eller ersatt dem med din egen plan. Du kan ändra och ta bort allt under Min krisplan.',
+      confirmLabel: 'Börja med standard',
+    });
+    if (ok) await startWithStandard(repo);
+  };
 
   const week = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(today, i - 6);
@@ -57,11 +71,25 @@ export function HomeScreen() {
 
       {!hasSigns && (
         <Card tone="accent">
-          <Text style={type.h2}>Börja med din krisplan</Text>
+          <Text style={type.h2}>Hur vill du börja?</Text>
           <P style={{ marginTop: space.xs, marginBottom: space.m }}>
-            Appen jämför bara med de tecken och åtgärder du själv har i din plan. Klistra in den så sorterar du raderna.
+            Appen jämför din anteckning med tecknen i din krisplan. Har du ingen plan till hands kan du börja med
+            allmänna tecken och byta till din egen senare.
           </P>
-          <Button title="Lägg in krisplan" onPress={() => nav.push({ name: 'planImport' })} />
+          <Button title="Ladda in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
+          <Button kind="secondary" title="Börja med standard" onPress={chooseStandard} />
+        </Card>
+      )}
+
+      {nudgeWeek != null && (
+        <Card tone="accent">
+          <Text style={type.h2}>Din plan bygger på standardinnehåll</Text>
+          <P style={{ marginTop: space.xs, marginBottom: space.m }}>
+            Standardtecken kan bara ge gult. Lägg in din egen krisplan när du kan, eller bekräfta de rader som stämmer för
+            dig under Min krisplan.
+          </P>
+          <Button title="Ladda in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
+          <Button kind="ghost" title="Påminn mig nästa vecka" onPress={() => repo.updateSettings({ standardNudgeDismissedWeek: nudgeWeek })} />
         </Card>
       )}
 

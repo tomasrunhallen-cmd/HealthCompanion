@@ -7,6 +7,7 @@ import type { PlanItemKind } from '../../domain/types';
 import { KIND_LABEL, KIND_ORDER, parsePlanText, type DraftKind, type DraftRow } from '../../plan/parsePlan';
 import { namesFromPlanText, scrubReversible } from '../../privacy/scrub';
 import { activeAdapter, structurePlanWithModel, trackedCompleter } from '../../services/llm';
+import { replaceStandard, unconfirmedStandard } from '../../context/standard';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -161,11 +162,23 @@ export function PlanImportScreen() {
       const prev = repo.planSettings().normalState.trim();
       await repo.updatePlanSettings({ normalState: [prev, ...normal].filter(Boolean).join('. ') });
     }
+    // The user's own plan replaces the standard content, if they agree.
+    let removed = 0;
+    if (unconfirmedStandard(repo).length > 0) {
+      const replace = await dialog.confirm({
+        title: 'Ta bort standardraderna?',
+        message: 'Din egen plan ersätter standardinnehållet. Standardrader du redan bekräftat ligger kvar.',
+        confirmLabel: 'Ta bort standardraderna',
+      });
+      if (replace) removed = await replaceStandard(repo);
+    } else if (repo.settings().contextMode !== 'own') {
+      await repo.updateSettings({ contextMode: 'own' });
+    }
     const addNames = names.filter((n) => n.add).map((n) => n.name);
     if (addNames.length) {
       await repo.updateSettings({ scrubNames: [...repo.settings().scrubNames, ...addNames] });
     }
-    await dialog.info('Sparat', `${items.length + normal.length} rader sparades i din krisplan.${addNames.length ? ` ${addNames.length} namn lades till i rensningslistan.` : ''}`);
+    await dialog.info('Sparat', `${items.length + normal.length} rader sparades i din krisplan.${removed ? ` ${removed} standardrader togs bort.` : ''}${addNames.length ? ` ${addNames.length} namn lades till i rensningslistan.` : ''}`);
     nav.replace({ name: 'plan' });
   };
 

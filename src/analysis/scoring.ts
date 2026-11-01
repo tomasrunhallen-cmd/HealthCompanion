@@ -81,7 +81,22 @@ export function silentDaysUntil(today: DateKey, entries: Entry[]): number {
   return Math.max(0, daysBetween(last, today) - 1);
 }
 
+/**
+ * Level from signals. Unconfirmed standard rows may give yellow but never red: red is
+ * judged without them, and a day that would only be red because of them becomes yellow.
+ */
 export function levelFromSignals(
+  signals: Signal[],
+  recentNonGreenDays: number,
+): { level: Level; points: number; reason: LevelReason } {
+  const all = rawLevel(signals, recentNonGreenDays);
+  if (all.level !== 'red' || !signals.some((s) => s.unconfirmedStandard)) return all;
+  const firm = rawLevel(signals.filter((s) => !s.unconfirmedStandard), recentNonGreenDays);
+  if (firm.level === 'red') return { ...firm, points: all.points };
+  return { level: 'yellow', points: all.points, reason: 'standard_cap' };
+}
+
+function rawLevel(
   signals: Signal[],
   recentNonGreenDays: number,
 ): { level: Level; points: number; reason: LevelReason } {
@@ -125,6 +140,7 @@ export function score(input: ScoreInput): ScoreResult {
       planItemId: item.id,
       quote: m.quote,
       measured: false,
+      ...(item.origin === 'standard' && item.approvedAt == null ? { unconfirmedStandard: true } : {}),
     });
   }
 

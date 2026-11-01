@@ -164,6 +164,8 @@ export interface Signal {
   quote?: string;
   /** True for measured (objective) signals. */
   measured: boolean;
+  /** From a standard row the user has not confirmed: it may give yellow, never red. */
+  unconfirmedStandard?: boolean;
 }
 
 export type MatchMethod = 'wordmatch' | 'llm' | 'llm_fallback' | 'none';
@@ -175,7 +177,8 @@ export type LevelReason =
   | 'points_red' // 4 points or more
   | 'serious_plus_other' // a serious sign together with another sign
   | 'recent_days' // 2 points after several yellow or red days
-  | 'measured_three'; // three measured signs the same day
+  | 'measured_three' // three measured signs the same day
+  | 'standard_cap'; // would be red only through unconfirmed standard rows: yellow
 
 export interface Assessment {
   id: string;

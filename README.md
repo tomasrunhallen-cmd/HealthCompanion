@@ -143,6 +143,8 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 
+- **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
+
 - **Testfallet för rött går inte ihop med reglerna.** Fyra timmars sömn, 180 ord per minut och inlägg 01:15 ger tre poäng. Specen kräver fyra poäng för rött. Jag har lagt till regeln *tre eller fler mätta tecken samma dag ger rött*, så att testfallet går igenom. Alternativet är att sänka gränsen för rött till tre poäng, vilket påverkar fler dagar. Regeln står i `src/analysis/rules.ts` och bör stämmas av med din vårdkontakt.
 - **Orkar bara trycka ger gult.** Specen säger att dagen loggas som tung och att första gula steget visas. Jag har gjort det till ett tecken värt en poäng, så att nivån fortfarande räknas i koden.
 - **Inlägg före 05:00 hör till kvällen innan.** Annars skulle ett inlägg 01:15 räknas som en ny dag och ge falsk tystnad.

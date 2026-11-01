@@ -46,6 +46,8 @@ function conclusion(a: Assessment): string {
       return 'Ett allvarligt tecken tillsammans med ett annat tecken ger rött, oavsett poäng.';
     case 'measured_three':
       return `${L.redMeasuredSigns} mätta tecken samma dag ger rött, oavsett poäng.`;
+    case 'standard_cap':
+      return `${p} hade gett rött, men en del av poängen kommer från standardtecken som du inte bekräftat. De kan bara ge gult, så det blir gult.`;
     case 'recent_days':
       return `${p} ger rött när minst ${L.historyNonGreenDays} av de senaste ${L.historyWindowDays} dagarna varit gula eller röda${a.recentNonGreenDays != null ? `. Det var ${a.recentNonGreenDays}` : ''}.`;
   }

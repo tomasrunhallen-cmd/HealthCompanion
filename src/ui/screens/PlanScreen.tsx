@@ -7,6 +7,7 @@ import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
 import { newId } from '../../analysis/assess';
+import { confirmStandard } from '../../context/standard';
 
 const KINDS: { kind: PlanItemKind; title: string; help: string }[] = [
   { kind: 'early', title: 'Tidiga tecken', help: 'Ger gult när de matchar.' },
@@ -38,10 +39,15 @@ function ItemRow({ item, first, last }: { item: PlanItem; first: boolean; last: 
       </View>
     );
   }
+  const standard = item.origin === 'standard' && item.approvedAt == null;
   return (
     <View style={{ paddingVertical: space.s, borderBottomWidth: 1, borderColor: colors.border }}>
       <P>{item.text}</P>
+      {standard ? <Text style={[type.small, { marginTop: 2 }]}>Standard, inte bekräftad. Kan bara ge gult.</Text> : null}
       <Row style={{ marginTop: space.xs, gap: space.l }}>
+        {standard ? (
+          <Pressable onPress={() => confirmStandard(repo, item.id)} hitSlop={8}><Text style={link}>Bekräfta</Text></Pressable>
+        ) : null}
         <Pressable onPress={() => setEditing(true)} hitSlop={8}><Text style={link}>Ändra</Text></Pressable>
         {!first && <Pressable onPress={() => repo.movePlanItem(item.id, -1)} hitSlop={8}><Text style={link}>Upp</Text></Pressable>}
         {!last && <Pressable onPress={() => repo.movePlanItem(item.id, 1)} hitSlop={8}><Text style={link}>Ner</Text></Pressable>}
