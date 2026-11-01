@@ -1,6 +1,8 @@
 import type { FetchLike } from '../src/adapter/http';
 import { explainAssessment } from '../src/analysis/explain';
-import { akutCheck, akutLevel, akutMatches, akutPhrases, crisisInfo, isAkut, parseAkut, splitAkutLines } from '../src/context/akut';
+import {
+  akutCheck, akutCheckWith, akutLevel, akutLists, akutMatches, akutPhrases, crisisInfo, isAkut, parseAkut, parseAkutLists, splitAkutLines,
+} from '../src/context/akut';
 import { buildContext } from '../src/context/buildContext';
 import { startWithStandard } from '../src/context/standard';
 import type { GarminFetch } from '../src/garmin/client';
@@ -68,13 +70,66 @@ describe('emergency word list', () => {
     expect(isAkut('')).toBe(false);
   });
 
-  it('does not take a short word for the start of a longer one ("själv" is not "självmord")', () => {
+  it('reads phrases, core words and exceptions as separate lists', () => {
+    const src = '---\nid: a\nversion: 1\n---\n## Fraser\n- vill dö\n## Kärnord\n- självmord\n## Undantag\n- för mig själv';
+    expect(parseAkutLists(src)).toEqual({ phrases: ['vill dö'], cores: ['självmord'], exceptions: ['för mig själv'] });
+  });
+});
+
+describe('core words match as the start of a compound', () => {
+  it.each([
+    'Har haft självmordstankar hela kvällen.',
+    'Jag har gjort självmordsplaner.',
+    'Tänker på mitt självmordsförsök.',
+    'Känner en stark dödslängtan.',
+    'Det är bara livsleda just nu.',
+    'Har suicidtankar igen.',
+    'Fick dödstankar på bussen.',
+    'Har självskadebeteende igen.',
+    'Funderar på självmordet.',
+  ])('"%s" gives the full crisis card', (note) => {
+    expect(akutLevel(note)).toBe('full');
+  });
+
+  it('an old attempt still gives a full match: better a false alarm than a miss', () => {
+    expect(akutLevel('Tänkte på mitt självmordsförsök för tio år sedan.')).toBe('full');
+  });
+
+  it('a negation before a core word gives a mild match, as for phrases', () => {
+    expect(akutLevel('Har aldrig haft självmordstankar')).toBe('mild');
+    expect(akutLevel('Ingen dödslängtan i dag')).toBe('mild');
+  });
+
+  it('a core word must start the word: "själv" alone is not "självmord"', () => {
     expect(akutLevel('Satt mest för mig själv på lunchen.')).toBeNull();
     expect(akutLevel('Lagade middag själv och gick en promenad.')).toBeNull();
     expect(akutLevel('Kände mig lite skadeglad i dag.')).toBeNull();
-    // Real inflections still match.
-    expect(isAkut('Har tänkt på självmordet hela dagen')).toBe(true);
+  });
+});
+
+describe('the exception list for known false hits', () => {
+  it('"för mig själv" gives no match', () => {
+    expect(akutLevel('Ville vara för mig själv i kväll.')).toBeNull();
+    expect(akutLists().exceptions).toContain('för mig själv');
+  });
+
+  it('"jag skärper mig" is not taken as an inflection of "skär mig"', () => {
+    expect(akutLevel('Nu skärper jag mig. I morgon skärper mig och går tidigt.')).toBeNull();
+    expect(akutLevel('Jag skärpte mig på mötet.')).toBeNull();
+    // Without the exception the same words would match.
+    const lists = { phrases: ['skär mig'], cores: [], exceptions: [] };
+    expect(akutCheckWith('Jag skärpte mig på mötet.', lists).level).toBe('full');
+    expect(akutCheckWith('Jag skärpte mig på mötet.', { ...lists, exceptions: ['skärpte mig'] }).level).toBeNull();
+  });
+
+  it('an exception does not hide a real phrase in the same note', () => {
+    expect(akutLevel('Satt för mig själv. Ville skada mig själv.')).toBe('full');
+    expect(akutLevel('Jag skär mig, jag skärper mig inte.')).toBe('full');
+  });
+
+  it('real inflections still match', () => {
     expect(isAkut('Har skadat mig själv igen')).toBe(true);
+    expect(isAkut('Jag skar mig i går')).toBe(true);
   });
 
   it('includes the user\'s own phrases from the crisis plan', () => {

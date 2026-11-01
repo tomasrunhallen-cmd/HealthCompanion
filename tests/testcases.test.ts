@@ -34,13 +34,13 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.0.0');
+    expect(suite.version).toBe('2.1.0');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [
       'lugn-dag', 'orkade-inte-svara', 'allvarligt-plus-annat', 'kant-falsklarm', 'omskrivet-tecken', 'negation',
       'precis-under-gult', 'precis-pa-gult', 'festkvall', 'tva-korta-natter-tva-tecken', 'medicin-missad-tva-dagar',
-      'standard-allvarligt', 'akut-full', 'akut-mild',
+      'standard-allvarligt', 'akut-full', 'akut-mild', 'akut-sammansatt',
     ]) byId(id);
   });
 

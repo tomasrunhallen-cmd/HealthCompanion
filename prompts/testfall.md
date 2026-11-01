@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.0.0
+version: 2.1.0
 response: data
 ---
 # Testfall
@@ -439,6 +439,23 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "note": "Allt känns hopplöst. Jag vill inte leva längre.",
         "mood": 2,
         "energy": 2,
+        "wordsPerMinute": 121,
+        "sleepHours": 7.5
+      },
+      "reference": {
+        "akut": "full"
+      }
+    },
+    {
+      "id": "akut-sammansatt",
+      "name": "”Självmordsförsök för tio år sedan” ger rött: hellre ett falsklarm än en miss",
+      "expected": "red",
+      "history": "gron_vecka",
+      "entry": {
+        "time": "21:30",
+        "note": "Tänkte mycket på mitt självmordsförsök för tio år sedan i dag.",
+        "mood": 4,
+        "energy": 4,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
       },

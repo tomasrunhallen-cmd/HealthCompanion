@@ -11,42 +11,72 @@ const NEGATIONS = new Set(['inte', 'aldrig', 'ingen', 'inget', 'inga', 'ej']);
 /** Words allowed between the words of a phrase ("vill verkligen inte leva"). A negation there makes the hit mild. */
 const MAX_GAP = 2;
 
-export function parseAkut(source: string): string[] {
+export interface AkutLists {
+  /** Phrases matched word by word, tolerating inflections and up to two words between. */
+  phrases: string[];
+  /** Core words that match as the start of a word, however long the rest: "självmord" in "självmordsförsök". */
+  cores: string[];
+  /** Known false hits. Their words may only match a phrase word that is spelled the same, never as an inflection. */
+  exceptions: string[];
+}
+
+const SECTION: Record<string, keyof AkutLists> = { fraser: 'phrases', 'kärnord': 'cores', undantag: 'exceptions' };
+
+export function parseAkutLists(source: string): AkutLists {
   const { body } = parseFrontmatter(source);
-  const out: string[] = [];
-  let inList = false;
+  const out: AkutLists = { phrases: [], cores: [], exceptions: [] };
+  let into: keyof AkutLists | null = null;
   for (const line of body.split(/\r?\n/)) {
-    if (/^##\s+/.test(line)) {
-      inList = /fraser/i.test(line);
+    const h = line.match(/^##\s+(.+?)\s*$/);
+    if (h) {
+      into = SECTION[h[1].toLowerCase()] ?? null;
       continue;
     }
     const m = line.match(/^\s*[-*]\s+(.+?)\s*$/);
-    if (inList && m) out.push(m[1]);
+    if (into && m) out[into].push(m[1]);
   }
   return out;
 }
 
-let cached: string[] | null = null;
-export function akutPhrases(): string[] {
+/** The phrases only, for callers that list them. */
+export function parseAkut(source: string): string[] {
+  return parseAkutLists(source).phrases;
+}
+
+let cached: AkutLists | null = null;
+export function akutLists(): AkutLists {
   if (!cached) {
     const src = CONTEXT_SOURCES['context/akut.md'];
     if (!src) throw new Error('context/akut.md saknas');
-    cached = parseAkut(src);
+    cached = parseAkutLists(src);
   }
   return cached;
 }
 
-/** Letters an inflection may add after the shared stem ("skada" / "skadade"). */
-const MAX_ENDING = 3;
+/** Phrases and core words, everything that can give a match. */
+export function akutPhrases(): string[] {
+  const l = akutLists();
+  return [...l.phrases, ...l.cores];
+}
 
-function tokenEq(a: string, b: string): boolean {
+function tokenEq(word: string, token: string, guarded: boolean): boolean {
+  if (word === token) return true;
+  // A word inside a known false hit ("skärper mig") is never taken as an inflection.
+  if (guarded) return false;
   // Short words must be equal; longer ones may be inflections ("skadar" / "skada").
-  if (a === b) return true;
-  if (Math.min(a.length, b.length) < 4 || !wordsMatch(a, b)) return false;
-  // A longer tail makes another word: "själv" is not "självmord", "skadeglad" is not "skada".
-  let p = 0;
-  while (p < a.length && p < b.length && a[p] === b[p]) p++;
-  return Math.max(a.length, b.length) - p <= MAX_ENDING;
+  return Math.min(word.length, token.length) >= 4 && wordsMatch(word, token);
+}
+
+/** Marks the words of a clause that are part of a known false hit. */
+function guardMask(words: string[], exceptions: string[][]): boolean[] {
+  const mask = words.map(() => false);
+  for (const ex of exceptions) {
+    if (!ex.length) continue;
+    for (let i = 0; i + ex.length <= words.length; i++) {
+      if (ex.every((t, k) => words[i + k] === t)) for (let k = 0; k < ex.length; k++) mask[i + k] = true;
+    }
+  }
+  return mask;
 }
 
 /** Words before a phrase that can negate it, within the same clause ("har aldrig haft självmordstankar"). */
@@ -58,12 +88,19 @@ const NEGATION_LOOKBACK = 2;
  * before it ("vill inte dö", "tänker inte göra mig illa"). A plain occurrence wins over a
  * negated one.
  */
-function phraseIn(words: string[], phrase: string[]): { found: boolean; negated: boolean } {
+function phraseIn(
+  words: string[],
+  guarded: boolean[],
+  phrase: string[],
+  /** A core word: the first word only has to start with it. */
+  prefix = false,
+): { found: boolean; negated: boolean } {
   if (!phrase.length) return { found: false, negated: false };
   const own = (w: string) => phrase.includes(w);
   let negatedHit = false;
   for (let start = 0; start < words.length; start++) {
-    if (!tokenEq(words[start], phrase[0])) continue;
+    const first = prefix ? !guarded[start] && words[start].startsWith(phrase[0]) : tokenEq(words[start], phrase[0], guarded[start]);
+    if (!first) continue;
     let pos = start;
     let ok = true;
     let negated = words.slice(Math.max(0, start - NEGATION_LOOKBACK), start).some((w) => NEGATIONS.has(w) && !own(w));
@@ -71,7 +108,7 @@ function phraseIn(words: string[], phrase: string[]): { found: boolean; negated:
       ok = false;
       for (let gap = 0; gap <= MAX_GAP && pos + 1 + gap < words.length; gap++) {
         const w = words[pos + 1 + gap];
-        if (tokenEq(w, phrase[k])) {
+        if (tokenEq(w, phrase[k], guarded[pos + 1 + gap])) {
           pos = pos + 1 + gap;
           ok = true;
           break;
@@ -102,19 +139,29 @@ export interface AkutResult {
 }
 
 export function akutCheck(note: string, userPhrases: string[] = []): AkutResult {
+  return akutCheckWith(note, akutLists(), userPhrases);
+}
+
+/** The emergency rule against given lists; akutCheck uses context/akut.md. */
+export function akutCheckWith(note: string, lists: AkutLists, userPhrases: string[] = []): AkutResult {
   const parts = clauses(note);
   if (!parts.length) return { level: null, phrases: [] };
+  const exceptions = lists.exceptions.map(tokenize);
+  const masks = parts.map((words) => guardMask(words, exceptions));
+  const candidates: { text: string; tokens: string[]; prefix: boolean }[] = [
+    ...[...lists.phrases, ...userPhrases].filter((x) => x.trim()).map((text) => ({ text, tokens: tokenize(text), prefix: false })),
+    ...lists.cores.filter((x) => x.trim()).map((text) => ({ text, tokens: tokenize(text), prefix: true })),
+  ];
   const full: string[] = [];
   const mild: string[] = [];
-  for (const p of [...akutPhrases(), ...userPhrases].filter((x) => x.trim())) {
-    const tokens = tokenize(p);
+  for (const c of candidates) {
     let hit: { found: boolean; negated: boolean } = { found: false, negated: false };
-    for (const words of parts) {
-      const h = phraseIn(words, tokens);
+    for (let i = 0; i < parts.length; i++) {
+      const h = phraseIn(parts[i], masks[i], c.tokens, c.prefix);
       if (h.found && !h.negated) { hit = h; break; }
       if (h.found) hit = h;
     }
-    if (hit.found) (hit.negated ? mild : full).push(p);
+    if (hit.found) (hit.negated ? mild : full).push(c.text);
   }
   if (full.length) return { level: 'full', phrases: full };
   if (mild.length) return { level: 'mild', phrases: mild };

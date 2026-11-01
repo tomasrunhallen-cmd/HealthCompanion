@@ -218,7 +218,7 @@ describe('Testa modellen', () => {
   it('approves a model that gives the reference answer in every case', async () => {
     const suite = loadTestSuite();
     const report = await runModelTest(createCompleter(referenceAdapter(suite.cases)), 'referenssvar');
-    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.0.0' });
+    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.1.0' });
     expect(report.cases.every((c) => c.ok && c.error == null)).toBe(true);
     expect(differingCases(report)).toEqual([]);
   });
@@ -239,7 +239,7 @@ describe('Testa modellen', () => {
     const report = await runModelTest(createCompleter(fixedAdapter(['inget json här'])), 'bad');
     expect(report.approved).toBe(false);
     // Only the emergency cases pass, since they never reach the model.
-    expect(report.passed).toBe(2);
+    expect(report.passed).toBe(3);
     expect(report.cases[0].error).toBe('Modellens svar följde inte schemat');
   });
 

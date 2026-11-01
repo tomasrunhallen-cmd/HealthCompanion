@@ -109,7 +109,7 @@ Du behöver en Mistral-nyckel från console.mistral.ai. Steg 2 fungerar i Expo G
 1. Öppna *Inställningar* och tryck *Koppla en språkmodell*.
 2. Välj *Mistral*, klistra in nyckeln och låt modellen stå på *mistral-small-latest*.
 3. Tryck *Testa modellen*. Läs rutan om vart texten går och godkänn. Testet skickar bara appens påhittade testfall.
-4. Se hur många av de 21 testfallen som gav rätt nivå. *Spara* går bara att trycka när alla gjorde det. Annars står fallen som skilde sig först i listan.
+4. Se hur många av de 22 testfallen som gav rätt nivå. *Spara* går bara att trycka när alla gjorde det. Annars står fallen som skilde sig först i listan.
 5. Gör *Kvällens avstämning* med samma text som i steg 1. Bedömningen ska säga att din språkmodell tolkade tecknen, och visa modell och promptversion längst ner.
 6. Lägg in en krisplan med *Sortera med Mistral*. Kontrollera den rensade texten innan du skickar. Namn och nummer ska komma tillbaka i raderna.
 7. Fyll i priser under *Kostnad* för att se en månadsuppskattning.
@@ -133,7 +133,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 218 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 235 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -143,7 +143,7 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 
 ## Testfall och modellbyte
 
-`prompts/testfall.md` har 21 fall. Varje fall har en anteckning, mätvärden, en historik, den nivå appen ska ge och ett **referenssvar**: vilka av planens tecken en noggrann modell ska hitta, med ett ordagrant citat. Fallen täcker:
+`prompts/testfall.md` har 22 fall. Varje fall har en anteckning, mätvärden, en historik, den nivå appen ska ge och ett **referenssvar**: vilka av planens tecken en noggrann modell ska hitta, med ett ordagrant citat. Fallen täcker:
 
 | Fall | Nivå |
 | --- | --- |
@@ -168,6 +168,7 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 | Standardläget med fyra tecken och kort sömn | gult, aldrig rött |
 | "Jag vill inte leva längre" (akutregeln, når inte modellen) | rött |
 | "Jag vill inte dö" (mild akutträff, når inte modellen) | grönt |
+| "Självmordsförsök för tio år sedan" (kärnord, når inte modellen) | rött |
 
 - **Testa modellen godkänner en ny modell bara om alla fall ger samma nivå som referenssvaren.** Fallen som skilde sig visas först, med nivån modellen gav och nivån som väntades. Akutfallen avgörs i koden precis som i avstämningen och skickas aldrig till modellen. En modell du redan sparat fortsätter att användas tills du sparar en ny.
 - **En ändrad analysprompt måste klara alla fall innan den checkas in.** Godkännandet står i `prompts/godkand.json` med ett fingeravtryck av `prompts/analys.md` och `schemas/analys.json`. Testet `tests/prompt-gate.test.ts` i `npm test` stoppar så fort prompten eller schemat ändrats utan nytt godkännande. Ett nytt godkännande får man bara genom att köra alla fall mot en riktig modell:
@@ -177,7 +178,7 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
   ```
 
   Nyckeln läggs i miljön, aldrig i en fil i repot. Skriptet skriver om `prompts/godkand.json` bara om alla fall gick igenom, och listar annars fallen som skilde sig.
-- **Prompten 1.2.0 står som utgångsläge, inte som godkänd.** Den är oförändrad i den här ändringen och har inte körts mot de 21 fallen med en riktig modell i repot. Kör *Testa modellen* med Mistral i appen för att se hur den klarar dem.
+- **Prompten 1.2.0 står som utgångsläge, inte som godkänd.** Den är oförändrad i den här ändringen och har inte körts mot de 22 fallen med en riktig modell i repot. Kör *Testa modellen* med Mistral i appen för att se hur den klarar dem.
 
 ## Kontextbanken: det appen vet om dig
 
@@ -200,7 +201,7 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 
-- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Matchningen tål böjningar och ord emellan. En böjning får lägga till högst tre bokstäver, så "för mig själv" räknas inte som "självmord". En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 35 fraser och bör prövas mot verkliga formuleringar.
+- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Fraserna tål böjningar och ord emellan. Sju kärnord, som "självmord", "dödslängt" och "livsled", ger träff som början på ett ord oavsett vad som följer, så "självmordstankar", "självmordsförsök", "dödslängtan" och "livsleda" ger full krisruta. Också "självmordsförsök för tio år sedan" ger träff, eftersom ett falsklarm är bättre än en miss. En undantagslista tar hand om kända falska träffar: "för mig själv" ger ingen träff, och "jag skärper mig" räknas inte som "skär mig". En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 29 fraser, 7 kärnord och 5 undantag och bör prövas mot verkliga formuleringar.
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
 
 - **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn- och stressreglerna 0 poäng den dagen, och bedömningen säger det. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Reglerna står i `src/analysis/rules.ts` och `src/analysis/scoring.ts` och bör stämmas av med din vårdkontakt.

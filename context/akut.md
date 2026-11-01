@@ -1,6 +1,6 @@
 ---
 id: akut
-version: 0.2.1
+version: 0.3.0
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Akutordlista
@@ -9,9 +9,13 @@ Formuleringar om att inte vilja leva eller att skada sig. Matchas i appen, på t
 innan något skickas till en språkmodell och oberoende av den. Listan skickas aldrig till
 en modell. Användarens egna formuleringar läggs till från krisplanen.
 
-Matchningen tål böjningar ("skadar" och "skada") och upp till två ord emellan
-("vill verkligen inte leva"). En böjning får lägga till högst tre bokstäver, så
-"själv" räknas inte som "självmord". Den läses sats för sats.
+Fraserna matchas ord för ord. De tål böjningar ("skadar" och "skada") och upp till
+två ord emellan ("vill verkligen inte leva"). Kärnorden matchar som början på ett ord,
+hur många bokstäver som än följer: "självmord" ger träff på "självmordstankar",
+"självmordsplaner" och "självmordsförsök". Hellre ett falsklarm än en miss, så också
+"självmordsförsök för tio år sedan" ger träff. Undantagen är kända falska träffar, ord
+eller fraser: deras ord räknas aldrig som en böjning av ett ord i en fras ("jag
+skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läses sats för sats.
 
 - Träff utan negation: krisrutan, dagen blir röd, ingenting skickas eller hämtas.
 - Träff med en negation mellan orden eller upp till två ord före frasen i samma sats
@@ -42,17 +46,29 @@ Matchningen tål böjningar ("skadar" och "skada") och upp till två ord emellan
 - bättre om jag inte fanns
 - bättre utan mig
 - försvinna för alltid
-- självmord
-- självmordstankar
-- suicid
-- suicidtankar
-- dödstankar
 - skada mig själv
 - göra mig illa
 - skadar mig själv
-- självskada
 - skära mig
 - skär mig
 - skar mig
 - hoppa framför tåget
 - tabletter för att dö
+
+## Kärnord
+
+- självmord
+- suicid
+- självskad
+- dödslängt
+- dödstank
+- dödsönsk
+- livsled
+
+## Undantag
+
+- för mig själv
+- skärper
+- skärpa
+- skärpte
+- skärpt
