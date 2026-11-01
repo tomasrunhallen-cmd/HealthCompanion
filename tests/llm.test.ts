@@ -1,5 +1,6 @@
 import { createCompleter } from '../src/adapter/complete';
-import { echoAnalysisAdapter, fixedAdapter } from '../src/adapter/fake';
+import { fixedAdapter, referenceAdapter } from '../src/adapter/fake';
+import { loadTestSuite } from '../src/analysis/testcases';
 import { anthropicAdapter, chatCompletionsAdapter, LlmHttpError, type FetchLike } from '../src/adapter/http';
 import { isLocalUrl } from '../src/adapter/providers';
 import { toProviderSchema } from '../src/adapter/schema';
@@ -10,7 +11,7 @@ import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 import { setSecret, deleteSecret } from '../src/platform/secrets';
 import {
-  activeAdapter, currentMatcher, LLM_KEY_NAME, namesToScrub, runModelTest, structurePlanWithModel,
+  activeAdapter, currentMatcher, differingCases, LLM_KEY_NAME, namesToScrub, runModelTest, structurePlanWithModel,
 } from '../src/services/llm';
 import { saveCheckin } from '../src/services/checkin';
 import { wordMatcher } from '../src/analysis/assess';
@@ -214,15 +215,31 @@ describe('plan import with a model', () => {
 });
 
 describe('Testa modellen', () => {
-  it('passes all four cases with a careful model', async () => {
-    const report = await runModelTest(createCompleter(echoAnalysisAdapter()), 'fake-analys');
-    expect(report).toMatchObject({ passed: 4, total: 4 });
+  it('approves a model that gives the reference answer in every case', async () => {
+    const suite = loadTestSuite();
+    const report = await runModelTest(createCompleter(referenceAdapter(suite.cases)), 'referenssvar');
+    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.0.0' });
     expect(report.cases.every((c) => c.ok && c.error == null)).toBe(true);
+    expect(differingCases(report)).toEqual([]);
   });
 
-  it('fails a case when the model does not follow the schema', async () => {
+  it('decides the emergency cases in code and never sends them to the model', async () => {
+    const suite = loadTestSuite();
+    const fake = fixedAdapter(['{"matches":[],"sentence":"x"}']);
+    const report = await runModelTest(createCompleter(fake), 'm');
+    const sent = fake.calls.map((c) => c.user).join('\n');
+    for (const c of suite.cases.filter((x) => x.expectedAkut)) {
+      expect(sent).not.toContain(c.entry.transcript);
+      expect(report.cases.find((r) => r.id === c.id)).toMatchObject({ ok: true, akut: c.expectedAkut, got: c.expected });
+    }
+    expect(fake.calls).toHaveLength(suite.cases.filter((x) => !x.expectedAkut).length);
+  });
+
+  it('fails a case when the model does not follow the schema, and does not approve', async () => {
     const report = await runModelTest(createCompleter(fixedAdapter(['inget json här'])), 'bad');
-    expect(report.passed).toBe(0);
+    expect(report.approved).toBe(false);
+    // Only the emergency cases pass, since they never reach the model.
+    expect(report.passed).toBe(2);
     expect(report.cases[0].error).toBe('Modellens svar följde inte schemat');
   });
 
@@ -231,14 +248,24 @@ describe('Testa modellen', () => {
     const report = await runModelTest(createCompleter(chatCompletionsAdapter({ provider: 'mistral', model: 'm', apiKey: 'x', fetch: f })), 'm');
     expect(report.cases).toHaveLength(1);
     expect(report.cases[0].error).toBe('Mistral godtog inte nyckeln.');
+    expect(report.approved).toBe(false);
     expect(f.calls).toHaveLength(1);
   });
 
-  it('fails a case when the model matches nothing so the level is wrong', async () => {
+  it('shows which cases differed when the model matches nothing', async () => {
     const report = await runModelTest(createCompleter(fixedAdapter([ANSWER])), 'blind');
-    // The yellow case needs the sign to match; silence and measured signs still score.
-    const yellow = report.cases.find((c) => c.id === 'orkade-inte-svara')!;
-    expect(yellow).toMatchObject({ ok: false, got: 'green', error: null });
+    expect(report.approved).toBe(false);
+    const differing = differingCases(report).map((c) => [c.id, c.expected, c.got]);
+    // Every case that needs a sign from the note; measured signs, silence and medication still score.
+    expect(differing).toEqual([
+      ['orkade-inte-svara', 'yellow', 'green'],
+      ['omskrivet-tecken', 'yellow', 'green'],
+      ['allvarligt-ensamt', 'yellow', 'green'],
+      ['allvarligt-plus-annat', 'red', 'green'],
+      ['tva-korta-natter-tva-tecken', 'red', 'yellow'],
+      ['flera-gula-dagar', 'red', 'green'],
+      ['standard-allvarligt', 'yellow', 'yellow'],
+    ].filter(([, e, g]) => e !== g));
   });
 });
 

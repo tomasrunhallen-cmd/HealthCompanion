@@ -10,7 +10,7 @@ import { assessEntry, wordMatcher, type SignMatcher } from '../analysis/assess';
 import { eveningDateKey } from '../analysis/dates';
 import { createLlmMatcher } from '../analysis/llmMatcher';
 import { loadTestSuite } from '../analysis/testcases';
-import { entriesFromPlan } from '../context/buildContext';
+import { akutLevel, type AkutLevel } from '../context/akut';
 import { PLAN_KINDS, type ContextEntry, type Level, type PlanItemKind } from '../domain/types';
 import { hasConsent, type LlmConfig } from '../llm/config';
 import type { DraftKind, DraftRow } from '../plan/parsePlan';
@@ -85,8 +85,10 @@ export interface CaseResult {
   expected: Level;
   got: Level | null;
   ok: boolean;
-  /** Why the case failed, in Swedish, when the model call itself failed. */
+  /** Why the case failed, in Swedish, when the model call itself failed or the emergency rule judged wrong. */
   error: string | null;
+  /** Set when the emergency rule decided the case in code; the model was never asked. */
+  akut: AkutLevel | null;
 }
 
 export interface ModelTestReport {
@@ -94,13 +96,17 @@ export interface ModelTestReport {
   total: number;
   cases: CaseResult[];
   promptVersion: string;
+  /** Version of prompts/testfall.md, so a saved result says which cases it passed. */
+  suiteVersion: string;
+  /** True only when every case gave the reference level. Only then may the model be saved. */
+  approved: boolean;
 }
 
-/**
- * Runs the four test cases from prompts/testfall.md through the full path: scrub,
- * prompt, model, schema check, scoring in code. A case passes when the model answered
- * with valid JSON (no fallback) and the level is the expected one.
- */
+/** The cases whose level differed from the reference answer, or that got no answer. */
+export function differingCases(report: ModelTestReport): CaseResult[] {
+  return report.cases.filter((c) => !c.ok);
+}
+
 /**
  * The user's own context for the test cases: everything except the plan's rows, the
  * normal state and day-bound entries, which belong to the test case. Corrections stay.
@@ -111,6 +117,15 @@ export function userContextForTests(entries: ContextEntry[]): ContextEntry[] {
   );
 }
 
+const AKUT_TEXT: Record<AkutLevel, string> = { full: 'full träff', mild: 'mild träff' };
+
+/**
+ * Runs the cases in prompts/testfall.md through the full path: emergency rule, scrub,
+ * prompt, model, schema check, scoring in code. A case passes when the level is the
+ * reference level and, for model cases, the model answered with valid JSON (no
+ * fallback). Emergency cases are decided in code, exactly as in the check-in, and never
+ * reach the model. The model is approved only when every case passes.
+ */
 export async function runModelTest(
   completer: Completer,
   model: string,
@@ -119,22 +134,42 @@ export async function runModelTest(
   userEntries: ContextEntry[] = [],
 ): Promise<ModelTestReport> {
   const suite = loadTestSuite();
-  const context = [...userContextForTests(userEntries), ...entriesFromPlan(suite.plan, suite.planSettings.normalState)];
+  const own = userContextForTests(userEntries);
+  const userAkut = own.filter((e) => e.kind === 'akut').map((e) => e.text);
   const inner = createLlmMatcher({ completer, model, names: () => [] });
   const cases: CaseResult[] = [];
   for (const c of suite.cases) {
+    const context = [...own, ...c.context];
+    const base = { entry: c.entry, plan: c.plan, planSettings: c.planSettings, history: c.history, context };
+    const akut = akutLevel(c.entry.transcript, userAkut);
+    if (akut || c.expectedAkut) {
+      // The same order as the check-in: the emergency rule first, and no model on a match.
+      const a = await assessEntry({ ...base, matcher: wordMatcher, akut: akut === 'full', akutMild: akut === 'mild' });
+      const akutOk = akut === c.expectedAkut;
+      cases.push({
+        id: c.id,
+        name: c.name,
+        expected: c.expected,
+        got: a.level,
+        ok: akutOk && a.level === c.expected,
+        error: akutOk ? null : `Akutregeln gav ${akut ? AKUT_TEXT[akut] : 'ingen träff'}, väntat ${c.expectedAkut ? AKUT_TEXT[c.expectedAkut] : 'ingen träff'}.`,
+        akut,
+      });
+      onProgress?.(cases.length, suite.cases.length);
+      continue;
+    }
     let error: string | null = null;
     const matcher: SignMatcher = {
-      async match(note, signs, settings, context) {
+      async match(note, signs, settings, ctx) {
         try {
-          return await inner.match(note, signs, settings, context);
+          return await inner.match(note, signs, settings, ctx);
         } catch (e) {
           error = (e as Error).message || 'Okänt fel';
           throw e;
         }
       },
     };
-    const a = await assessEntry({ entry: c.entry, plan: suite.plan, planSettings: suite.planSettings, history: c.history, matcher, context });
+    const a = await assessEntry({ ...base, matcher });
     const answered = a.method === 'llm';
     cases.push({
       id: c.id,
@@ -143,16 +178,20 @@ export async function runModelTest(
       got: answered ? a.level : null,
       ok: answered && a.level === c.expected,
       error: answered ? null : error ?? 'Modellen svarade inte enligt schemat.',
+      akut: null,
     });
     onProgress?.(cases.length, suite.cases.length);
     // A wrong key or address fails every case the same way; stop early and save tokens.
-    if (cases.length === 1 && error && /nyckel|adress|kontakt|hittade inte/i.test(error)) break;
+    if (error && /nyckel|adress|kontakt|hittade inte/i.test(error)) break;
   }
+  const passed = cases.filter((c) => c.ok).length;
   return {
-    passed: cases.filter((c) => c.ok).length,
+    passed,
     total: suite.cases.length,
     cases,
     promptVersion: loadPrompt('analys').meta.version,
+    suiteVersion: suite.version,
+    approved: passed === suite.cases.length,
   };
 }
 

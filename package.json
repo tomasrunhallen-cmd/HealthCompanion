@@ -43,6 +43,7 @@
     "web": "node scripts/build-prompts.js && expo start --web",
     "pretest": "node scripts/build-prompts.js",
     "test": "jest && node --test tests/functions/*.test.mjs",
+    "prompt:check": "node scripts/build-prompts.js && jest --testMatch '<rootDir>/tests/live/*.live.ts'",
     "typecheck": "node scripts/build-prompts.js && tsc --noEmit",
     "export:web": "node scripts/build-prompts.js && expo export --platform web"
   },

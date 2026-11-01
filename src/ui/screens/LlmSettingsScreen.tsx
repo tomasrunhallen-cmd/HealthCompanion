@@ -5,7 +5,7 @@ import { PROVIDER_ORDER, PROVIDERS, normalizeBaseUrl, type ProviderId } from '..
 import { eveningDateKey } from '../../analysis/dates';
 import { destinationKey, estimateMonthlyCost, hasConsent, isLocalDestination } from '../../llm/config';
 import { deleteSecret, getSecret, secretsPersist, setSecret } from '../../platform/secrets';
-import { buildAdapter, LLM_KEY_NAME, runModelTest, type ModelTestReport } from '../../services/llm';
+import { buildAdapter, differingCases, LLM_KEY_NAME, runModelTest, type CaseResult, type ModelTestReport } from '../../services/llm';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, space, type } from '../theme';
@@ -21,6 +21,15 @@ function formatTokens(n: number): string {
 
 function formatKronor(v: number): string {
   return v < 1 ? `${v.toFixed(2).replace('.', ',')} kr` : `${Math.round(v * 10) / 10} kr`.replace('.', ',');
+}
+
+/** One line under each test case: what it gave against the reference, or why it got nothing. */
+function caseLine(c: CaseResult): string {
+  const via = c.akut ? ' Avgjort av akutregeln, utan modellen.' : '';
+  if (c.error && c.got) return `${c.error}${via}`;
+  if (!c.got) return c.error ?? 'Inget svar.';
+  const gave = `Gav ${LEVEL_TEXT[c.got].toLowerCase()}`;
+  return c.ok ? `${gave}, som referenssvaret.${via}` : `${gave}, referenssvaret är ${LEVEL_TEXT[c.expected].toLowerCase()}.${via}`;
 }
 
 export function LlmSettingsScreen() {
@@ -96,7 +105,7 @@ export function LlmSettingsScreen() {
     if (missing) return dialog.info('Något saknas', missing);
     if (!(await askConsent())) return;
     setBusy(true);
-    setProgress('Kör testfall 1 av 4…');
+    setProgress('Kör testfallen…');
     try {
       const key = usingSavedKey ? await getSecret(LLM_KEY_NAME) : keyInput.trim() || null;
       const adapter = buildAdapter({ provider, model, baseUrl }, key, { browser: Platform.OS === 'web' });
@@ -118,16 +127,13 @@ export function LlmSettingsScreen() {
   const save = async () => {
     const r = currentReport;
     if (!r) return;
-    if (r.passed < r.total) {
-      const ok = await dialog.confirm({
-        title: `${r.passed} av ${r.total} testfall gick igenom`,
-        message:
-          'Nivån räknas alltid i appen, och när modellen inte svarar som den ska används ordmatchning. ' +
-          'Men en modell som missar dina tecken kan ge en för låg nivå. Spara ändå?',
-        confirmLabel: 'Spara ändå',
-        danger: true,
-      });
-      if (!ok) return;
+    // A model is approved only when every case gave the reference level.
+    if (!r.approved) {
+      await dialog.info(
+        'Modellen är inte godkänd',
+        `${r.total - r.passed} av ${r.total} testfall gav en annan nivå än referenssvaret. Appen fortsätter med det du hade förut.`,
+      );
+      return;
     }
     if (!usingSavedKey) {
       if (keyInput.trim()) await setSecret(LLM_KEY_NAME, keyInput.trim());
@@ -249,22 +255,27 @@ export function LlmSettingsScreen() {
       </Section>
 
       {currentReport ? (
-        <Section title={`${currentReport.passed} av ${currentReport.total} testfall gick igenom`}>
-          <Card tone={currentReport.passed === currentReport.total ? 'green' : 'yellow'}>
-            {currentReport.cases.map((c) => (
+        <Section title={currentReport.approved ? `Godkänd: alla ${currentReport.total} testfall gav rätt nivå` : `Inte godkänd: ${currentReport.passed} av ${currentReport.total} testfall gav rätt nivå`}>
+          <Card tone={currentReport.approved ? 'green' : 'yellow'}>
+            {!currentReport.approved ? (
+              <P style={{ marginBottom: space.s }}>
+                En ny modell godkänns bara när alla fall ger samma nivå som referenssvaren. Fallen som skilde sig står först.
+              </P>
+            ) : null}
+            {[...differingCases(currentReport), ...currentReport.cases.filter((c) => c.ok)].map((c) => (
               <View key={c.id} style={{ paddingVertical: space.s, borderBottomWidth: 1, borderColor: colors.border }}>
                 <Text style={[type.body, { fontWeight: '600' }]}>{c.ok ? '✓' : '✗'} {c.name}</Text>
-                <Text style={type.small}>
-                  {c.got ? `Gav ${LEVEL_TEXT[c.got].toLowerCase()}, väntat ${LEVEL_TEXT[c.expected].toLowerCase()}.` : c.error}
-                </Text>
+                <Text style={type.small}>{caseLine(c)}</Text>
               </View>
             ))}
             {currentReport.cases.length < currentReport.total ? (
-              <P muted style={{ marginTop: space.s }}>Testet avbröts efter första fallet eftersom felet gäller alla fall.</P>
+              <P muted style={{ marginTop: space.s }}>Testet avbröts efter första felet eftersom det gäller alla fall.</P>
             ) : null}
-            <P muted style={{ marginTop: space.s }}>Prompt analys version {currentReport.promptVersion}.</P>
+            <P muted style={{ marginTop: space.s }}>
+              Prompt analys version {currentReport.promptVersion}, testfall version {currentReport.suiteVersion}.
+            </P>
           </Card>
-          <Button title={`Spara ${model.trim()}`} onPress={save} disabled={currentReport.passed === 0} />
+          <Button title={`Spara ${model.trim()}`} onPress={save} disabled={!currentReport.approved} />
         </Section>
       ) : null}
 

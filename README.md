@@ -109,7 +109,7 @@ Du behöver en Mistral-nyckel från console.mistral.ai. Steg 2 fungerar i Expo G
 1. Öppna *Inställningar* och tryck *Koppla en språkmodell*.
 2. Välj *Mistral*, klistra in nyckeln och låt modellen stå på *mistral-small-latest*.
 3. Tryck *Testa modellen*. Läs rutan om vart texten går och godkänn. Testet skickar bara appens påhittade testfall.
-4. Se hur många av de fyra testfallen som gick igenom. Tryck *Spara*.
+4. Se hur många av de 21 testfallen som gav rätt nivå. *Spara* går bara att trycka när alla gjorde det. Annars står fallen som skilde sig först i listan.
 5. Gör *Kvällens avstämning* med samma text som i steg 1. Bedömningen ska säga att din språkmodell tolkade tecknen, och visa modell och promptversion längst ner.
 6. Lägg in en krisplan med *Sortera med Mistral*. Kontrollera den rensade texten innan du skickar. Namn och nummer ska komma tillbaka i raderna.
 7. Fyll i priser under *Kostnad* för att se en månadsuppskattning.
@@ -133,13 +133,51 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 186 tester i Jest och 3 för Netlify-funktionerna: ampel, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 218 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
-Specens fyra obligatoriska testfall ligger i `prompts/testfall.md` och körs både med ordmatchning och genom hela LLM-vägen med en fejkad modell. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
+Testfallen ligger i `prompts/testfall.md`, se *Testfall och modellbyte* nedan. Varje fall har ett referenssvar, och testerna skickar referenssvaren genom hela LLM-vägen och kontrollerar nivån. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
 
 Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster, eftersom det kräver dina nycklar. Det är det som verifieringen på telefonen visar. Garmin-flödet är provkört i webbförhandsvisningen med fejkade svar: fel nyckel, rätt nyckel, veckovyn, avstämningen och texten till modellen.
+
+## Testfall och modellbyte
+
+`prompts/testfall.md` har 21 fall. Varje fall har en anteckning, mätvärden, en historik, den nivå appen ska ge och ett **referenssvar**: vilka av planens tecken en noggrann modell ska hitta, med ett ordagrant citat. Fallen täcker:
+
+| Fall | Nivå |
+| --- | --- |
+| Lugn dag | grönt |
+| Ett tidigt tecken | gult |
+| Ett tecken med andra ord än i planen | gult |
+| "Jag har inte slutat svara på sms" | grönt |
+| Känt falsklarm (storhandla inför fest) | grönt |
+| Ett allvarligt tecken ensamt | gult |
+| Allvarligt tecken och ett tidigt tecken | rött |
+| Precis under gult: 5 h sömn, 150 ord per minut, stress 39 mot 30 | grönt |
+| Precis på gult: samma dag med 4,9 h sömn | gult |
+| Fyra timmars sömn, 180 ord per minut, inlägg 01:15 | gult |
+| Festkväll med alkohol: 4 h sömn, stress 48 mot 30, snabbt tal | gult |
+| Samma festkväll med *Alkohol, sjuk eller hård träning i går?* | grönt |
+| En kort natt och två tidiga tecken | gult |
+| Samma dag efter två korta nätter i rad | rött |
+| Medicin inte tagen två kvällar i rad | gult |
+| Medicin inte tagen en kväll | grönt |
+| Två tysta dagar efter en grön vecka | gult |
+| Två tidiga tecken efter tre gula dagar | rött |
+| Standardläget med fyra tecken och kort sömn | gult, aldrig rött |
+| "Jag vill inte leva längre" (akutregeln, når inte modellen) | rött |
+| "Jag vill inte dö" (mild akutträff, når inte modellen) | grönt |
+
+- **Testa modellen godkänner en ny modell bara om alla fall ger samma nivå som referenssvaren.** Fallen som skilde sig visas först, med nivån modellen gav och nivån som väntades. Akutfallen avgörs i koden precis som i avstämningen och skickas aldrig till modellen. En modell du redan sparat fortsätter att användas tills du sparar en ny.
+- **En ändrad analysprompt måste klara alla fall innan den checkas in.** Godkännandet står i `prompts/godkand.json` med ett fingeravtryck av `prompts/analys.md` och `schemas/analys.json`. Testet `tests/prompt-gate.test.ts` i `npm test` stoppar så fort prompten eller schemat ändrats utan nytt godkännande. Ett nytt godkännande får man bara genom att köra alla fall mot en riktig modell:
+
+  ```bash
+  DAGSLJUS_LLM_PROVIDER=mistral DAGSLJUS_LLM_MODEL=mistral-small-latest DAGSLJUS_LLM_KEY=... npm run prompt:check
+  ```
+
+  Nyckeln läggs i miljön, aldrig i en fil i repot. Skriptet skriver om `prompts/godkand.json` bara om alla fall gick igenom, och listar annars fallen som skilde sig.
+- **Prompten 1.2.0 står som utgångsläge, inte som godkänd.** Den är oförändrad i den här ändringen och har inte körts mot de 21 fallen med en riktig modell i repot. Kör *Testa modellen* med Mistral i appen för att se hur den klarar dem.
 
 ## Kontextbanken: det appen vet om dig
 
@@ -162,7 +200,7 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 
 ## Avvikelser och antaganden som du behöver ta ställning till
 
-- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Matchningen tål böjningar och ord emellan. En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 35 fraser och bör prövas mot verkliga formuleringar.
+- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Matchningen tål böjningar och ord emellan. En böjning får lägga till högst tre bokstäver, så "för mig själv" räknas inte som "självmord". En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 35 fraser och bör prövas mot verkliga formuleringar.
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
 
 - **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn- och stressreglerna 0 poäng den dagen, och bedömningen säger det. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Reglerna står i `src/analysis/rules.ts` och `src/analysis/scoring.ts` och bör stämmas av med din vårdkontakt.
@@ -174,7 +212,7 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **iCloud-backup på iOS.** Android-backup är avstängd via `allowBackup: false`. På iOS hittade jag inget sätt i Expo att utesluta databasfilen från iCloud-backup utan egen nativekod. Databasen är krypterad i en utvecklingsbuild och nyckeln följer inte med backupen, men filen kan hamna i iCloud. Det behöver en liten config plugin, som jag föreslår till utvecklingsbuilden.
 - **Anthropic använder API-versionen 2023-06-01.** Den nyaste versionen, 2026-10-21, tar bort temperatur helt. Appen vill ha temperatur 0 för stabila svar och använder därför den äldre versionen, som fortfarande stöds. Om en modell ändå avvisar temperatur görs ett nytt anrop utan.
 - **Mistral använder JSON-läge, inte schemaläge.** JSON-läget är dokumenterat och verifierat. Schemaläget finns men jag hittade inte det exakta fältformatet i dokumentationen. Appen kontrollerar ändå varje svar mot schemat och ber om ett nytt svar en gång vid fel.
-- **Spara trots underkänt test.** Specen säger att en modell godkänns när alla fyra testfall ger rätt nivå. Appen låter dig spara en modell som klarat färre, efter en varning, men inte en som klarat noll. Säg till om du vill att alla fyra ska krävas.
+- **Testa modellen kör testfallen med din egen kontext.** Dina falsklarm, din ton och dina rättelser följer med, men testplanens tecken används. Ett eget falsklarm kan därför få ett fall att skilja sig, och då visas vilket.
 - **Testanrop räknas i kostnaden.** Testa modellen kostar tokens och räknas därför in i månadsuppskattningen.
 - **Rader som inte står i planen markeras.** När modellen sorterar krisplanen kontrollerar appen att varje rad finns i den inklistrade texten. Rader som inte gör det får en röd varning. Alla rader måste fortfarande godkännas en och en.
 - **Garmins fältnamn kommer inte från Garmin.** Garmins egna sidor och deras Python-klient anger värd, token och sökvägar. Fältnamnen i svaren, som `sleepTimeSeconds` och `overallStressLevel`, kommer från två oberoende öppna klienter för samma API. Garmin publicerar dem bara i sin Swagger-dokumentation, som jag inte kunde läsa. Appen tolkar svaren försiktigt och hoppar över fält som saknas.

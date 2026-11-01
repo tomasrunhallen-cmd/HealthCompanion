@@ -1,5 +1,6 @@
 import { createCompleter } from '../src/adapter/complete';
-import { echoAnalysisAdapter } from '../src/adapter/fake';
+import { referenceAdapter } from '../src/adapter/fake';
+import { loadTestSuite } from '../src/analysis/testcases';
 import { modelChanges } from '../src/analysis/modelChanges';
 import { buildContext, CORRECTIONS_SHOWN, PROFILE_BUDGET_CHARS } from '../src/context/buildContext';
 import type { Assessment, ContextEntry, Entry } from '../src/domain/types';
@@ -92,10 +93,10 @@ describe('Testa modellen with the user\'s own context', () => {
     await repo.addContextEntry({ kind: 'correction', text: 'Var bara trött', origin: 'correction', date: '2026-10-30', correction: { assessmentId: 'a', verdict: 'disagree' } });
     await repo.addContextEntry({ kind: 'early', text: 'Mitt eget tecken', origin: 'crisis_plan' });
     const calls: string[] = [];
-    const echo = echoAnalysisAdapter();
-    const spy = { ...echo, async send(req: Parameters<typeof echo.send>[0]) { calls.push(req.user); return echo.send(req); } };
+    const ref = referenceAdapter(loadTestSuite().cases);
+    const spy = { ...ref, async send(req: Parameters<typeof ref.send>[0]) { calls.push(req.user); return ref.send(req); } };
     const report = await runModelTest(createCompleter(spy), 'fake', undefined, repo.contextEntries());
-    expect(report.passed).toBe(4);
+    expect(report.approved).toBe(true);
     expect(calls[0]).toContain('Kort sömn före tidiga flyg');
     expect(calls[0]).toContain('Var bara trött');
     // The test plan's own signs are used, not the user's.

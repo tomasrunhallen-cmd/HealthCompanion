@@ -1,0 +1,14 @@
+{
+  "analys": {
+    "version": "1.2.0",
+    "sha256": "b4a3a687245177fd1710f89983dbb5b2b167726f6ff37a97a4e8841d41f7f843",
+    "status": "utgångsläge",
+    "testfall": "2.0.0",
+    "provider": null,
+    "model": null,
+    "passed": null,
+    "total": 21,
+    "date": "2026-11-01",
+    "note": "Prompten var oförändrad när spärren infördes och har inte körts mot de 21 fallen med en riktig modell i repot. Nästa ändring av prompts/analys.md eller schemas/analys.json kräver npm run prompt:check."
+  }
+}

@@ -2,6 +2,7 @@
 // Lets the whole app and the test suite run offline (work order point 6).
 
 import { contentTokens, splitSentences, tokenize, wordsMatch, quoteFrom } from '../analysis/wordmatch';
+import { scrub } from '../privacy/scrub';
 import type { LlmAdapter, Usage } from './types';
 
 const ZERO: Usage = { inputTokens: 0, outputTokens: 0 };
@@ -54,6 +55,34 @@ export function echoAnalysisAdapter(): LlmAdapter {
       const first = signs.find((s) => s.id === matches[0]?.sign_id);
       const sentence = first
         ? `Det tydligaste i dag liknar ditt tecken ”${first.text}”.`
+        : 'Inget i anteckningen avviker från ditt normalläge.';
+      return { text: JSON.stringify({ matches, sentence }), usage: ZERO };
+    },
+  };
+}
+
+/**
+ * Answers each test case with its reference answer from prompts/testfall.md: the signs a
+ * careful model should find, with their quotes. Used to check that the cases and the
+ * scoring code agree, and as a stand-in model in `npm run prompt:check`'s own test.
+ */
+export function referenceAdapter(cases: { entry: { transcript: string }; reference: { sign: string; quote: string }[] | null }[]): LlmAdapter {
+  return {
+    provider: 'fake',
+    model: 'referenssvar',
+    local: true,
+    async send(req) {
+      const note = (req.user.split('Dagens anteckning (rensad):\n')[1] ?? '').trim();
+      const numbers = new Map<string, number>();
+      for (const line of (req.user.match(/Tecken:\n([\s\S]*?)\n\n/)?.[1] ?? '').split('\n')) {
+        const m = line.match(/^(\d+)\.\s+(.*?)(\s+\((tidigt|allvarligt)\))?$/);
+        if (m) numbers.set(m[2], Number(m[1]));
+      }
+      const c = cases.find((x) => x.reference && scrub(x.entry.transcript, []).text.trim() === note);
+      if (!c?.reference) throw new Error(`Inget referenssvar för anteckningen: ${note.slice(0, 60)}`);
+      const matches = c.reference.map((r) => ({ sign_id: numbers.get(r.sign) ?? 0, quote: r.quote }));
+      const sentence = c.reference[0]
+        ? `Det tydligaste i dag liknar ditt tecken ”${c.reference[0].sign}”.`
         : 'Inget i anteckningen avviker från ditt normalläge.';
       return { text: JSON.stringify({ matches, sentence }), usage: ZERO };
     },

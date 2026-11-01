@@ -1,5 +1,5 @@
 import { createCompleter, InvalidAnswerError } from '../src/adapter/complete';
-import { echoAnalysisAdapter, fixedAdapter } from '../src/adapter/fake';
+import { fixedAdapter, referenceAdapter } from '../src/adapter/fake';
 import { extractJson, validate, type SchemaNode } from '../src/adapter/schema';
 import { assessEntry } from '../src/analysis/assess';
 import { createLlmMatcher } from '../src/analysis/llmMatcher';
@@ -86,14 +86,17 @@ describe('adapter with fake implementation', () => {
     expect(r.matches).toEqual([]);
   });
 
-  it('the four test cases pass through the full LLM path with the fake model', async () => {
+  it('every reference answer passes through the full LLM path and gives its level', async () => {
     const suite = loadTestSuite();
-    const matcher = createLlmMatcher({ completer: createCompleter(echoAnalysisAdapter()), model: 'fake-analys', names: () => [] });
-    for (const c of suite.cases) {
-      const a = await assessEntry({ entry: c.entry, plan: suite.plan, planSettings: suite.planSettings, history: c.history, matcher });
+    const matcher = createLlmMatcher({ completer: createCompleter(referenceAdapter(suite.cases)), model: 'referenssvar', names: () => [] });
+    const modelCases = suite.cases.filter((c) => c.reference);
+    expect(modelCases.length).toBeGreaterThanOrEqual(16);
+    for (const c of modelCases) {
+      const a = await assessEntry({ entry: c.entry, plan: c.plan, planSettings: c.planSettings, history: c.history, matcher, context: c.context });
       expect({ id: c.id, level: a.level }).toEqual({ id: c.id, level: c.expected });
       expect(a.method).toBe('llm');
       expect(a.promptVersion).toBe('1.2.0');
     }
   });
+
 });
