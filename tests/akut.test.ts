@@ -68,6 +68,15 @@ describe('emergency word list', () => {
     expect(isAkut('')).toBe(false);
   });
 
+  it('does not take a short word for the start of a longer one ("själv" is not "självmord")', () => {
+    expect(akutLevel('Satt mest för mig själv på lunchen.')).toBeNull();
+    expect(akutLevel('Lagade middag själv och gick en promenad.')).toBeNull();
+    expect(akutLevel('Kände mig lite skadeglad i dag.')).toBeNull();
+    // Real inflections still match.
+    expect(isAkut('Har tänkt på självmordet hela dagen')).toBe(true);
+    expect(isAkut('Har skadat mig själv igen')).toBe(true);
+  });
+
   it('includes the user\'s own phrases from the crisis plan', () => {
     expect(isAkut('Allt känns grått och jag vill sova för evigt')).toBe(false);
     expect(akutMatches('Allt känns grått och jag vill sova för evigt', ['vill sova för evigt'])).toEqual(['vill sova för evigt']);

@@ -36,9 +36,17 @@ export function akutPhrases(): string[] {
   return cached;
 }
 
+/** Letters an inflection may add after the shared stem ("skada" / "skadade"). */
+const MAX_ENDING = 3;
+
 function tokenEq(a: string, b: string): boolean {
   // Short words must be equal; longer ones may be inflections ("skadar" / "skada").
-  return a === b || (Math.min(a.length, b.length) >= 4 && wordsMatch(a, b));
+  if (a === b) return true;
+  if (Math.min(a.length, b.length) < 4 || !wordsMatch(a, b)) return false;
+  // A longer tail makes another word: "själv" is not "självmord", "skadeglad" is not "skada".
+  let p = 0;
+  while (p < a.length && p < b.length && a[p] === b[p]) p++;
+  return Math.max(a.length, b.length) - p <= MAX_ENDING;
 }
 
 /** Words before a phrase that can negate it, within the same clause ("har aldrig haft självmordstankar"). */

@@ -1,6 +1,6 @@
 ---
 id: akut
-version: 0.2.0
+version: 0.2.1
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Akutordlista
@@ -10,7 +10,8 @@ innan något skickas till en språkmodell och oberoende av den. Listan skickas a
 en modell. Användarens egna formuleringar läggs till från krisplanen.
 
 Matchningen tål böjningar ("skadar" och "skada") och upp till två ord emellan
-("vill verkligen inte leva"). Den läses sats för sats.
+("vill verkligen inte leva"). En böjning får lägga till högst tre bokstäver, så
+"själv" räknas inte som "självmord". Den läses sats för sats.
 
 - Träff utan negation: krisrutan, dagen blir röd, ingenting skickas eller hämtas.
 - Träff med en negation mellan orden eller upp till två ord före frasen i samma sats
