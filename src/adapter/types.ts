@@ -48,6 +48,11 @@ export interface LlmAdapter {
   send(req: SendRequest): Promise<{ text: string; usage: Usage }>;
 }
 
+export interface CompleteOptions {
+  /** Extra checks after the schema, e.g. that every id sent comes back. Errors give the same retry. */
+  check?: (json: unknown) => string[];
+}
+
 export interface Completer {
-  complete(prompt: Prompt, variables: Record<string, string>): Promise<CompletionResult>;
+  complete(prompt: Prompt, variables: Record<string, string>, options?: CompleteOptions): Promise<CompletionResult>;
 }

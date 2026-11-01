@@ -11,11 +11,10 @@ import { eveningDateKey } from '../analysis/dates';
 import { createLlmMatcher } from '../analysis/llmMatcher';
 import { loadTestSuite } from '../analysis/testcases';
 import { akutLevel, type AkutLevel } from '../context/akut';
-import { PLAN_KINDS, type ContextEntry, type Level, type PlanItemKind } from '../domain/types';
-import { hasConsent, type LlmConfig } from '../llm/config';
-import type { DraftKind, DraftRow } from '../plan/parsePlan';
+import { PLAN_KINDS, type ContextEntry, type Level } from '../domain/types';
+import { hasConsent, importModelOf, type LlmConfig } from '../llm/config';
 import { loadPrompt } from '../prompts/loader';
-import { namesFromPlanText, restorePlaceholders } from '../privacy/scrub';
+import { namesFromPlanText } from '../privacy/scrub';
 import { getSecret } from '../platform/secrets';
 import type { Repository } from '../storage/repository';
 
@@ -26,6 +25,8 @@ export interface AdapterOptions {
   browser?: boolean;
   /** Clock for dating token use; the check-in passes its own time. */
   now?: () => Date;
+  /** The crisis plan import may use a model of its own (LlmConfig.importModel). */
+  purpose?: 'evening' | 'import';
 }
 
 /** Names removed before text is sent: the user's own list plus names found in the plan. */
@@ -68,7 +69,8 @@ export async function activeAdapter(repo: Repository, opts: AdapterOptions = {})
   if (!llmReady(c) || !c.provider) return null;
   const key = await getSecret(LLM_KEY_NAME);
   if (c.provider !== 'openai-compatible' && !key) return null;
-  return buildAdapter({ provider: c.provider, model: c.model, baseUrl: c.baseUrl }, key, opts);
+  const model = opts.purpose === 'import' ? importModelOf(c) : c.model;
+  return buildAdapter({ provider: c.provider, model, baseUrl: c.baseUrl }, key, opts);
 }
 
 export async function currentMatcher(repo: Repository, opts: AdapterOptions = {}): Promise<SignMatcher> {
@@ -201,56 +203,4 @@ export async function runModelTest(
     suiteVersion: suite.version,
     approved: passed === suite.cases.length,
   };
-}
-
-// ---- crisis plan import with a model ----
-
-const IMPORT_KIND: Record<string, DraftKind> = {
-  tidigt: 'early',
-  allvarligt: 'serious',
-  'atgard-gult': 'action_yellow',
-  'atgard-rott': 'action_red',
-  anhorig: 'relatives',
-  normallage: 'normal',
-};
-
-export interface ImportedRow extends DraftRow {
-  /** False when the row's words are not found in the pasted plan; shown as a warning. */
-  inOriginal: boolean;
-}
-
-function squash(s: string): string {
-  return s.toLowerCase().replace(/[^a-zåäöéü0-9]+/g, ' ').trim();
-}
-
-/**
- * Sends the scrubbed plan to the model with prompts/krisplan-import.md and turns the
- * answer into draft rows. Placeholders are put back on the phone. Every row starts
- * unapproved; nothing is saved until the user approves it.
- */
-export async function structurePlanWithModel(
-  completer: Completer,
-  scrubbedText: string,
-  map: Record<string, string>,
-  originalText: string,
-): Promise<ImportedRow[]> {
-  const res = await completer.complete(loadPrompt('krisplan-import'), { krisplan: scrubbedText });
-  const answer = res.json as { rows: { kind: string; text: string }[] };
-  const original = squash(originalText);
-  return answer.rows
-    .map((r, i): ImportedRow => {
-      const text = restorePlaceholders(r.text, map).trim();
-      return {
-        key: `m${i}`,
-        text,
-        kind: IMPORT_KIND[r.kind] ?? 'unsorted',
-        approved: false,
-        inOriginal: original.includes(squash(text)),
-      };
-    })
-    .filter((r) => r.text.length > 0);
-}
-
-export function isPlanKind(k: DraftKind): k is PlanItemKind {
-  return k !== 'normal' && k !== 'unsorted';
 }

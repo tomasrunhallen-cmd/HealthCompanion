@@ -50,3 +50,19 @@ export async function pickTextFiles(types: string[] = ['.csv', 'text/csv']): Pro
     input.click();
   });
 }
+
+/** One binary file, for a crisis plan as PDF or .docx. Read in the browser, never uploaded. */
+export async function pickBinaryFile(types: string[]): Promise<{ name: string; data: Uint8Array } | null> {
+  const doc = (globalThis as { document?: any }).document;
+  if (!doc) return null;
+  return new Promise((resolve) => {
+    const input = doc.createElement('input');
+    input.type = 'file';
+    input.accept = types.filter((t) => t !== '*/*').join(',');
+    input.onchange = async () => {
+      const f = input.files?.[0] as { name: string; arrayBuffer(): Promise<ArrayBuffer> } | undefined;
+      resolve(f ? { name: f.name, data: new Uint8Array(await f.arrayBuffer()) } : null);
+    };
+    input.click();
+  });
+}

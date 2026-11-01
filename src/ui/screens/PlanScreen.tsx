@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import type { PlanItem, PlanItemKind } from '../../domain/types';
-import { KIND_LABEL } from '../../plan/parsePlan';
+import type { ContextKind, PlanItem, PlanItemKind } from '../../domain/types';
+import { KIND_TEXT } from '../../context/labels';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -66,6 +66,8 @@ function ItemRow({ item, first, last }: { item: PlanItem; first: boolean; last: 
   );
 }
 
+const OTHER_KINDS: ContextKind[] = ['trigger', 'routine', 'value_anchor', 'contact', 'wish', 'note_for_care'];
+
 const link = { color: colors.accent, fontWeight: '600' as const, fontSize: 14 };
 
 function AddRow({ kind }: { kind: PlanItemKind }) {
@@ -75,7 +77,7 @@ function AddRow({ kind }: { kind: PlanItemKind }) {
   if (!open) return <Button kind="ghost" title="+ Lägg till rad" onPress={() => setOpen(true)} />;
   return (
     <View style={{ marginTop: space.s }}>
-      <Field value={text} onChangeText={setText} placeholder={`Ny rad: ${KIND_LABEL[kind].toLowerCase()}`} />
+      <Field value={text} onChangeText={setText} placeholder={`Ny rad: ${KIND_TEXT[kind].toLowerCase()}`} />
       <Row>
         <Button
           title="Godkänn och spara"
@@ -94,6 +96,7 @@ export function PlanScreen() {
   const ps = repo.planSettings();
   const [normal, setNormal] = useState(ps.normalState);
   const [threshold, setThreshold] = useState(ps.sleepThresholdHours);
+  const other = repo.contextEntries('grund').filter((e) => OTHER_KINDS.includes(e.kind)).length;
 
   return (
     <Screen title="Min krisplan" back>
@@ -118,6 +121,18 @@ export function PlanScreen() {
         );
       })}
 
+      {other > 0 ? (
+        <Section title="Mer från planen">
+          <Card>
+            <P muted>
+              {other} rader om risksituationer, livsstil och rutiner, värdeankare, kontakter, önskemål och information till vården
+              finns under Det appen vet om mig. Önskemål, kontakter och rader till vården används aldrig i bedömningen och skickas aldrig till en språkmodell.
+            </P>
+            <Button kind="ghost" title="Visa Det appen vet om mig" onPress={() => nav.push({ name: 'knowledge' })} />
+          </Card>
+        </Section>
+      ) : null}
+
       <Section title="Normalläge och sömn">
         <Card>
           <Field
@@ -135,6 +150,11 @@ export function PlanScreen() {
             <Button kind="secondary" title="+" onPress={() => { const v = Math.min(10, threshold + 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
           </Row>
           <P muted>Sömn under gränsen räknas som ett tidigt tecken. Standard är 5 timmar.</P>
+          {ps.sleepWindow ? (
+            <P muted style={{ marginTop: space.s }}>
+              Planens sömnfönster: {ps.sleepWindow.start}–{ps.sleepWindow.end}. Gränsen sattes till fönstret minus två timmar när du godkände det.
+            </P>
+          ) : null}
         </Card>
       </Section>
     </Screen>

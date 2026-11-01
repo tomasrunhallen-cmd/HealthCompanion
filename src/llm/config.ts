@@ -19,6 +19,8 @@ export interface LlmConfig {
   /** Null means no language model: word matching on the phone. */
   provider: ProviderId | null;
   model: string;
+  /** Model for sorting crisis plan headings the rules do not know. Empty: the same as `model`. Same provider and key. */
+  importModel: string;
   /** Only for the OpenAI-compatible provider. */
   baseUrl: string;
   /** Set when the user has read where the text goes, for exactly this provider and address. */
@@ -32,6 +34,7 @@ export interface LlmConfig {
 export const DEFAULT_LLM_CONFIG: LlmConfig = {
   provider: null,
   model: '',
+  importModel: '',
   baseUrl: '',
   consentFor: null,
   priceInPerMillion: null,
@@ -92,4 +95,9 @@ export function estimateMonthlyCost(
   const { priceInPerMillion: pin, priceOutPerMillion: pout } = prices;
   const kronor = pin == null || pout == null ? null : (inputTokens * pin + outputTokens * pout) / 1_000_000;
   return { inputTokens, outputTokens, kronor };
+}
+
+/** The model the crisis plan import uses: its own setting, or the evening model. */
+export function importModelOf(c: Pick<LlmConfig, 'model' | 'importModel'>): string {
+  return c.importModel?.trim() || c.model.trim();
 }

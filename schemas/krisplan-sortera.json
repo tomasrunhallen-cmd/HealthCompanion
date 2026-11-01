@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "krisplan-import",
+  "$id": "krisplan-sortera",
   "type": "object",
   "additionalProperties": false,
   "required": ["rows"],
@@ -10,13 +10,14 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "text"],
+        "required": ["id", "kind", "polarity"],
         "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 20 },
           "kind": {
             "type": "string",
-            "enum": ["tidigt", "allvarligt", "atgard-gult", "atgard-rott", "anhorig", "normallage"]
+            "enum": ["sign", "trigger", "action", "routine", "contact", "value_anchor", "wish", "note_for_care", "ignore"]
           },
-          "text": { "type": "string", "minLength": 1, "maxLength": 400 }
+          "polarity": { "type": "string", "enum": ["up", "down", "both"] }
         }
       }
     }

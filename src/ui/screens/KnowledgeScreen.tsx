@@ -21,8 +21,8 @@ const ADDABLE: Record<ContextLayer, ContextKind[]> = {
 };
 
 const KIND_ORDER: ContextKind[] = [
-  'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'trigger', 'false_alarm', 'medication',
-  'tone_yellow', 'tone_red', 'normal_state', 'course', 'period_high', 'period_low', 'period_mixed', 'typical_phrase',
+  'value_anchor', 'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'trigger', 'routine', 'contact',
+  'wish', 'note_for_care', 'false_alarm', 'medication', 'tone_yellow', 'tone_red', 'normal_state', 'course', 'period_high', 'period_low', 'period_mixed', 'typical_phrase',
   'event', 'medication_taken', 'correction',
 ];
 

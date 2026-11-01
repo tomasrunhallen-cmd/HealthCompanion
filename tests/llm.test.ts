@@ -11,7 +11,7 @@ import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
 import { setSecret, deleteSecret } from '../src/platform/secrets';
 import {
-  activeAdapter, currentMatcher, differingCases, LLM_KEY_NAME, namesToScrub, runModelTest, structurePlanWithModel,
+  activeAdapter, currentMatcher, differingCases, LLM_KEY_NAME, namesToScrub, runModelTest,
 } from '../src/services/llm';
 import { saveCheckin } from '../src/services/checkin';
 import { wordMatcher } from '../src/analysis/assess';
@@ -153,10 +153,10 @@ describe('providers and schema', () => {
   });
 
   it('keeps structure and enums when stripping a schema for a provider', () => {
-    const s = toProviderSchema(loadSchema('schemas/krisplan-import.json')) as any;
-    expect(s.properties.rows.items.properties.kind.enum).toContain('atgard-rott');
+    const s = toProviderSchema(loadSchema('schemas/krisplan-sortera.json')) as any;
+    expect(s.properties.rows.items.properties.kind.enum).toContain('value_anchor');
     expect(s.properties.rows.items.additionalProperties).toBe(false);
-    expect(s.properties.rows.items.properties.text.maxLength).toBeUndefined();
+    expect(s.properties.rows.items.properties.id.maxLength).toBeUndefined();
   });
 });
 
@@ -191,26 +191,6 @@ describe('reversible scrub for the plan import', () => {
     expect(r.text).not.toMatch(/Kim|Robin|070/);
     expect(restorePlaceholders('Ring [NAMN1] på [TELEFON1]', r.map)).toBe('Ring Kim på 070-123 45 67');
     expect(restorePlaceholders('Okänd [NAMN9]', r.map)).toBe('Okänd [NAMN9]');
-  });
-});
-
-describe('plan import with a model', () => {
-  it('turns the answer into unapproved rows, restores names and flags invented rows', async () => {
-    const original = 'Tidiga tecken\n- Svarar inte på sms\nVid gult\n- Ring Kim';
-    const s = scrubReversible(original, ['Kim']);
-    const fake = fixedAdapter([JSON.stringify({ rows: [
-      { kind: 'tidigt', text: 'Svarar inte på sms' },
-      { kind: 'atgard-gult', text: 'Ring [NAMN1]' },
-      { kind: 'allvarligt', text: 'Hör röster' },
-    ] })]);
-    const rows = await structurePlanWithModel(createCompleter(fake), s.text, s.map, original);
-    expect(fake.calls[0].user).toContain('Ring [NAMN1]');
-    expect(fake.calls[0].user).not.toContain('Kim');
-    expect(rows.map((r) => [r.kind, r.text, r.approved, r.inOriginal])).toEqual([
-      ['early', 'Svarar inte på sms', false, true],
-      ['action_yellow', 'Ring Kim', false, true],
-      ['serious', 'Hör röster', false, false],
-    ]);
   });
 });
 

@@ -103,8 +103,8 @@ Utan Firebase-konfiguration fungerar webbversionen också, men då sparas allt b
 
 ## Testlista för steg 1
 
-1. Tryck *Lägg in krisplan*, sedan *Fyll i ett exempel* eller klistra in din egen plan, och *Sortera raderna*.
-2. Kontrollera kategorin på varje rad, godkänn raderna och spara. Inget sparas utan godkännande.
+1. Tryck *Lägg in krisplan*. Klistra in planen, välj den som PDF eller Word-fil, eller tryck *Fyll i ett exempel*. Tryck *Sortera raderna*.
+2. Raderna står i planens ordning under planens egna rubriker. Kontrollera vad varje rad är, godkänn raderna, rubrik för rubrik om du vill, och spara. Inget sparas utan godkännande. Utkastet sparas medan du granskar.
 3. Öppna *Min krisplan*. Ändra, flytta och ta bort rader. Ställ in normalläge och sömngräns.
 4. Gör *Kvällens avstämning*. Skriv till exempel *Sov fyra timmar. Orkade inte svara på sms.* Det ska ge gult, med tecknet citerat och sömnen markerad som skattad.
 5. Tryck *Orkar bara trycka* på startsidan. Dagen loggas som gul och planens första gula steg visas.
@@ -120,7 +120,7 @@ Du behöver en Mistral-nyckel från console.mistral.ai. Steg 2 fungerar i Expo G
 3. Tryck *Testa modellen*. Läs rutan om vart texten går och godkänn. Testet skickar bara appens påhittade testfall.
 4. Se hur många av de 23 testfallen som gav rätt nivå. *Spara* går bara att trycka när alla gjorde det. Annars står fallen som skilde sig först i listan.
 5. Gör *Kvällens avstämning* med samma text som i steg 1. Bedömningen ska säga att din språkmodell tolkade tecknen, och visa modell och promptversion längst ner.
-6. Lägg in en krisplan med *Sortera med Mistral*. Kontrollera den rensade texten innan du skickar. Namn och nummer ska komma tillbaka i raderna.
+6. Lägg in en krisplan. Har planen rubriker som appen inte känner igen visar appen exakt vad som skickas, rubrik för rubrik, innan du trycker *Skicka till Mistral*. Modellen svarar bara med vad varje rad är och skriver aldrig om texten.
 7. Fyll i priser under *Kostnad* för att se en månadsuppskattning.
 8. Prova *Använd ingen språkmodell*. Appen ska gå tillbaka till ordmatchning.
 
@@ -229,7 +229,7 @@ All kunskap om användaren ligger i en egen kontextbank, skild från promptarna 
 
 | Lager | Innehåll | Ändras av |
 | --- | --- | --- |
-| Grund | Krisplanens tecken och åtgärder, akuta formuleringar, utlösare, kända falsklarm, medicin, önskad ton vid gult och rött | Bara användaren |
+| Grund | Krisplanens tecken och åtgärder, akuta formuleringar, risksituationer, livsstil och rutiner, värdeankare, kontakter, önskemål, rader till vården, kända falsklarm, medicin, önskad ton vid gult och rött | Bara användaren |
 | Profil | Normalläge, typiska formuleringar, tidigare perioder (nedstämd, uppvarvad och blandad var för sig), kända förlopp | Godkända förslag, eller användaren själv |
 | Dagligt | Medicin tagen, kommande händelser, rättelser. Anteckningar och mätvärden räknas fram ur avstämningarna | Användaren |
 
@@ -242,7 +242,42 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **Baslinjer** för sömn, stress, ord per minut och klocktid räknas om varje måndag ur gröna dagar de senaste 28 dagarna.
 - **Export och import** av kontexten ger tre läsbara markdownfiler, `grund.md`, `profil.md` och `dagligt.md`.
 
+## Krisplansimporten
+
+Vårdens krisplaner har ofta 100 rader eller fler, under rubriker som *Tidiga varningstecken*, *Tecken som brukar tyda på allvarlig försämring* och *Strategier för att undvika tvångsåtgärder*, med underrubriker som *Mani* och *Depression*. Importen bygger på planens egen struktur.
+
+1. **Inläsning på telefonen.** Inklistrad text, PDF (texten läses med pdf.js, som laddas först när en PDF öppnas) och Word (.docx). Inskannade PDF:er utan text går inte, då hänvisar appen till telefonens textigenkänning.
+2. **Sidhuvud och sidfot tas bort.** Rader som upprepas överst eller nederst på minst hälften av sidorna, sidnummer och rader med personnummer överst på en sida. De visas som *Borttaget sidhuvud* och sparas aldrig. I Word ligger sidhuvudet i en egen del av filen och läses aldrig in som plan.
+3. **Rubrikträd i koden.** Varje rad vet vilka rubriker den står under. Underpunkter hör till sin punkt, löptext blir en egen rad. Rubrikens nivå kommer från #, Words rubrikformat eller teckenstorleken i PDF:en. I inklistrad text utan nivåer gissar appen nivån ur regeltabellen.
+4. **Regeltabellen** `context/krisplan-rubriker.md` säger vilka fält en rubrik ger. En rad ärver fälten från alla rubriker ovanför sig. På den påhittade exempelplanen sorteras 87 av 92 rader så, utan modell.
+5. **Modellen bara för okända rubriker**, en rubrik i taget, rensad (`prompts/krisplan-sortera.md`). Den svarar med `{"id","kind","polarity"}` per rad och skriver aldrig om text. Okända id, saknade rader eller ogiltiga värden ger ett nytt försök med felet bifogat. Håller inte heller det blir raderna tidiga tecken åt båda hållen, markerade *Behöver din sortering*. Rader med telefonnummer eller e-post under okända rubriker blir kontakter direkt i koden. Akuta rader skickas aldrig. Importen kan ha en egen modell under *Språkmodell*; tomt fält betyder samma modell som kvällens bedömning.
+6. **Granskningen** visar raderna i planens ordning under planens rubriker, med antal per rubrik (enligt rubriken, av modellen, behöver din sortering), *Godkänn alla under den här rubriken* och rader som behöver sortering först. Byts vad en rad är ligger kortet kvar, och statusraden säger *Ändrat*. Utkastet sparas efter varje ändring.
+
+Radernas fält: `kind` (tecken, risksituation, åtgärd, livsstil och rutin, kontakt, värdeankare, önskemål, till vården, spara inte), `polarity` (uppåt, nedåt, båda), för tecken `severity` och `observer`, för åtgärder `when`, `who` och `order`, och `source_heading`. Riktningarna visas med planens egna ord om planen har dem, annars *uppvarvad* och *nedstämd*. Äldre rader fick fälten från sin gamla kategori, åt båda hållen (schema 3).
+
+Så används fälten. Poäng och nivå ändras inte.
+
+- Bedömningen säger åt vilket håll dagens tecken pekar, med planens ord, och visar åtgärderna för det hållet och för båda. Pekar tecknen åt båda hållen visas allt.
+- Livsstil och rutiner visas med åtgärderna vid gult.
+- Värdeankarna visas ordagrant överst vid rött och efter tre gula dagar i rad.
+- Trappan i *Strategier för att undvika tvångsåtgärder* visas som numrerade steg i *Hjälp nu*, under planens rubrik.
+- Önskemål, rader till vården och kontakter används aldrig i bedömningen och skickas aldrig till en modell.
+- Ett sömnfönster i planen, som *Sömn 22:30–07:00*, föreslås för sömnregeln efter sparandet och gäller först när du godkänner det.
+
+`fixtures/krisplan-exempel.md`, `.pdf` och `.facit.json` är en påhittad plan med 92 rader, sidhuvud med påhittat namn och personnummer och fyra sidor. `node fixtures/make-krisplan-exempel.js --pdf` bygger om dem. Lägg aldrig in en verklig plan i repot. `npm run plan:check` kör importen mot riktiga modeller och jämför med facit:
+
+```bash
+DAGSLJUS_LLM_PROVIDER=mistral DAGSLJUS_LLM_KEY=... \
+DAGSLJUS_IMPORT_MODELS=mistral-small-latest,mistral-large-latest npm run plan:check
+```
+
 ## Avvikelser och antaganden som du behöver ta ställning till
+
+- **`context/krisplan-rubriker.md` är ett utkast och bör granskas av en människa med klinisk kunskap.** Tabellen bygger på hur svenska krisplaner brukar se ut. Rubriker som inte finns där går till modellen eller till din sortering.
+- **Det vården gör visas inte som ditt eget steg.** Åtgärder under *Vad mottagningen gör* sparas, men räknas inte som *det första steget i din plan*. Trappans steg visas i *Hjälp nu* och inte bland åtgärderna vid rött.
+- **Sömngränsen ur sömnfönstret är appens tolkning.** Fönstret minus två timmar, avrundat till halvtimmar. Planen säger inget om var gränsen går. Du godkänner den och kan ändra den under *Min krisplan*.
+- **Rubriknivåer i inklistrad text gissas.** Utan # eller teckenstorlek vet appen inte vad som är underrubrik. En underrubrik som *Anhöriga* efter rader under *Vid rött* blir en egen huvudrubrik. Läs gärna in PDF:en eller Word-filen i stället för att klistra in.
+- **pdf.js är inte provat på en riktig telefon.** PDF-läsningen är provad i webbversionen och i testerna med den text pdf.js ger. På iPhone och Android kör appen Hermes, och pdf.js kan behöva justeras där. Det går att se först i en utvecklingsbuild.
 
 - **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Fraserna tål böjningar och ord emellan. Sju kärnord, som "självmord", "dödslängt" och "livsled", ger träff som början på ett ord oavsett vad som följer, så "självmordstankar", "självmordsförsök", "dödslängtan" och "livsleda" ger full krisruta. Också "självmordsförsök för tio år sedan" ger träff, eftersom ett falsklarm är bättre än en miss. En undantagslista tar hand om kända falska träffar: "för mig själv" ger ingen träff, och "jag skärper mig" räknas inte som "skär mig". En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 29 fraser, 7 kärnord och 5 undantag och bör prövas mot verkliga formuleringar.
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
@@ -260,7 +295,6 @@ Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correc
 - **Mistral använder JSON-läge, inte schemaläge.** JSON-läget är dokumenterat och verifierat. Schemaläget finns men jag hittade inte det exakta fältformatet i dokumentationen. Appen kontrollerar ändå varje svar mot schemat och ber om ett nytt svar en gång vid fel.
 - **Testa modellen kör testfallen med din egen kontext.** Dina falsklarm, din ton och dina rättelser följer med, men testplanens tecken används. Ett eget falsklarm kan därför få ett fall att skilja sig, och då visas vilket.
 - **Testanrop räknas i kostnaden.** Testa modellen kostar tokens och räknas därför in i månadsuppskattningen.
-- **Rader som inte står i planen markeras.** När modellen sorterar krisplanen kontrollerar appen att varje rad finns i den inklistrade texten. Rader som inte gör det får en röd varning. Alla rader måste fortfarande godkännas en och en.
 - **Garmins fältnamn kommer inte från Garmin.** Garmins egna sidor och deras Python-klient anger värd, token och sökvägar. Fältnamnen i svaren, som `sleepTimeSeconds` och `overallStressLevel`, kommer från två oberoende öppna klienter för samma API. Garmin publicerar dem bara i sin Swagger-dokumentation, som jag inte kunde läsa. Appen tolkar svaren försiktigt och hoppar över fält som saknas.
 - **Minuter med hög stress i stället för högsta stress.** Specen vill spara högsta stress per dag. Garmins stressendpoint ger snitt och tid i varje stressnivå, men inget maxvärde som jag kunnat bekräfta. Appen sparar därför minuter med hög stress.
 - **Sen insomning ger en poäng.** Specen sa två tecken, men det räknade samma natt dubbelt. *Utan inlägg* tolkas som inget inlägg kvällen innan natten. Insomning från 12:00 räknas som dagsömn och ger inget.
@@ -345,11 +379,11 @@ src/llm/            Modellinställningar, samtycke per leverantör, tokenräknin
 src/garmin/         Garmin Personal API: token, sömn, stress, Body Battery
 src/cloud/          Webbversionen: inloggning och Firestore i ditt eget Firebase-projekt
 netlify/functions/  Webbversionen: vidarekoppling till Garmin och kalenderhändelse för påminnelsen
-src/plan/           Sortering av inklistrad krisplan
+src/plan/           Krisplansimporten: PDF, Word och text, sidhuvud, rubrikträd, regeltabell, granskning, radernas fält
 src/storage/        Krypterad SQLite på telefonen, webbvariant, repository
 src/backup/         Lösenordsskyddad export (PBKDF2 och AES-256-GCM)
 src/platform/       Applås, påminnelse, filer, nycklar i Keychain/Keystore, med webbvarianter
-src/services/       Kvällens avstämning, Orkar bara trycka, Testa modellen, krisplansimport med modell, Garmin-synk
+src/services/       Kvällens avstämning, Orkar bara trycka, Testa modellen, Garmin-synk
 src/ui/             Skärmar och komponenter
 tests/              Jest-tester
 ```

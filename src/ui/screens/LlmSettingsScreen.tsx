@@ -3,7 +3,7 @@ import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { createCompleter } from '../../adapter/complete';
 import { PROVIDER_ORDER, PROVIDERS, normalizeBaseUrl, type ProviderId } from '../../adapter/providers';
 import { eveningDateKey } from '../../analysis/dates';
-import { destinationKey, estimateMonthlyCost, hasConsent, isLocalDestination } from '../../llm/config';
+import { destinationKey, estimateMonthlyCost, hasConsent, importModelOf, isLocalDestination } from '../../llm/config';
 import { deleteSecret, getSecret, secretsPersist, setSecret } from '../../platform/secrets';
 import { buildAdapter, differingCases, LLM_KEY_NAME, runModelTest, type CaseResult, type ModelTestReport } from '../../services/llm';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
@@ -40,6 +40,7 @@ export function LlmSettingsScreen() {
   const [provider, setProvider] = useState<ProviderId>(saved.provider ?? 'mistral');
   const [model, setModel] = useState(saved.model || (PROVIDERS[saved.provider ?? 'mistral'].modelSuggestions[0] ?? ''));
   const [baseUrl, setBaseUrl] = useState(saved.baseUrl);
+  const [importModel, setImportModel] = useState(saved.importModel ?? '');
   const [keyInput, setKeyInput] = useState('');
   const [savedKey, setSavedKey] = useState(false);
   const [replaceKey, setReplaceKey] = useState(false);
@@ -276,6 +277,28 @@ export function LlmSettingsScreen() {
             </P>
           </Card>
           <Button title={`Spara ${model.trim()}`} onPress={save} disabled={!currentReport.approved} />
+        </Section>
+      ) : null}
+
+      {active ? (
+        <Section title="Krisplansimporten">
+          <Card>
+            <P muted>
+              Appen sorterar krisplanens rader efter rubrikerna själv. Bara rader under rubriker den inte känner igen skickas,
+              rensade, en rubrik i taget. Lämna fältet tomt för att använda samma modell som kvällens bedömning.
+            </P>
+            <Field
+              label="MODELL FÖR IMPORTEN"
+              value={importModel}
+              onChangeText={setImportModel}
+              onBlur={() => repo.updateLlmConfig({ importModel: importModel.trim() })}
+              placeholder={saved.model}
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Modell för krisplansimporten"
+              hint={`${PROVIDERS[saved.provider!].label}, samma nyckel. Används nu: ${importModelOf(saved)}.`}
+            />
+          </Card>
         </Section>
       ) : null}
 

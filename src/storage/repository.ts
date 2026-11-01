@@ -4,9 +4,10 @@ import { buildHistory, type HistoryDay } from '../analysis/scoring';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
   type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
-  type Correction, type DateKey, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
+  type Correction, type DateKey, type PlanFields, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../domain/types';
 import { addDays } from '../analysis/dates';
+import { fieldsFromKind } from '../plan/fields';
 import type { SentRequest, Usage } from '../adapter/types';
 import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
 import type { Collection, DocBackend, Snapshot, StorageInfo } from './backend';
@@ -49,8 +50,8 @@ export interface ImportRecord {
   skipped: number;
 }
 
-/** Version 2: crisis plan and normal state moved into the context bank. */
-export const SCHEMA_VERSION = 2;
+/** Version 2: crisis plan and normal state moved into the context bank. Version 3: plan rows get their fields. */
+export const SCHEMA_VERSION = 3;
 
 const LAYERS: ContextLayer[] = ['grund', 'profil', 'dagligt'];
 
@@ -65,6 +66,8 @@ export interface NewContextEntry {
   date?: DateKey | null;
   taken?: boolean | null;
   correction?: Correction | null;
+  /** grund: the plan row's fields. Defaults to fields derived from the kind. */
+  plan?: PlanFields | null;
 }
 
 let idCounter = 0;
@@ -125,6 +128,15 @@ export class Repository {
       this.snap.kv.planSettings = rest;
       await this.backend.put('kv', 'planSettings', rest);
     }
+    // Version 3: every plan row gets its fields from its kind. Polarity is "both" until the person changes it.
+    for (const e of Object.values(this.snap.grund) as ContextEntry[]) {
+      if (e.plan) continue;
+      const fields = fieldsFromKind(e.kind);
+      if (!fields) continue;
+      const next: ContextEntry = { ...e, plan: fields };
+      this.snap.grund[e.id] = next;
+      await this.backend.put('grund', e.id, next);
+    }
     const settings = this.settings();
     if (settings.contextMode === 'unset' && this.contextEntries('grund').some((e) => e.origin !== 'standard')) {
       this.snap.kv.settings = { ...settings, contextMode: 'own' };
@@ -169,14 +181,24 @@ export class Repository {
       .map((e) => e.text.trim())
       .filter(Boolean)
       .join('. ');
-    return { ...DEFAULT_PLAN_SETTINGS, sleepThresholdHours: stored.sleepThresholdHours ?? DEFAULT_PLAN_SETTINGS.sleepThresholdHours, normalState };
+    return {
+      ...DEFAULT_PLAN_SETTINGS,
+      sleepThresholdHours: stored.sleepThresholdHours ?? DEFAULT_PLAN_SETTINGS.sleepThresholdHours,
+      normalState,
+      ...(stored.polarityWords ? { polarityWords: stored.polarityWords } : {}),
+      ...(stored.sleepWindow ? { sleepWindow: stored.sleepWindow } : {}),
+    };
   }
 
   /** The normal state is the user's own words: saving it replaces the profil entry. */
   async updatePlanSettings(patch: Partial<PlanSettings>): Promise<void> {
-    if (patch.sleepThresholdHours != null) {
+    const kept: Partial<PlanSettings> = {};
+    if (patch.sleepThresholdHours != null) kept.sleepThresholdHours = patch.sleepThresholdHours;
+    if (patch.polarityWords !== undefined) kept.polarityWords = patch.polarityWords;
+    if (patch.sleepWindow !== undefined) kept.sleepWindow = patch.sleepWindow;
+    if (Object.keys(kept).length) {
       const stored = (this.snap.kv.planSettings as Partial<PlanSettings> | undefined) ?? {};
-      const next = { ...stored, sleepThresholdHours: patch.sleepThresholdHours };
+      const next = { ...stored, ...kept };
       this.snap.kv.planSettings = next;
       await this.backend.put('kv', 'planSettings', next);
     }
@@ -397,6 +419,7 @@ export class Repository {
       ...(input.date !== undefined ? { date: input.date } : {}),
       ...(input.taken !== undefined ? { taken: input.taken } : {}),
       ...(input.correction !== undefined ? { correction: input.correction } : {}),
+      ...(layer === 'grund' && (input.plan ?? fieldsFromKind(input.kind)) ? { plan: input.plan ?? fieldsFromKind(input.kind) } : {}),
     };
     this.snap[layer][entry.id] = entry;
     await this.backend.put(layer as Collection, entry.id, entry);
@@ -453,7 +476,7 @@ export class Repository {
   plan(): PlanItem[] {
     return this.contextEntries('grund')
       .filter((e) => (PLAN_KINDS as string[]).includes(e.kind))
-      .map((e) => ({ id: e.id, kind: e.kind as PlanItemKind, text: e.text, order: e.order, approvedAt: e.approvedAt, origin: e.origin }))
+      .map((e) => ({ id: e.id, kind: e.kind as PlanItemKind, text: e.text, order: e.order, approvedAt: e.approvedAt, origin: e.origin, ...(e.plan ? { plan: e.plan } : {}) }))
       .sort((a, b) => a.kind.localeCompare(b.kind) || a.order - b.order);
   }
 

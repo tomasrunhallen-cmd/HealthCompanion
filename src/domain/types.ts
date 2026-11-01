@@ -14,10 +14,36 @@ export type PlanItemKind =
   | 'relatives'
   | 'akut'; // the user's own emergency phrases: matched in code, never sent to a model
 
+// ---- The crisis plan's rows, as crisis plans are built ----
+
+/** What a row in the plan is. */
+export type RowKind = 'sign' | 'trigger' | 'action' | 'routine' | 'contact' | 'value_anchor' | 'wish' | 'note_for_care' | 'ignore';
+/** Which way a row points: up (the plan may call it mani), down (depression), or both. */
+export type Polarity = 'up' | 'down' | 'both';
+
+export interface PlanFields {
+  kind: RowKind;
+  polarity: Polarity;
+  /** Only for sign. */
+  severity?: 'early' | 'serious';
+  /** Only for sign: the person's own experience, or what others can see. */
+  observer?: 'self' | 'others';
+  /** Only for action. */
+  when?: 'early' | 'serious' | 'always';
+  /** Only for action. */
+  who?: 'me' | 'relative' | 'care';
+  /** Only for action: the step number when the plan describes a ladder ("om jag inte lyssnar …"). */
+  order?: number | null;
+  /** The plan's own heading chain, e.g. "Tidiga varningstecken > Egna upplevelser/tecken av mani". */
+  sourceHeading?: string;
+}
+
 export interface PlanItem {
   id: string;
   kind: PlanItemKind;
   text: string;
+  /** The row's fields; rows saved before the fields existed get them by migration. */
+  plan?: PlanFields;
   /** Position within its kind; lower comes first. The first action is "the first step". */
   order: number;
   /** Null for standard content the user has not confirmed yet. */
@@ -39,7 +65,12 @@ export type GrundKind =
   | 'false_alarm' // kända falsklarm
   | 'medication' // medicin och dosändringar
   | 'tone_yellow' // önskad ton vid gult
-  | 'tone_red'; // önskad ton vid rött
+  | 'tone_red' // önskad ton vid rött
+  | 'routine' // livsstil och rutiner
+  | 'contact' // kontakter: mottagningar, personer, nummer
+  | 'value_anchor' // värdeankare, visas ordagrant
+  | 'wish' // patientens önskemål: aldrig i bedömningen, aldrig till en modell
+  | 'note_for_care'; // till vården, t.ex. rekommendationer: aldrig i bedömningen, aldrig till en modell
 
 export type ProfilKind =
   | 'normal_state' // normalläge i egna ord
@@ -80,6 +111,8 @@ export interface ContextEntry {
   correction?: Correction | null;
   /** Set on entries created by an import from another diary, so the import can be undone. */
   importId?: string | null;
+  /** grund: the crisis plan row's fields. The entry's kind follows from them. */
+  plan?: PlanFields | null;
 }
 
 /**
@@ -114,6 +147,7 @@ export const PLAN_KINDS: PlanItemKind[] = ['early', 'serious', 'action_yellow', 
 export const LAYER_OF: Record<ContextKind, ContextLayer> = {
   early: 'grund', serious: 'grund', action_yellow: 'grund', action_red: 'grund', relatives: 'grund', akut: 'grund',
   trigger: 'grund', false_alarm: 'grund', medication: 'grund', tone_yellow: 'grund', tone_red: 'grund',
+  routine: 'grund', contact: 'grund', value_anchor: 'grund', wish: 'grund', note_for_care: 'grund',
   normal_state: 'profil', typical_phrase: 'profil', period_low: 'profil', period_high: 'profil',
   period_mixed: 'profil', course: 'profil',
   medication_taken: 'dagligt', event: 'dagligt', correction: 'dagligt',
@@ -124,6 +158,10 @@ export interface PlanSettings {
   normalState: string;
   /** Sleep below this many hours is an early sign. Default 5 per the spec. */
   sleepThresholdHours: number;
+  /** The plan's own words for the two directions, when the plan uses them ("Mani", "Depression"). */
+  polarityWords?: { up?: string; down?: string } | null;
+  /** The plan's sleep window ("Sömn 22:30–07:00"), used by the sleep rules once the person approves it. */
+  sleepWindow?: { start: string; end: string } | null;
 }
 
 /** imported: a day brought in from another mood diary; it has no clock time. */

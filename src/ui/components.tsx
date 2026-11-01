@@ -103,6 +103,42 @@ export function Chip(props: { label: string; selected?: boolean; onPress?: () =>
   );
 }
 
+/**
+ * A segmented control (HIG: Segmented controls): two to four choices of the same kind, one
+ * selected. Each segment is at least 44 points high and VoiceOver reads its label and state.
+ */
+export function Segmented<T extends string>(props: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T | null | undefined;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel={props.label} style={{ marginTop: space.s }}>
+      <Text style={[type.label, { marginBottom: space.xs }]}>{props.label}</Text>
+      <View style={styles.segmented}>
+        {props.options.map((o) => {
+          const on = o.value === props.value;
+          return (
+            <Pressable
+              key={o.value}
+              accessibilityRole="radio"
+              accessibilityLabel={`${props.label}: ${o.label}`}
+              accessibilityState={{ checked: on, selected: on }}
+              onPress={() => props.onChange(o.value)}
+              style={[styles.segment, on && styles.segmentOn]}
+            >
+              <Text style={[styles.segmentText, on && { color: colors.text, fontWeight: '700' }]} numberOfLines={2} maxFontSizeMultiplier={1.6}>
+                {o.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 /** Each level's own shape, so the level never rests on colour alone (HIG: Accessibility). */
 const LEVEL_SYMBOL: Record<Level, { ios: string; material: string; fallback: string }> = {
   green: { ios: 'checkmark.circle.fill', material: 'check_circle', fallback: '●' },
@@ -197,6 +233,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.l, paddingTop: space.m, borderTopWidth: 1, borderColor: colors.border,
     backgroundColor: colors.bg,
   },
+  segmented: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radius.m, padding: 2, gap: 2 },
+  segment: { flex: 1, minHeight: MIN_TOUCH, borderRadius: radius.m - 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs },
+  segmentOn: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  segmentText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
   card: { borderRadius: radius.l, padding: space.l, marginBottom: space.m, borderWidth: 1, borderColor: colors.border },
   button: {
     minHeight: 48, borderRadius: radius.m, paddingHorizontal: space.l, alignItems: 'center',

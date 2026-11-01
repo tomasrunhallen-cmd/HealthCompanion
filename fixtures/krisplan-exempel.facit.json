@@ -1,0 +1,665 @@
+{
+  "rows": [
+    {
+      "text": "Upprättad 12 mars 2026 tillsammans med Mottagning Exempelstad. Planen ses över vid varje återbesök.",
+      "heading": "",
+      "kind": "note_for_care",
+      "polarity": "both"
+    },
+    {
+      "text": "Jag vill vara en närvarande förälder för mina barn.",
+      "heading": "Värdeankare",
+      "kind": "value_anchor",
+      "polarity": "both"
+    },
+    {
+      "text": "Mitt arbete på biblioteket betyder mycket för mig.",
+      "heading": "Värdeankare",
+      "kind": "value_anchor",
+      "polarity": "both"
+    },
+    {
+      "text": "Jag vill behålla kontakten med mina vänner.",
+      "heading": "Värdeankare",
+      "kind": "value_anchor",
+      "polarity": "both"
+    },
+    {
+      "text": "Musiken och kören ger mig lugn.",
+      "heading": "Värdeankare",
+      "kind": "value_anchor",
+      "polarity": "both"
+    },
+    {
+      "text": "Långa resor över flera tidszoner",
+      "heading": "Risksituationer > Mani",
+      "kind": "trigger",
+      "polarity": "up"
+    },
+    {
+      "text": "Flera nätter i rad med för lite sömn",
+      "heading": "Risksituationer > Mani",
+      "kind": "trigger",
+      "polarity": "up"
+    },
+    {
+      "text": "Stora projekt med hård tidspress",
+      "heading": "Risksituationer > Mani",
+      "kind": "trigger",
+      "polarity": "up"
+    },
+    {
+      "text": "Våren, när det blir ljust tidigt",
+      "heading": "Risksituationer > Mani",
+      "kind": "trigger",
+      "polarity": "up"
+    },
+    {
+      "text": "De mörka månaderna november till februari",
+      "heading": "Risksituationer > Depression",
+      "kind": "trigger",
+      "polarity": "down"
+    },
+    {
+      "text": "Konflikter på jobbet som drar ut på tiden",
+      "heading": "Risksituationer > Depression",
+      "kind": "trigger",
+      "polarity": "down"
+    },
+    {
+      "text": "Långa ledigheter utan planerade aktiviteter",
+      "heading": "Risksituationer > Depression",
+      "kind": "trigger",
+      "polarity": "down"
+    },
+    {
+      "text": "När någon nära mig blir sjuk",
+      "heading": "Risksituationer > Depression",
+      "kind": "trigger",
+      "polarity": "down"
+    },
+    {
+      "text": "Pratar fortare och avbryter ofta",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "others"
+    },
+    {
+      "text": "Skämtar mer än vanligt och skrattar högt",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "others"
+    },
+    {
+      "text": "Skickar många meddelanden sent på kvällen",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "others"
+    },
+    {
+      "text": "Börjar flera nya projekt samtidigt",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "others"
+    },
+    {
+      "text": "Klär mig mer färgglatt än vanligt",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "others"
+    },
+    {
+      "text": "Behöver mindre sömn men känner mig ändå pigg",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Tankarna går fort och hoppar mellan ämnen",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Får många idéer som känns geniala",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Vill handla saker jag inte behöver",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Musiken känns starkare än vanligt",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av mani",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Svarar inte på sms eller samtal",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "others"
+    },
+    {
+      "text": "Ställer in träffar i sista stund",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "others"
+    },
+    {
+      "text": "Pratar tystare och mindre",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "others"
+    },
+    {
+      "text": "Slutar gå till kören",
+      "heading": "Tidiga varningstecken > Tecken för omgivningen, depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "others"
+    },
+    {
+      "text": "Vaknar tidigt och kan inte somna om",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Allt känns tungt redan på morgonen",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Orkar inte laga mat",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Tycker att jag inte duger",
+      "heading": "Tidiga varningstecken > Egna upplevelser/tecken av depression",
+      "kind": "sign",
+      "severity": "early",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Går och lägger mig före 23 varje kväll",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad jag själv gör",
+      "kind": "action",
+      "when": "early",
+      "who": "me",
+      "polarity": "both"
+    },
+    {
+      "text": "Stänger av telefonen klockan 21",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad jag själv gör",
+      "kind": "action",
+      "when": "early",
+      "who": "me",
+      "polarity": "both"
+    },
+    {
+      "text": "Skjuter upp stora köp i minst en vecka",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad jag själv gör",
+      "kind": "action",
+      "when": "early",
+      "who": "me",
+      "polarity": "up"
+    },
+    {
+      "text": "Går ut i dagsljus minst en halvtimme om dagen",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad jag själv gör",
+      "kind": "action",
+      "when": "early",
+      "who": "me",
+      "polarity": "down"
+    },
+    {
+      "text": "Berättar för min kontaktperson hur jag mår",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad jag själv gör",
+      "kind": "action",
+      "when": "early",
+      "who": "me",
+      "polarity": "both"
+    },
+    {
+      "text": "Frågar hur jag har sovit",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad mina närstående gör",
+      "kind": "action",
+      "when": "early",
+      "who": "relative",
+      "polarity": "both"
+    },
+    {
+      "text": "Påminner mig om planen, lugnt och utan att tjata",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad mina närstående gör",
+      "kind": "action",
+      "when": "early",
+      "who": "relative",
+      "polarity": "both"
+    },
+    {
+      "text": "Hjälper mig att säga nej till nya åtaganden",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad mina närstående gör",
+      "kind": "action",
+      "when": "early",
+      "who": "relative",
+      "polarity": "up"
+    },
+    {
+      "text": "Föreslår en promenad tillsammans",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad mina närstående gör",
+      "kind": "action",
+      "when": "early",
+      "who": "relative",
+      "polarity": "down"
+    },
+    {
+      "text": "Erbjuder en tid inom en vecka",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad mottagningen gör",
+      "kind": "action",
+      "when": "early",
+      "who": "care",
+      "polarity": "both"
+    },
+    {
+      "text": "Ser över medicinen tillsammans med mig",
+      "heading": "Överenskomna åtgärder vid tidiga varningstecken > Vad mottagningen gör",
+      "kind": "action",
+      "when": "early",
+      "who": "care",
+      "polarity": "both"
+    },
+    {
+      "text": "Sover mindre än fyra timmar flera nätter i rad",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Mani",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Spenderar stora summor pengar",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Mani",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Blir lättirriterad och arg på mina närmaste",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Mani",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Kör bil fortare än jag brukar",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Mani",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "När jag är som sämst sover jag nästan inte alls, pratar oavbrutet och tror att jag har en särskild uppgift. Jag märker det oftast inte själv, så då behöver jag att andra säger det till mig.",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Mani",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "up",
+      "observer": "self"
+    },
+    {
+      "text": "Ligger kvar i sängen större delen av dagen",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Depression",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Slutar äta ordentligt",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Depression",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Slutar svara helt, även min familj",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Depression",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "down",
+      "observer": "self"
+    },
+    {
+      "text": "Känner att familjen klarar sig bättre utan mig",
+      "heading": "Tecken som brukar tyda på allvarlig försämring > Depression",
+      "kind": "sign",
+      "severity": "serious",
+      "polarity": "down",
+      "observer": "self",
+      "akut": true
+    },
+    {
+      "text": "Ringer mottagningen samma dag",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad jag själv gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "me",
+      "polarity": "both"
+    },
+    {
+      "text": "Tar den extra medicin som läkaren skrivit ut",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad jag själv gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "me",
+      "polarity": "both"
+    },
+    {
+      "text": "Lämnar bankkortet till min bror",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad jag själv gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "me",
+      "polarity": "up"
+    },
+    {
+      "text": "Stannar hemma från jobbet",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad jag själv gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "me",
+      "polarity": "both"
+    },
+    {
+      "text": "Ringer mottagningen om jag inte gör det själv",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad mina närstående gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "relative",
+      "polarity": "both"
+    },
+    {
+      "text": "Tar hand om barnen under några dagar",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad mina närstående gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "relative",
+      "polarity": "both"
+    },
+    {
+      "text": "Följer med mig till akutmottagningen",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad mina närstående gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "relative",
+      "polarity": "both"
+    },
+    {
+      "text": "Erbjuder en tid samma dag eller dagen efter",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad vården gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "care",
+      "polarity": "both"
+    },
+    {
+      "text": "Bedömer om jag behöver vård på avdelning",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad vården gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "care",
+      "polarity": "both"
+    },
+    {
+      "text": "Kontaktar mina närstående om jag samtycker",
+      "heading": "Överenskomna åtgärder vid allvarlig försämring > Vad vården gör",
+      "kind": "action",
+      "when": "serious",
+      "who": "care",
+      "polarity": "both"
+    },
+    {
+      "text": "Om jag inte lyssnar på mina närstående ringer de mottagningen samma dag.",
+      "heading": "Strategier för att undvika tvångsåtgärder",
+      "kind": "action",
+      "when": "serious",
+      "who": "relative",
+      "polarity": "both",
+      "order": 1
+    },
+    {
+      "text": "Om jag inte lyssnar på mottagningen bokar de ett hembesök med en sjuksköterska jag känner.",
+      "heading": "Strategier för att undvika tvångsåtgärder",
+      "kind": "action",
+      "when": "serious",
+      "who": "care",
+      "polarity": "both",
+      "order": 2
+    },
+    {
+      "text": "Om jag ändå inte tar emot hjälp följer min bror med mig till akutmottagningen.",
+      "heading": "Strategier för att undvika tvångsåtgärder",
+      "kind": "action",
+      "when": "serious",
+      "who": "relative",
+      "polarity": "both",
+      "order": 3
+    },
+    {
+      "text": "Om det inte räcker får vården kontakta mig via min kontaktperson innan något annat görs.",
+      "heading": "Strategier för att undvika tvångsåtgärder",
+      "kind": "action",
+      "when": "serious",
+      "who": "care",
+      "polarity": "both",
+      "order": 4
+    },
+    {
+      "text": "Sömn 22:30–07:00 alla dagar, även helger",
+      "heading": "Livsstil och rutiner > Alltid",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Tar min medicin klockan 21",
+      "heading": "Livsstil och rutiner > Alltid",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Äter frukost, lunch och middag på fasta tider",
+      "heading": "Livsstil och rutiner > Alltid",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Högst två koppar kaffe om dagen och inget efter 14",
+      "heading": "Livsstil och rutiner > Alltid",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Ingen alkohol under perioder med tecken",
+      "heading": "Livsstil och rutiner > Alltid",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Undviker starka intryck som konserter och fester",
+      "heading": "Livsstil och rutiner > Vid tecken på mani",
+      "kind": "routine",
+      "polarity": "up"
+    },
+    {
+      "text": "Dämpar belysningen på kvällen",
+      "heading": "Livsstil och rutiner > Vid tecken på mani",
+      "kind": "routine",
+      "polarity": "up"
+    },
+    {
+      "text": "Lägger telefonen i ett annat rum på natten",
+      "heading": "Livsstil och rutiner > Vid tecken på mani",
+      "kind": "routine",
+      "polarity": "up"
+    },
+    {
+      "text": "Planerar en sak att se fram emot varje dag",
+      "heading": "Livsstil och rutiner > Vid tecken på depression",
+      "kind": "routine",
+      "polarity": "down"
+    },
+    {
+      "text": "Rör på mig ute minst en gång om dagen",
+      "heading": "Livsstil och rutiner > Vid tecken på depression",
+      "kind": "routine",
+      "polarity": "down"
+    },
+    {
+      "text": "Träffar någon minst varannan dag",
+      "heading": "Livsstil och rutiner > Vid tecken på depression",
+      "kind": "routine",
+      "polarity": "down"
+    },
+    {
+      "text": "Mottagning Exempelstad, 08-123 456 78, vardagar 08.00–16.00",
+      "heading": "Kontaktuppgifter",
+      "kind": "contact",
+      "polarity": "both"
+    },
+    {
+      "text": "Psykiatriska akutmottagningen Exempelstad, öppen dygnet runt, 08-765 432 10",
+      "heading": "Kontaktuppgifter",
+      "kind": "contact",
+      "polarity": "both"
+    },
+    {
+      "text": "Kontaktperson Kim Testsson, 070-123 45 67",
+      "heading": "Kontaktuppgifter",
+      "kind": "contact",
+      "polarity": "both"
+    },
+    {
+      "text": "Bror Ola Påhittad, 073-765 43 21",
+      "heading": "Kontaktuppgifter",
+      "kind": "contact",
+      "polarity": "both"
+    },
+    {
+      "text": "Läkare Sara Exempel, nås via mottagningen",
+      "heading": "Kontaktuppgifter",
+      "kind": "contact",
+      "polarity": "both"
+    },
+    {
+      "text": "Jag vill att min bror kontaktas först om jag blir sämre.",
+      "heading": "Patientens önskemål",
+      "kind": "wish",
+      "polarity": "both"
+    },
+    {
+      "text": "Jag vill helst inte få injektioner.",
+      "heading": "Patientens önskemål",
+      "kind": "wish",
+      "polarity": "both"
+    },
+    {
+      "text": "Om jag behöver läggas in vill jag ha ett enkelrum om det går.",
+      "heading": "Patientens önskemål",
+      "kind": "wish",
+      "polarity": "both"
+    },
+    {
+      "text": "Jag vill att barnen får veta att jag är sjuk, inte vad jag gör.",
+      "heading": "Patientens önskemål",
+      "kind": "wish",
+      "polarity": "both"
+    },
+    {
+      "text": "Litium har fungerat bra tidigare. Kontrollera nivån vid försämring.",
+      "heading": "Rekommendationer",
+      "kind": "note_for_care",
+      "polarity": "both"
+    },
+    {
+      "text": "Bensodiazepiner har gett mig yrsel och bör undvikas.",
+      "heading": "Rekommendationer",
+      "kind": "note_for_care",
+      "polarity": "both"
+    },
+    {
+      "text": "Jag svarar bäst på lugnt tal och korta frågor.",
+      "heading": "Rekommendationer",
+      "kind": "note_for_care",
+      "polarity": "both"
+    },
+    {
+      "text": "Långa promenader i skogen med hunden",
+      "heading": "Det här hjälper mig att hitta tillbaka",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Att baka bröd på söndagar",
+      "heading": "Det här hjälper mig att hitta tillbaka",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Ringa min syster en kväll i veckan",
+      "heading": "Det här hjälper mig att hitta tillbaka",
+      "kind": "routine",
+      "polarity": "both"
+    },
+    {
+      "text": "Lyssna på körens inspelningar",
+      "heading": "Det här hjälper mig att hitta tillbaka",
+      "kind": "routine",
+      "polarity": "both"
+    }
+  ]
+}

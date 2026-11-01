@@ -1,5 +1,5 @@
 import { parseSleepHours, wordsPerMinute } from '../src/analysis/sleep';
-import { parsePlanText } from '../src/plan/parsePlan';
+import { draftFromText } from '../src/plan/importPlan';
 import { matchSigns, wordsMatch } from '../src/analysis/wordmatch';
 
 describe('crisis plan import without a model', () => {
@@ -27,16 +27,17 @@ Anhöriga
 Normalläge: sover sju timmar, jobbar dagtid`;
 
   it('sorts rows under headings and approves nothing by itself', () => {
-    const rows = parsePlanText(text);
-    const by = (k: string) => rows.filter((r) => r.kind === k).map((r) => r.text);
-    expect(by('early')).toEqual(['Sover mindre än sex timmar', 'Svarar inte på sms', 'Handlar saker jag inte behöver']);
-    expect(by('serious')).toEqual(['Slutar äta', 'Känner att andra är emot mig']);
-    expect(by('action_yellow')).toEqual(['Gå och lägg dig före 23', 'Ring Kim']);
-    expect(by('action_red')).toEqual(['Ring mottagningen']);
-    expect(by('relatives')).toEqual(['Fråga hur jag sover']);
-    expect(by('normal')).toEqual(['sover sju timmar', 'jobbar dagtid']);
-    expect(by('unsorted')).toEqual(['Min krisplan']);
-    expect(rows.every((r) => !r.approved)).toBe(true);
+    const d = draftFromText(text);
+    const by = (pred: (r: (typeof d.rows)[number]) => boolean) => d.rows.filter(pred).map((r) => r.text);
+    const f = (r: (typeof d.rows)[number]) => r.fields;
+    expect(by((r) => f(r).kind === 'sign' && f(r).severity === 'early' && r.source === 'rules')).toEqual(['Sover mindre än sex timmar', 'Svarar inte på sms', 'Handlar saker jag inte behöver']);
+    expect(by((r) => f(r).kind === 'sign' && f(r).severity === 'serious')).toEqual(['Slutar äta', 'Känner att andra är emot mig']);
+    expect(by((r) => f(r).kind === 'action' && f(r).when === 'early')).toEqual(['Gå och lägg dig före 23', 'Ring Kim']);
+    expect(by((r) => f(r).kind === 'action' && f(r).when === 'serious')).toEqual(['Ring mottagningen']);
+    expect(by((r) => f(r).kind === 'action' && f(r).who === 'relative')).toEqual(['Fråga hur jag sover']);
+    expect(by((r) => r.special === 'normal')).toEqual(['sover sju timmar', 'jobbar dagtid']);
+    expect(by((r) => r.source === 'needs')).toEqual(['Min krisplan']);
+    expect(d.rows.every((r) => !r.approved)).toBe(true);
   });
 });
 

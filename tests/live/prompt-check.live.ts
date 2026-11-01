@@ -11,13 +11,11 @@
 // DAGSLJUS_LLM_BASE_URL is needed for openai-compatible. Keep the key in the environment,
 // never in a file in the repository.
 
-import * as http from 'http';
-import * as https from 'https';
 import { createCompleter } from '../../src/adapter/complete';
-import type { FetchLike } from '../../src/adapter/http';
 import type { ProviderId } from '../../src/adapter/providers';
 import { differingCases, runModelTest, buildAdapter } from '../../src/services/llm';
 import { analysFingerprint, writeApproval } from '../promptGate';
+import { nodeFetch } from './nodeFetch';
 
 // The key comes from the environment; Keychain is never touched.
 jest.mock('../../src/platform/secrets', () => ({
@@ -27,24 +25,6 @@ jest.mock('../../src/platform/secrets', () => ({
   deleteSecret: async () => undefined,
 }));
 jest.setTimeout(10 * 60 * 1000);
-
-/** jest-expo replaces the global fetch with a mock, so the check posts with Node's own http. */
-const nodeFetch: FetchLike = (url, init) =>
-  new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const req = (u.protocol === 'https:' ? https : http).request(u, { method: init.method, headers: init.headers }, (res) => {
-      let text = '';
-      res.setEncoding('utf8');
-      res.on('data', (c: string) => (text += c));
-      res.on('end', () => {
-        const status = res.statusCode ?? 0;
-        resolve({ ok: status >= 200 && status < 300, status, text: async () => text });
-      });
-    });
-    req.on('error', reject);
-    init.signal?.addEventListener('abort', () => req.destroy(Object.assign(new Error('aborted'), { name: 'AbortError' })));
-    req.end(init.body);
-  });
 
 const provider = process.env.DAGSLJUS_LLM_PROVIDER as ProviderId | undefined;
 const model = process.env.DAGSLJUS_LLM_MODEL ?? '';

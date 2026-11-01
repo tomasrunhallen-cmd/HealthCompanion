@@ -3,8 +3,9 @@
 
 import { buildContext, entriesFromPlan, type PromptContext } from '../context/buildContext';
 import type {
-  Assessment, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Signal, SignMatch,
+  Assessment, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Polarity, Signal, SignMatch,
 } from '../domain/types';
+import { actionsFor } from '../plan/guidance';
 import { matchSigns } from './wordmatch';
 import { score, type HistoryDay } from './scoring';
 
@@ -60,10 +61,9 @@ export function displaySentence(a: Pick<Assessment, 'level' | 'sentence' | 'akut
   return a.level === 'green' && !a.akut ? GREEN_SENTENCE : a.sentence;
 }
 
-export function actionsForLevel(level: Level, plan: PlanItem[]): PlanItem[] {
-  const kind = level === 'red' ? 'action_red' : level === 'yellow' ? 'action_yellow' : null;
-  if (!kind) return [];
-  return plan.filter((p) => p.kind === kind).sort((a, b) => a.order - b.order);
+/** The person's own actions for a level; with a direction, those for it and for both. See plan/guidance.ts. */
+export function actionsForLevel(level: Level, plan: PlanItem[], dir: Polarity | null = null): PlanItem[] {
+  return actionsFor(level, plan, dir);
 }
 
 export const SERIOUS_INTRO = 'Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:';
@@ -73,14 +73,14 @@ export const SERIOUS_INTRO = 'Ett av dina allvarliga tecken syntes. Din plan sä
  * level: a serious sign alone gives yellow, but the plan's red steps still apply. Null
  * when no serious sign counted, and for the emergency rule, which has its own card.
  */
-export function seriousActions(a: Pick<Assessment, 'signals' | 'akut'>, plan: PlanItem[]): PlanItem[] | null {
+export function seriousActions(a: Pick<Assessment, 'signals' | 'akut'>, plan: PlanItem[], dir: Polarity | null = null): PlanItem[] | null {
   if (a.akut) return null;
   if (!a.signals.some((s) => s.kind === 'serious_sign' && s.points > 0)) return null;
-  return actionsForLevel('red', plan);
+  return actionsForLevel('red', plan, dir);
 }
 
-export function firstStep(level: 'yellow' | 'red', plan: PlanItem[]): PlanItem | null {
-  return actionsForLevel(level, plan)[0] ?? null;
+export function firstStep(level: 'yellow' | 'red', plan: PlanItem[], dir: Polarity | null = null): PlanItem | null {
+  return actionsForLevel(level, plan, dir)[0] ?? null;
 }
 
 let counter = 0;

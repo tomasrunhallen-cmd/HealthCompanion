@@ -1,0 +1,1170 @@
+{
+ "pages": [
+  [
+   {
+    "str": "Krisplan",
+    "size": 19.99,
+    "x": 48,
+    "y": 737.88
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 48,
+    "y": 705.63
+   },
+   {
+    "str": "Upprättad 12 mars 2026 tillsammans med Mottagning Exempelstad. Planen ses över vid varje",
+    "size": 10.99,
+    "x": 48,
+    "y": 705.63
+   },
+   {
+    "str": "återbesök.",
+    "size": 10.99,
+    "x": 48,
+    "y": 689.88
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 652.38
+   },
+   {
+    "str": "Värdeankare",
+    "size": 15,
+    "x": 48,
+    "y": 652.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 623.13
+   },
+   {
+    "str": "Jag vill vara en närvarande förälder för mina barn.",
+    "size": 10.99,
+    "x": 78,
+    "y": 623.13
+   },
+   {
+    "str": "Mitt arbete på biblioteket betyder mycket för mig.",
+    "size": 10.99,
+    "x": 78,
+    "y": 608.13
+   },
+   {
+    "str": "Jag vill behålla kontakten med mina vänner.",
+    "size": 10.99,
+    "x": 78,
+    "y": 592.38
+   },
+   {
+    "str": "Musiken och kören ger mig lugn.",
+    "size": 10.99,
+    "x": 78,
+    "y": 577.38
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 539.13
+   },
+   {
+    "str": "Risksituationer",
+    "size": 15,
+    "x": 48,
+    "y": 539.13
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 509.13
+   },
+   {
+    "str": "Mani",
+    "size": 12,
+    "x": 48,
+    "y": 509.13
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 481.38
+   },
+   {
+    "str": "Långa resor över flera tidszoner",
+    "size": 10.99,
+    "x": 78,
+    "y": 481.38
+   },
+   {
+    "str": "Flera nätter i rad med för lite sömn",
+    "size": 10.99,
+    "x": 78,
+    "y": 466.38
+   },
+   {
+    "str": "Stora projekt med hård tidspress",
+    "size": 10.99,
+    "x": 78,
+    "y": 450.63
+   },
+   {
+    "str": "Våren, när det blir ljust tidigt",
+    "size": 10.99,
+    "x": 78,
+    "y": 434.88
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 407.13
+   },
+   {
+    "str": "Depression",
+    "size": 12,
+    "x": 48,
+    "y": 407.13
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 379.38
+   },
+   {
+    "str": "De mörka månaderna november till februari",
+    "size": 10.99,
+    "x": 78,
+    "y": 379.38
+   },
+   {
+    "str": "Konflikter på jobbet som drar ut på tiden",
+    "size": 10.99,
+    "x": 78,
+    "y": 363.63
+   },
+   {
+    "str": "Långa ledigheter utan planerade aktiviteter",
+    "size": 10.99,
+    "x": 78,
+    "y": 347.88
+   },
+   {
+    "str": "När någon nära mig blir sjuk",
+    "size": 10.99,
+    "x": 78,
+    "y": 332.88
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 294.63
+   },
+   {
+    "str": "Tidiga varningstecken",
+    "size": 15,
+    "x": 48,
+    "y": 294.63
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 265.38
+   },
+   {
+    "str": "Tecken för omgivningen, mani",
+    "size": 12,
+    "x": 48,
+    "y": 265.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 236.88
+   },
+   {
+    "str": "Pratar fortare och avbryter ofta",
+    "size": 10.99,
+    "x": 78,
+    "y": 236.88
+   },
+   {
+    "str": "Skämtar mer än vanligt och skrattar högt",
+    "size": 10.99,
+    "x": 78,
+    "y": 221.88
+   },
+   {
+    "str": "Skickar många meddelanden sent på kvällen",
+    "size": 10.99,
+    "x": 78,
+    "y": 206.13
+   },
+   {
+    "str": "Börjar flera nya projekt samtidigt",
+    "size": 10.99,
+    "x": 78,
+    "y": 191.13
+   },
+   {
+    "str": "Klär mig mer färgglatt än vanligt",
+    "size": 10.99,
+    "x": 78,
+    "y": 175.38
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 147.63
+   },
+   {
+    "str": "Egna upplevelser/tecken av mani",
+    "size": 12,
+    "x": 48,
+    "y": 147.63
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 119.13
+   },
+   {
+    "str": "Behöver mindre sömn men känner mig ändå pigg",
+    "size": 10.99,
+    "x": 78,
+    "y": 119.13
+   },
+   {
+    "str": "Tankarna går fort och hoppar mellan ämnen",
+    "size": 10.99,
+    "x": 78,
+    "y": 104.13
+   },
+   {
+    "str": "Får många idéer som känns geniala",
+    "size": 10.99,
+    "x": 78,
+    "y": 88.38
+   },
+   {
+    "str": "Vill handla saker jag inte behöver",
+    "size": 10.99,
+    "x": 78,
+    "y": 73.38
+   },
+   {
+    "str": "",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Krisplan – Ellen Påhittad, 19700101-1234",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Testgatan 12, 123 45 Exempelstad",
+    "size": 9,
+    "x": 42.52,
+    "y": 809.13
+   },
+   {
+    "str": "Sida 1 av 4",
+    "size": 9,
+    "x": 508.43,
+    "y": 17.13
+   }
+  ],
+  [
+   {
+    "str": "Musiken känns starkare än vanligt",
+    "size": 10.99,
+    "x": 78,
+    "y": 752.88
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 724.38
+   },
+   {
+    "str": "Tecken för omgivningen, depression",
+    "size": 12,
+    "x": 48,
+    "y": 724.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 696.63
+   },
+   {
+    "str": "Svarar inte på sms eller samtal",
+    "size": 10.99,
+    "x": 78,
+    "y": 696.63
+   },
+   {
+    "str": "Ställer in träffar i sista stund",
+    "size": 10.99,
+    "x": 78,
+    "y": 681.63
+   },
+   {
+    "str": "Pratar tystare och mindre",
+    "size": 10.99,
+    "x": 78,
+    "y": 665.88
+   },
+   {
+    "str": "Slutar gå till kören",
+    "size": 10.99,
+    "x": 78,
+    "y": 650.13
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 622.38
+   },
+   {
+    "str": "Egna upplevelser/tecken av depression",
+    "size": 12,
+    "x": 48,
+    "y": 622.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 594.63
+   },
+   {
+    "str": "Vaknar tidigt och kan inte somna om",
+    "size": 10.99,
+    "x": 78,
+    "y": 594.63
+   },
+   {
+    "str": "Allt känns tungt redan på morgonen",
+    "size": 10.99,
+    "x": 78,
+    "y": 578.88
+   },
+   {
+    "str": "Orkar inte laga mat",
+    "size": 10.99,
+    "x": 78,
+    "y": 563.13
+   },
+   {
+    "str": "Tycker att jag inte duger",
+    "size": 10.99,
+    "x": 78,
+    "y": 548.13
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 509.88
+   },
+   {
+    "str": "Överenskomna åtgärder vid tidiga varningstecken",
+    "size": 15,
+    "x": 48,
+    "y": 509.88
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 480.63
+   },
+   {
+    "str": "Vad jag själv gör",
+    "size": 12,
+    "x": 48,
+    "y": 480.63
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 452.13
+   },
+   {
+    "str": "1. Går och lägger mig före 23 varje kväll",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 452.13
+   },
+   {
+    "str": "2. Stänger av telefonen klockan 21",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 437.13
+   },
+   {
+    "str": "3. Skjuter upp stora köp i minst en vecka",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 421.38
+   },
+   {
+    "str": "4. Går ut i dagsljus minst en halvtimme om dagen",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 406.38
+   },
+   {
+    "str": "5. Berättar för min kontaktperson hur jag mår",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 390.63
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 362.88
+   },
+   {
+    "str": "Vad mina närstående gör",
+    "size": 12,
+    "x": 48,
+    "y": 362.88
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 334.38
+   },
+   {
+    "str": "Frågar hur jag har sovit",
+    "size": 10.99,
+    "x": 78,
+    "y": 334.38
+   },
+   {
+    "str": "Påminner mig om planen, lugnt och utan att tjata",
+    "size": 10.99,
+    "x": 78,
+    "y": 319.38
+   },
+   {
+    "str": "Hjälper mig att säga nej till nya åtaganden",
+    "size": 10.99,
+    "x": 78,
+    "y": 303.63
+   },
+   {
+    "str": "Föreslår en promenad tillsammans",
+    "size": 10.99,
+    "x": 78,
+    "y": 288.63
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 260.13
+   },
+   {
+    "str": "Vad mottagningen gör",
+    "size": 12,
+    "x": 48,
+    "y": 260.13
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 232.38
+   },
+   {
+    "str": "Erbjuder en tid inom en vecka",
+    "size": 10.99,
+    "x": 78,
+    "y": 232.38
+   },
+   {
+    "str": "Ser över medicinen tillsammans med mig",
+    "size": 10.99,
+    "x": 78,
+    "y": 216.63
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 179.13
+   },
+   {
+    "str": "Tecken som brukar tyda på allvarlig försämring",
+    "size": 15,
+    "x": 48,
+    "y": 179.13
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 149.13
+   },
+   {
+    "str": "Mani",
+    "size": 12,
+    "x": 48,
+    "y": 149.13
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 121.38
+   },
+   {
+    "str": "Sover mindre än fyra timmar flera nätter i rad",
+    "size": 10.99,
+    "x": 78,
+    "y": 121.38
+   },
+   {
+    "str": "Spenderar stora summor pengar",
+    "size": 10.99,
+    "x": 78,
+    "y": 105.63
+   },
+   {
+    "str": "Blir lättirriterad och arg på mina närmaste",
+    "size": 10.99,
+    "x": 78,
+    "y": 90.63
+   },
+   {
+    "str": "Kör bil fortare än jag brukar",
+    "size": 10.99,
+    "x": 78,
+    "y": 74.88
+   },
+   {
+    "str": "",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Krisplan – Ellen Påhittad, 19700101-1234",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Testgatan 12, 123 45 Exempelstad",
+    "size": 9,
+    "x": 42.52,
+    "y": 809.13
+   },
+   {
+    "str": "Sida 2 av 4",
+    "size": 9,
+    "x": 508.43,
+    "y": 17.13
+   }
+  ],
+  [
+   {
+    "str": "När jag är som sämst sover jag nästan inte alls, pratar oavbrutet och tror att jag har en särskild uppgift.",
+    "size": 10.99,
+    "x": 48,
+    "y": 752.88
+   },
+   {
+    "str": "Jag märker det oftast inte själv, så då behöver jag att andra säger det till mig.",
+    "size": 10.99,
+    "x": 48,
+    "y": 737.13
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 709.38
+   },
+   {
+    "str": "Depression",
+    "size": 12,
+    "x": 48,
+    "y": 709.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 681.63
+   },
+   {
+    "str": "Ligger kvar i sängen större delen av dagen",
+    "size": 10.99,
+    "x": 78,
+    "y": 681.63
+   },
+   {
+    "str": "Slutar äta ordentligt",
+    "size": 10.99,
+    "x": 78,
+    "y": 665.88
+   },
+   {
+    "str": "Slutar svara helt, även min familj",
+    "size": 10.99,
+    "x": 78,
+    "y": 650.13
+   },
+   {
+    "str": "Känner att familjen klarar sig bättre utan mig",
+    "size": 10.99,
+    "x": 78,
+    "y": 635.13
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 596.88
+   },
+   {
+    "str": "Överenskomna åtgärder vid allvarlig försämring",
+    "size": 15,
+    "x": 48,
+    "y": 596.88
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 567.63
+   },
+   {
+    "str": "Vad jag själv gör",
+    "size": 12,
+    "x": 48,
+    "y": 567.63
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 539.13
+   },
+   {
+    "str": "1. Ringer mottagningen samma dag",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 539.13
+   },
+   {
+    "str": "2. Tar den extra medicin som läkaren skrivit ut",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 524.13
+   },
+   {
+    "str": "3. Lämnar bankkortet till min bror",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 508.38
+   },
+   {
+    "str": "4. Stannar hemma från jobbet",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 493.38
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 464.88
+   },
+   {
+    "str": "Vad mina närstående gör",
+    "size": 12,
+    "x": 48,
+    "y": 464.88
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 437.13
+   },
+   {
+    "str": "Ringer mottagningen om jag inte gör det själv",
+    "size": 10.99,
+    "x": 78,
+    "y": 437.13
+   },
+   {
+    "str": "Tar hand om barnen under några dagar",
+    "size": 10.99,
+    "x": 78,
+    "y": 421.38
+   },
+   {
+    "str": "Följer med mig till akutmottagningen",
+    "size": 10.99,
+    "x": 78,
+    "y": 406.38
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 377.88
+   },
+   {
+    "str": "Vad vården gör",
+    "size": 12,
+    "x": 48,
+    "y": 377.88
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 350.13
+   },
+   {
+    "str": "Erbjuder en tid samma dag eller dagen efter",
+    "size": 10.99,
+    "x": 78,
+    "y": 350.13
+   },
+   {
+    "str": "Bedömer om jag behöver vård på avdelning",
+    "size": 10.99,
+    "x": 78,
+    "y": 334.38
+   },
+   {
+    "str": "Kontaktar mina närstående om jag samtycker",
+    "size": 10.99,
+    "x": 78,
+    "y": 319.38
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 281.13
+   },
+   {
+    "str": "Strategier för att undvika tvångsåtgärder",
+    "size": 15,
+    "x": 48,
+    "y": 281.13
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 252.63
+   },
+   {
+    "str": "1. Om jag inte lyssnar på mina närstående ringer de mottagningen samma dag.",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 252.63
+   },
+   {
+    "str": "2. Om jag inte lyssnar på mottagningen bokar de ett hembesök med en sjuksköterska jag känner.",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 236.88
+   },
+   {
+    "str": "3. Om jag ändå inte tar emot hjälp följer min bror med mig till akutmottagningen.",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 221.88
+   },
+   {
+    "str": "4. Om det inte räcker får vården kontakta mig via min kontaktperson innan något annat görs.",
+    "size": 10.99,
+    "x": 65.78,
+    "y": 206.13
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 168.63
+   },
+   {
+    "str": "Livsstil och rutiner",
+    "size": 15,
+    "x": 48,
+    "y": 168.63
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 138.63
+   },
+   {
+    "str": "Alltid",
+    "size": 12,
+    "x": 48,
+    "y": 138.63
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 110.88
+   },
+   {
+    "str": "Sömn 22:30–07:00 alla dagar, även helger",
+    "size": 10.99,
+    "x": 78,
+    "y": 110.88
+   },
+   {
+    "str": "Tar min medicin klockan 21",
+    "size": 10.99,
+    "x": 78,
+    "y": 95.13
+   },
+   {
+    "str": "Äter frukost, lunch och middag på fasta tider",
+    "size": 10.99,
+    "x": 78,
+    "y": 80.13
+   },
+   {
+    "str": "",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Krisplan – Ellen Påhittad, 19700101-1234",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Testgatan 12, 123 45 Exempelstad",
+    "size": 9,
+    "x": 42.52,
+    "y": 809.13
+   },
+   {
+    "str": "Sida 3 av 4",
+    "size": 9,
+    "x": 508.43,
+    "y": 17.13
+   }
+  ],
+  [
+   {
+    "str": "Högst två koppar kaffe om dagen och inget efter 14",
+    "size": 10.99,
+    "x": 78,
+    "y": 752.88
+   },
+   {
+    "str": "Ingen alkohol under perioder med tecken",
+    "size": 10.99,
+    "x": 78,
+    "y": 737.13
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 709.38
+   },
+   {
+    "str": "Vid tecken på mani",
+    "size": 12,
+    "x": 48,
+    "y": 709.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 681.63
+   },
+   {
+    "str": "Undviker starka intryck som konserter och fester",
+    "size": 10.99,
+    "x": 78,
+    "y": 681.63
+   },
+   {
+    "str": "Dämpar belysningen på kvällen",
+    "size": 10.99,
+    "x": 78,
+    "y": 665.88
+   },
+   {
+    "str": "Lägger telefonen i ett annat rum på natten",
+    "size": 10.99,
+    "x": 78,
+    "y": 650.13
+   },
+   {
+    "str": "",
+    "size": 12,
+    "x": 48,
+    "y": 622.38
+   },
+   {
+    "str": "Vid tecken på depression",
+    "size": 12,
+    "x": 48,
+    "y": 622.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 594.63
+   },
+   {
+    "str": "Planerar en sak att se fram emot varje dag",
+    "size": 10.99,
+    "x": 78,
+    "y": 594.63
+   },
+   {
+    "str": "Rör på mig ute minst en gång om dagen",
+    "size": 10.99,
+    "x": 78,
+    "y": 578.88
+   },
+   {
+    "str": "Träffar någon minst varannan dag",
+    "size": 10.99,
+    "x": 78,
+    "y": 563.13
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 525.63
+   },
+   {
+    "str": "Kontaktuppgifter",
+    "size": 15,
+    "x": 48,
+    "y": 525.63
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 496.38
+   },
+   {
+    "str": "Mottagning Exempelstad, 08-123 456 78, vardagar 08.00–16.00",
+    "size": 10.99,
+    "x": 78,
+    "y": 496.38
+   },
+   {
+    "str": "Psykiatriska akutmottagningen Exempelstad, öppen dygnet runt, 08-765 432 10",
+    "size": 10.99,
+    "x": 78,
+    "y": 481.38
+   },
+   {
+    "str": "Kontaktperson Kim Testsson, 070-123 45 67",
+    "size": 10.99,
+    "x": 78,
+    "y": 465.63
+   },
+   {
+    "str": "Bror Ola Påhittad, 073-765 43 21",
+    "size": 10.99,
+    "x": 78,
+    "y": 450.63
+   },
+   {
+    "str": "Läkare Sara Exempel, nås via mottagningen",
+    "size": 10.99,
+    "x": 78,
+    "y": 434.88
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 397.38
+   },
+   {
+    "str": "Patientens önskemål",
+    "size": 15,
+    "x": 48,
+    "y": 397.38
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 368.13
+   },
+   {
+    "str": "Jag vill att min bror kontaktas först om jag blir sämre.",
+    "size": 10.99,
+    "x": 78,
+    "y": 368.13
+   },
+   {
+    "str": "Jag vill helst inte få injektioner.",
+    "size": 10.99,
+    "x": 78,
+    "y": 353.13
+   },
+   {
+    "str": "Om jag behöver läggas in vill jag ha ett enkelrum om det går.",
+    "size": 10.99,
+    "x": 78,
+    "y": 337.38
+   },
+   {
+    "str": "Jag vill att barnen får veta att jag är sjuk, inte vad jag gör.",
+    "size": 10.99,
+    "x": 78,
+    "y": 322.38
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 284.13
+   },
+   {
+    "str": "Rekommendationer",
+    "size": 15,
+    "x": 48,
+    "y": 284.13
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 254.88
+   },
+   {
+    "str": "Litium har fungerat bra tidigare. Kontrollera nivån vid försämring.",
+    "size": 10.99,
+    "x": 78,
+    "y": 254.88
+   },
+   {
+    "str": "Bensodiazepiner har gett mig yrsel och bör undvikas.",
+    "size": 10.99,
+    "x": 78,
+    "y": 239.88
+   },
+   {
+    "str": "Jag svarar bäst på lugnt tal och korta frågor.",
+    "size": 10.99,
+    "x": 78,
+    "y": 224.13
+   },
+   {
+    "str": "",
+    "size": 15,
+    "x": 48,
+    "y": 186.63
+   },
+   {
+    "str": "Det här hjälper mig att hitta tillbaka",
+    "size": 15,
+    "x": 48,
+    "y": 186.63
+   },
+   {
+    "str": "",
+    "size": 10.99,
+    "x": 78,
+    "y": 157.38
+   },
+   {
+    "str": "Långa promenader i skogen med hunden",
+    "size": 10.99,
+    "x": 78,
+    "y": 157.38
+   },
+   {
+    "str": "Att baka bröd på söndagar",
+    "size": 10.99,
+    "x": 78,
+    "y": 142.38
+   },
+   {
+    "str": "Ringa min syster en kväll i veckan",
+    "size": 10.99,
+    "x": 78,
+    "y": 126.63
+   },
+   {
+    "str": "Lyssna på körens inspelningar",
+    "size": 10.99,
+    "x": 78,
+    "y": 111.63
+   },
+   {
+    "str": "",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Krisplan – Ellen Påhittad, 19700101-1234",
+    "size": 9,
+    "x": 42.52,
+    "y": 819.63
+   },
+   {
+    "str": "Testgatan 12, 123 45 Exempelstad",
+    "size": 9,
+    "x": 42.52,
+    "y": 809.13
+   },
+   {
+    "str": "Sida 4 av 4",
+    "size": 9,
+    "x": 508.43,
+    "y": 17.13
+   }
+  ]
+ ]
+}

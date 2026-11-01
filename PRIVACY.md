@@ -22,7 +22,7 @@ Android-backup är avstängd. På iOS kan databasfilen hamna i iCloud-backup til
 
 Utan språkmodell lämnar ingenting telefonen. Bedömningen görs då med ordmatchning på telefonen.
 
-Med en språkmodell kopplad skickas **rensad text** till den leverantör användaren själv har valt, med användarens egen nyckel. Det gäller kvällens anteckning, normalläget, planens tecken och, vid import, den inklistrade krisplanen. Rensningen tar alltid bort:
+Med en språkmodell kopplad skickas **rensad text** till den leverantör användaren själv har valt, med användarens egen nyckel. Det gäller kvällens anteckning, normalläget, planens tecken och, vid import, raderna under rubriker i krisplanen som appen inte känner igen. Rensningen tar alltid bort:
 
 - personnummer, telefonnummer, e-postadresser, gatuadresser, postnummer och länkar
 - namn från användarens egen lista och namn som hittas i krisplanen
@@ -30,7 +30,7 @@ Med en språkmodell kopplad skickas **rensad text** till den leverantör använd
 
 Rensningen körs på telefonen, också när modellen är lokal. Den är en ren funktion med egna tester i `tests/scrub.test.ts`.
 
-Vid krisplansimport får varje namn och nummer en numrerad platshållare, till exempel [NAMN1]. Användaren ser den rensade texten med markeringar och godkänner den innan den skickas. När svaret kommer sätts originalen tillbaka på telefonen. Kopplingen mellan platshållare och original lämnar aldrig telefonen.
+Vid krisplansimport läses PDF- och Word-filer på telefonen. Sidhuvuden och sidfötter med namn, personnummer och adress tas bort och sparas inte. Raderna sorteras efter planens rubriker i koden. Bara rader under rubriker som appen inte känner igen skickas, en rubrik i taget och rensade. Användaren ser exakt vad som skickas innan något skickas. Modellen svarar bara med vad varje rad är, aldrig med text. Rader under kända rubriker, som önskemål, rader till vården och kontakter, skickas aldrig. Önskemål, rader till vården och kontakter används inte heller i bedömningen.
 
 Före första anropet till en leverantör visas vart texten går, att leverantörens villkor för lagring och träning gäller, och en länk till villkoren. Samtycket gäller exakt den leverantören och adressen. Byts något av dem frågar appen igen. Appen påstår inget om leverantörens lagring som den inte kan visa. Med en OpenAI-kompatibel adress på det egna nätverket, till exempel Ollama på en hemdator, säger appen att texten inte lämnar användarens enheter.
 

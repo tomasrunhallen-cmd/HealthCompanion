@@ -11,7 +11,8 @@ import { KIND_TEXT, LAYER_TEXT, ORIGIN_TEXT } from './labels';
 export const CONTEXT_FILES: Record<ContextLayer, string> = { grund: 'grund.md', profil: 'profil.md', dagligt: 'dagligt.md' };
 
 const KIND_ORDER: ContextKind[] = [
-  'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'trigger', 'false_alarm', 'medication',
+  'value_anchor', 'early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut', 'trigger', 'routine', 'contact',
+  'wish', 'note_for_care', 'false_alarm', 'medication',
   'tone_yellow', 'tone_red', 'normal_state', 'course', 'period_high', 'period_low', 'period_mixed', 'typical_phrase',
   'event', 'medication_taken', 'correction',
 ];

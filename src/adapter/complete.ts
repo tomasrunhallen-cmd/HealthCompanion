@@ -1,10 +1,10 @@
 // Turns any LlmAdapter into complete(prompt, variables) -> { text, json?, usage }:
 // render the prompt, call the provider, validate JSON against the schema, retry once
-// with the error attached, otherwise throw so the caller falls back to word matching.
+// with the error attached (also for the caller's own checks), otherwise throw so the caller falls back to word matching.
 
 import { loadSchema, render, type Prompt } from '../prompts/loader';
 import { extractJson, validate, type SchemaNode } from './schema';
-import type { CompletionResult, Completer, LlmAdapter, SentRequest, Usage } from './types';
+import type { CompleteOptions, CompletionResult, Completer, LlmAdapter, SentRequest, Usage } from './types';
 
 export class InvalidAnswerError extends Error {
   constructor(message: string, readonly errors: string[]) {
@@ -23,7 +23,7 @@ export interface CompleterHooks {
 export function createCompleter(adapter: LlmAdapter, hooks: CompleterHooks = {}): Completer {
   const { onSent, onUsage } = hooks;
   return {
-    async complete(prompt: Prompt, variables: Record<string, string>): Promise<CompletionResult> {
+    async complete(prompt: Prompt, variables: Record<string, string>, options: CompleteOptions = {}): Promise<CompletionResult> {
       const rendered = render(prompt, variables);
       const wantsJson = prompt.meta.response === 'json';
       const schema = wantsJson && prompt.meta.schema ? (loadSchema(prompt.meta.schema) as SchemaNode) : null;
@@ -52,6 +52,7 @@ export function createCompleter(adapter: LlmAdapter, hooks: CompleterHooks = {})
         try {
           const json = extractJson(res.text);
           lastErrors = schema ? validate(json, schema) : [];
+          if (lastErrors.length === 0 && options.check) lastErrors = options.check(json);
           if (lastErrors.length === 0) return { text: res.text, json, usage };
         } catch (e) {
           lastErrors = [(e as Error).message];

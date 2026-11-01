@@ -13,7 +13,7 @@ export const MILD_TITLE = 'Om du har tankar på att inte vilja leva finns det hj
 /** `mild`: the note mentioned it with a negation ("vill inte dö"). Same help, gentler words. */
 /** `sheet`: the "Hjälp nu" sheet, opened by the person, not by something they wrote. */
 export function CrisisCard({ plan, mild = false, sheet = false }: { plan: PlanItem[]; mild?: boolean; sheet?: boolean }) {
-  const { steps, numbers } = crisisInfo(plan);
+  const { steps, ladder, numbers } = crisisInfo(plan);
   return (
     <Card style={{ borderColor: mild ? colors.border : colors.red, borderWidth: mild ? 1 : 2 }}>
       <Text style={type.h2} accessibilityRole="header">{mild ? MILD_TITLE : 'Du behöver inte vara ensam med det här'}</Text>
@@ -25,6 +25,14 @@ export function CrisisCard({ plan, mild = false, sheet = false }: { plan: PlanIt
       ) : (
         <P muted style={{ marginTop: space.xs }}>Din plan har inga steg vid rött ännu.</P>
       )}
+
+      {sheet && ladder ? (
+        <>
+          <Text style={[type.label, { marginTop: space.m }]} accessibilityRole="header">{ladder.heading.toUpperCase()}</Text>
+          <P muted style={{ marginTop: 2 }}>Steg för steg, som i din plan.</P>
+          {ladder.steps.map((s, i) => <P key={s + i} style={{ marginTop: space.xs }}>{`${i + 1}. ${s}`}</P>)}
+        </>
+      ) : null}
 
       <Text style={[type.label, { marginTop: space.m }]}>RING ELLER CHATTA</Text>
       {numbers.map((n) => (

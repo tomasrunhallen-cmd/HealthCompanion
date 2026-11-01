@@ -57,3 +57,17 @@ export async function pickTextFiles(types: string[] = ['text/csv', 'text/comma-s
   }
   return out;
 }
+
+/** One binary file, for a crisis plan as PDF or .docx. Read on the phone and deleted from the cache. */
+export async function pickBinaryFile(types: string[]): Promise<{ name: string; data: Uint8Array } | null> {
+  const res = await DocumentPicker.getDocumentAsync({ type: types, copyToCacheDirectory: true });
+  if (res.canceled || !res.assets?.[0]) return null;
+  const file = new File(res.assets[0].uri);
+  const data = new Uint8Array(await file.arrayBuffer());
+  try {
+    file.delete();
+  } catch {
+    /* ignore */
+  }
+  return { name: res.assets[0].name, data };
+}

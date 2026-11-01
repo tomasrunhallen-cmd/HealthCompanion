@@ -7,6 +7,7 @@ import { CrisisCard } from '../CrisisCard';
 import { correctionFor } from '../../context/corrections';
 import { MEDICAL_REMINDER } from '../../legal';
 import type { Signal } from '../../domain/types';
+import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../plan/guidance';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -49,12 +50,17 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const garminDay = repo.garminDay(entry.date);
   const why = explainAssessment(entry, a, garminDay);
   const plan = repo.plan();
-  const actions = actionsForLevel(a.level, plan);
+  // Which way the signs point, in the plan's own words. Points and level are unchanged.
+  const dir = signDirection(a.signals, plan);
+  const direction = a.akut ? null : directionSentence(dir, repo.planSettings());
+  const actions = actionsForLevel(a.level, plan, dir);
+  const routines = a.level === 'yellow' ? routinesFor(repo.contextOf('routine'), dir) : [];
+  const anchors = showValueAnchors(a, repo.assessments()) ? repo.contextOf('value_anchor').filter((e) => e.approvedAt) : [];
   const signs = a.signals.filter((s) => s.kind === 'early_sign' || s.kind === 'serious_sign');
   const measured = a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut');
-  const first = a.level === 'green' ? null : firstStep(a.level, plan);
+  const first = a.level === 'green' ? null : firstStep(a.level, plan, dir);
   // A serious sign shows the plan's red steps, also when the level is yellow.
-  const serious = seriousActions(a, plan);
+  const serious = seriousActions(a, plan, dir);
   const answered = correctionFor(repo, a.id).length > 0;
 
   return (
@@ -69,9 +75,18 @@ export function ResultScreen({ entryId }: { entryId: string }) {
 
       {a.akut ? <CrisisCard plan={plan} /> : a.akutMild ? <CrisisCard plan={plan} mild /> : null}
 
+      {anchors.length ? (
+        // The plan's value anchors, word for word, on red and after three yellow days in a row.
+        <Card tone="accent">
+          <Text style={type.label} accessibilityRole="header">DET SOM ÄR VIKTIGT FÖR DIG</Text>
+          {anchors.map((e) => <P key={e.id} style={{ marginTop: space.xs }}>{e.text}</P>)}
+        </Card>
+      ) : null}
+
       <Card tone={a.level} style={{ alignItems: 'center', borderColor: levelColor(a.level) }}>
         <LevelLight level={a.level} />
         <P style={{ textAlign: 'center', marginTop: space.m }}>{displaySentence(a)}</P>
+        {direction && a.level !== 'green' ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{direction}</P> : null}
       </Card>
 
       {a.level === 'green' && a.trend?.length ? (
@@ -110,7 +125,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         <Card tone="accent">
           <Text style={type.h2}>Första steget i din plan</Text>
           <P style={{ marginTop: space.xs }}>
-            {firstStep('yellow', plan)?.text ?? 'Din plan har ingen åtgärd vid gult ännu.'}
+            {firstStep('yellow', plan, dir)?.text ?? 'Din plan har ingen åtgärd vid gult ännu.'}
           </P>
         </Card>
       )}
@@ -145,6 +160,15 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             {actions.map((p, i) => (
               <P key={p.id} style={{ marginBottom: space.xs }}>{`${i + 1}. ${p.text}`}</P>
             ))}
+          </Card>
+        </Section>
+      )}
+
+      {routines.length > 0 && (
+        <Section title="Livsstil och rutiner">
+          <Card>
+            <P muted style={{ marginBottom: space.xs }}>Från din plan.</P>
+            {routines.map((e) => <P key={e.id} style={{ marginBottom: space.xs }}>{`• ${e.text}`}</P>)}
           </Card>
         </Section>
       )}

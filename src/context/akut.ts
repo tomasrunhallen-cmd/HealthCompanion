@@ -6,6 +6,7 @@ import { CONTEXT_SOURCES } from '../prompts/bundle.generated';
 import { parseFrontmatter } from '../prompts/loader';
 import type { PlanItem } from '../domain/types';
 import { tokenize, wordsMatch } from '../analysis/wordmatch';
+import { actionsFor, ladderOf } from '../plan/guidance';
 
 const NEGATIONS = new Set(['inte', 'aldrig', 'ingen', 'inget', 'inga', 'ej']);
 /** Words allowed between the words of a phrase ("vill verkligen inte leva"). A negation there makes the hit mild. */
@@ -194,10 +195,15 @@ export const CRISIS_NUMBERS: CrisisNumber[] = [
   { number: '90101', label: 'Självmordslinjen, samtal och chatt' },
 ];
 
-/** What the crisis card shows: the plan's own steps at red, then the numbers. */
-export function crisisInfo(plan: PlanItem[]): { steps: string[]; numbers: CrisisNumber[] } {
+/**
+ * What the crisis card shows: the person's own steps at red, the plan's ladder (numbered,
+ * under the plan's own heading), then the numbers.
+ */
+export function crisisInfo(plan: PlanItem[]): { steps: string[]; ladder: { heading: string; steps: string[] } | null; numbers: CrisisNumber[] } {
+  const ladder = ladderOf(plan);
   return {
-    steps: plan.filter((p) => p.kind === 'action_red').sort((a, b) => a.order - b.order).map((p) => p.text),
+    steps: actionsFor('red', plan).map((p) => p.text),
+    ladder: ladder ? { heading: ladder.heading, steps: ladder.steps.map((p) => p.text) } : null,
     numbers: CRISIS_NUMBERS,
   };
 }
