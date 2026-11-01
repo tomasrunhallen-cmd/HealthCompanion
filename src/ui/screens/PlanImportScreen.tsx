@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
-import { blockLines, blocksFromRows, BLOCK_TEXT, TEMPLATE, type BlockType, type ImportedBlock, type PlanBlock } from '../../core/plan/blocks';
+import { blockLines, blocksFromRows, BLOCK_TEXT, diffPlans, TEMPLATE, type BlockChange, type BlockType, type ImportedBlock, type PlanBlock } from '../../core/plan/blocks';
 import { stripPageFurniture } from '../../core/plan/headers';
 import { draftFromPages } from '../../core/plan/importPlan';
 import { linesFromDocx, linesFromPdf, linesFromText, type SourcePages } from '../../core/plan/source';
@@ -44,6 +44,8 @@ Tecken på allvarlig försämring – nedstämdhet
 
 Det här gör jag vid allvarlig försämring
 1. Ringer mottagningen samma dag`;
+
+const CHANGE_TEXT: Record<BlockChange['status'], string> = { new: 'Nytt block', changed: 'Ändrat', removed: 'Finns inte i den nya planen', same: 'Som förut' };
 
 const FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.pdf', '.docx'];
 const CHOICES = TEMPLATE.filter((t) => t.inTemplate || t.type === 'ignore');
@@ -156,12 +158,30 @@ export function PlanImportScreen() {
 
   if (read) {
     const unknown = read.blocks.filter((b) => b.type == null).length;
+    // Uppdaterad plan: what changes against the plan saved now, line by line.
+    const changes = hadPlan
+      ? diffPlans(planBlocks(repo), read.blocks.filter((b): b is PlanBlock => b.type != null)).filter((c) => c.status !== 'same')
+      : [];
     return (
-      <Screen title="Granska planen" footer={<Button big title="Spara planen" onPress={save} />}>
+      <Screen title={hadPlan ? 'Uppdaterad plan' : 'Granska planen'} footer={<Button big title={hadPlan ? 'Spara den nya planen' : 'Spara planen'} onPress={save} />}>
         <P muted>
           Planen är uppdelad efter sina egna rubriker. Kontrollera att varje block läses rätt.
           {unknown ? ` ${unknown === 1 ? 'Ett block' : `${unknown} block`} behöver att du väljer vad det är.` : ''} Du kan ändra texten efteråt under Min krisplan.
         </P>
+        {hadPlan ? (
+          <Section title={changes.length ? 'Ändringar mot din nuvarande plan' : 'Inga ändringar mot din nuvarande plan'}>
+            {changes.map((c) => (
+              <Card key={c.heading + c.status}>
+                <Text style={type.h2} accessibilityRole="header">{c.heading}</Text>
+                <Text style={type.small}>{CHANGE_TEXT[c.status]}{c.kept ? `, ${c.kept} rader som förut` : ''}</Text>
+                {c.added.map((l) => <Text key={`+${l}`} style={[type.body, { marginTop: space.xs, color: colors.green }]} accessibilityLabel={`Ny rad: ${l}`}>{`+ ${l}`}</Text>)}
+                {c.removed.map((l) => <Text key={`-${l}`} style={[type.body, { marginTop: space.xs, color: colors.danger, textDecorationLine: 'line-through' }]} accessibilityLabel={`Borttagen rad: ${l}`}>{`− ${l}`}</Text>)}
+              </Card>
+            ))}
+            <P muted>Rader som står kvar ordagrant behåller sina påminnelser och sin historik.</P>
+          </Section>
+        ) : null}
+
         {read.removed.length ? (
           <Section title="Borttaget sidhuvud">
             <Card>

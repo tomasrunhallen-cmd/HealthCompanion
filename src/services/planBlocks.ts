@@ -90,7 +90,11 @@ export async function savePlanBlocks(repo: Repository, blocks: PlanBlock[], now 
       if (!kind) continue;
       const order = counters.get(kind) ?? 0;
       counters.set(kind, order + 1);
-      const same = existing.find((e) => !used.has(e.id) && e.text === row.text && (e.blockId === block.id || (!e.blockId && e.kind === kind)));
+      // The same line in the same block first; otherwise the same line of the same kind, e.g.
+      // after a new version of the plan has been read in and its blocks have new ids.
+      const same =
+        existing.find((e) => !used.has(e.id) && e.text === row.text && e.blockId === block.id) ??
+        existing.find((e) => !used.has(e.id) && e.text === row.text && e.kind === kind);
       if (same) {
         used.add(same.id);
         await repo.updateContextEntry(same.id, { kind, plan: kind === 'akut' ? null : row.fields, blockId: block.id, order }, false);
