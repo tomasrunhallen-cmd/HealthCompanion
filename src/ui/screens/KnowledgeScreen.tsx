@@ -7,6 +7,8 @@ import type { ContextEntry, ContextKind, ContextLayer, Entry } from '../../domai
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
+import { monthlyDue, runProfileReview } from '../../services/profile';
+import { Platform } from 'react-native';
 import { colors, space, type } from '../theme';
 
 /** Kinds the user adds here. Plan rows are added under Min krisplan; corrections after an assessment. */
@@ -122,6 +124,31 @@ function AddEntry({ layer }: { layer: ContextLayer }) {
   );
 }
 
+function ReviewNow() {
+  const repo = useRepo();
+  const nav = useNav();
+  const dialog = useDialog();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      kind="secondary"
+      title="Föreslå ändringar i profilen nu"
+      busy={busy}
+      onPress={async () => {
+        setBusy(true);
+        try {
+          const res = await runProfileReview(repo, monthlyDue(), { browser: Platform.OS === 'web' });
+          if (res.error) await dialog.info('Genomgången blev inte klar', res.error);
+          else if (res.made) nav.push({ name: 'suggestions' });
+          else await dialog.info('Inga förslag', res.usedModel ? 'Inget i den senaste månadens anteckningar behöver ändras.' : 'Profilförslag kräver en kopplad språkmodell.');
+        } finally {
+          setBusy(false);
+        }
+      }}
+    />
+  );
+}
+
 export function KnowledgeScreen() {
   const repo = useRepo();
   const nav = useNav();
@@ -149,6 +176,8 @@ export function KnowledgeScreen() {
           </Card>
         </Pressable>
       ) : null}
+
+      <ReviewNow />
 
       {(['grund', 'profil', 'dagligt'] as ContextLayer[]).map((layer) => {
         const entries = repo.contextEntries(layer);

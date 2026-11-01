@@ -7,9 +7,9 @@ import { loadTestSuite } from '../src/analysis/testcases';
 import { fill, listPrompts, loadPrompt, loadSchema, parsePrompt, render, variablesIn } from '../src/prompts/loader';
 
 describe('prompt loader', () => {
-  it('loads all five prompt files with id and version', () => {
+  it('loads all prompt files with id and version', () => {
     const ids = listPrompts().map((p) => p.meta.id).sort();
-    expect(ids).toEqual(['analys', 'aterbesok', 'historik-import', 'krisplan-import', 'testfall']);
+    expect(ids).toEqual(['analys', 'aterbesok', 'historik-import', 'krisplan-import', 'profil-uppdatering', 'testfall']);
     for (const p of listPrompts()) expect(p.meta.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 

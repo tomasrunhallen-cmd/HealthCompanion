@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "profil-uppdatering",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["changes"],
+  "properties": {
+    "changes": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["action", "kind", "target", "text", "reason", "quotes"],
+        "properties": {
+          "action": { "type": "string", "enum": ["add", "update", "remove"] },
+          "kind": { "type": "string", "enum": ["normallage", "typisk-formulering", "period-nedstamd", "period-uppvarvad", "period-blandad"] },
+          "target": { "type": "integer", "minimum": 0 },
+          "text": { "type": "string", "maxLength": 400 },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "quotes": { "type": "array", "maxItems": 3, "items": { "type": "string", "maxLength": 200 } }
+        }
+      }
+    }
+  }
+}

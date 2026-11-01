@@ -243,6 +243,17 @@ export class Repository {
     this.changed();
   }
 
+  // ---- small app state ----
+  kvGet(key: string): unknown {
+    return this.snap.kv[key];
+  }
+
+  async kvSet(key: string, value: unknown): Promise<void> {
+    this.snap.kv[key] = value;
+    await this.backend.put('kv', key, value);
+    this.changed();
+  }
+
   // ---- suggestions: proposals waiting for the user, never part of the bank itself ----
   suggestions(): Suggestion[] {
     return (this.snap.kv.suggestions as Suggestion[] | undefined) ?? [];

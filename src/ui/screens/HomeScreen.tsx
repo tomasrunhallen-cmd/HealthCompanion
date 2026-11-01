@@ -6,6 +6,8 @@ import { silentDaysUntil } from '../../analysis/scoring';
 import { RULES } from '../../analysis/rules';
 import { logHeavyDay } from '../../services/checkin';
 import { standardNudgeWeek, startWithStandard, unconfirmedStandard } from '../../context/standard';
+import { dueNow, runProfileReview } from '../../services/profile';
+import { Platform } from 'react-native';
 import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -27,6 +29,21 @@ export function HomeScreen() {
   const firstYellow = firstStep('yellow', plan);
   const settings = repo.settings();
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
+  const due = dueNow(repo);
+  const [reviewing, setReviewing] = useState(false);
+
+  const review = async () => {
+    if (!due) return;
+    setReviewing(true);
+    try {
+      const res = await runProfileReview(repo, due, { browser: Platform.OS === 'web' });
+      if (res.error) await dialog.info('Genomgången blev inte klar', `${res.error} Försök igen senare.`);
+      else if (res.made) nav.push({ name: 'suggestions' });
+      else await dialog.info('Inga förslag', res.usedModel ? 'Inget i anteckningarna behöver ändras i din profil.' : 'Inget att föreslå. Med en språkmodell kopplad kan appen också föreslå ändringar i profilen.');
+    } finally {
+      setReviewing(false);
+    }
+  };
 
   const chooseStandard = async () => {
     const ok = await dialog.confirm({
@@ -89,6 +106,19 @@ export function HomeScreen() {
             <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Granska ›</Text>
           </Card>
         </Pressable>
+      )}
+
+      {due && (
+        <Card tone="accent">
+          <Text style={type.h2}>Dags att se över din profil</Text>
+          <P style={{ marginTop: space.xs, marginBottom: space.m }}>
+            {due.reason === 'period'
+              ? 'En period med gult eller rött i mer än tre dagar är över. Appen kan föreslå hur perioden utvecklades och vad som kan läggas till i din profil.'
+              : 'En månad har gått. Appen kan föreslå ändringar i din profil utifrån dina anteckningar.'}{' '}
+            Du godkänner varje förslag själv.
+          </P>
+          <Button title="Gå igenom" onPress={review} busy={reviewing} />
+        </Card>
       )}
 
       {nudgeWeek != null && (
