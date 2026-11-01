@@ -222,7 +222,7 @@ export function KnowledgeScreen() {
   const derived = buildContext({ entries: repo.contextEntries(), entry: probe, history: repo.history(), garmin: repo.garminDays() }).variables.dagligt;
 
   return (
-    <Screen title="Det appen vet om mig" back>
+    <Screen title="Det appen vet" back>
       <P muted>
         Allt appen vet om dig finns här, och bara här: {info.kind === 'cloud' ? 'i ditt Firebase-projekt' : 'på den här enheten'}.
         Ingenting lärs in i språkmodellen. Byter du modell finns allt kvar. Appen ändrar aldrig något utan att du godkänt det.

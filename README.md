@@ -142,13 +142,24 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 289 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 290 tester i Jest och 3 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
 Testfallen ligger i `prompts/testfall.md`, se *Testfall och modellbyte* nedan. Varje fall har ett referenssvar, och testerna skickar referenssvaren genom hela LLM-vägen och kontrollerar nivån. Adaptrarna testas mot fejkade svar i leverantörernas dokumenterade format. Hela flödet är också provkört i webbförhandsvisningen med en fejkad Mistral: inställningar, test, krisplansimport och avstämning.
 
 Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster, eftersom det kräver dina nycklar. Det är det som verifieringen på telefonen visar. Garmin-flödet är provkört i webbförhandsvisningen med fejkade svar: fel nyckel, rätt nyckel, veckovyn, avstämningen och texten till modellen.
+
+## Design
+
+Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsnitt, hur, och var de krockar med specen.
+
+- **Flikar:** Hem, Avstämning, Trend och Jag. Varje flik har en native stack med stor rubrik.
+- **Ark:** krisplanen, förslag, rättelser och *Hjälp nu* öppnas som ark.
+- **Utseende:** systemets färger, ljust och mörkt läge, och systemtypsnittet med Dynamic Type och Fet text.
+- **Ampeln:** varje nivå har ord och en egen symbol (cirkel, triangel, oktagon), inte bara färg.
+- **Krisrutan** nås med ett tryck från varje flik via *Hjälp nu*.
+- **Ikon och startskärm:** ikonen är en soluppgång. Startskärmen är bara bakgrundsfärgen.
 
 ## Import från en annan dagbok
 

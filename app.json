@@ -5,17 +5,22 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "se.dagsljus.app",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Dagsljus använder Face ID för att låsa appen."
+      },
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FBF8F3",
+        "backgroundColor": "#E8913A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -27,7 +32,7 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "name": "Dagsljus",
-      "backgroundColor": "#FBF8F3"
+      "backgroundColor": "#F2F2F7"
     },
     "scheme": "dagsljus",
     "plugins": [
@@ -47,7 +52,17 @@
       [
         "expo-notifications",
         {}
-      ]
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F2F2F7",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      "expo-font"
     ]
   }
 }

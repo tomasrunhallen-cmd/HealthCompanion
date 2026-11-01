@@ -17,7 +17,7 @@ export function SuggestionsScreen() {
   useEffect(() => setText(s?.change.text ?? ''), [s?.id]);
 
   return (
-    <Screen title="Förslag att granska" back>
+    <Screen title="Förslag" back>
       {!s ? (
         <P muted>Inga förslag väntar. Appen ändrar aldrig något om dig utan att du godkänt det.</P>
       ) : (

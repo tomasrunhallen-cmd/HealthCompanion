@@ -1,5 +1,6 @@
 import { assessEntry, displaySentence, wordMatcher, templateSentence, NOTHING_STANDS_OUT, firstStep, seriousActions, type SignMatcher } from '../src/analysis/assess';
 import { addDays, eveningDateKey } from '../src/analysis/dates';
+import { buildTrend } from '../src/analysis/trend';
 import { computeBaseline, levelFromSignals, score, silentDaysBefore, silentDaysUntil, trendLines } from '../src/analysis/scoring';
 import { loadTestSuite } from '../src/analysis/testcases';
 import { matchSigns } from '../src/analysis/wordmatch';
@@ -248,5 +249,27 @@ describe('green text and trend lines', () => {
     const a = await assessEntry({ entry: { ...day(T, { sleepHours: 5.5 }), kind: 'heavy', transcript: '' }, plan: [], planSettings: PS, history, matcher: wordMatcher });
     expect(a.level).toBe('yellow');
     expect(a.trend).toBeUndefined();
+  });
+});
+
+describe('the Trend tab\'s days', () => {
+  it('gives one row per day, oldest first, Garmin before the entry, and counts levels and missing days', () => {
+    const e = (date: string, sleepHours: number | null, stressAvg: number | null): Entry => ({
+      id: `t_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: '', mood: 5, energy: 5,
+      wordsPerMinute: null, sleepHours, sleepSource: 'transcript', stressAvg,
+    });
+    const entries = [e('2026-10-30', 6, null), e('2026-11-01', 7, 30)];
+    const assessments = [
+      { entryId: 't_2026-10-30', level: 'yellow' }, { entryId: 't_2026-11-01', level: 'green' },
+    ] as never[];
+    const garmin = { '2026-10-30': { date: '2026-10-30', sleepHours: 5.5, stressAvg: 41 } } as never;
+    const t = buildTrend(entries, assessments, garmin, '2026-11-01', 3);
+    expect(t.days).toEqual([
+      { date: '2026-10-30', level: 'yellow', sleepHours: 5.5, stressAvg: 41 },
+      { date: '2026-10-31', level: null, sleepHours: null, stressAvg: null },
+      { date: '2026-11-01', level: 'green', sleepHours: 7, stressAvg: 30 },
+    ]);
+    expect(t.counts).toEqual({ green: 1, yellow: 1, red: 0 });
+    expect(t.missing).toBe(1);
   });
 });

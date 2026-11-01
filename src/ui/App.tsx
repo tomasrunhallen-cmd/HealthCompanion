@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, AppState, Platform, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { clearPin, lockSupport, unlock, usesPin } from '../platform/lock';
 import { cloudConfigured, onUserChanged, signOutUser, type CloudUser } from '../cloud/firebase';
@@ -8,43 +8,12 @@ import { syncOnOpen } from '../services/garmin';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
 import { Button, Field } from './components';
-import { NavProvider, type Route } from './nav';
-import { CheckinScreen } from './screens/CheckinScreen';
-import { HistoryScreen } from './screens/HistoryScreen';
-import { GarminScreen } from './screens/GarminScreen';
-import { HomeScreen } from './screens/HomeScreen';
-import { KnowledgeScreen } from './screens/KnowledgeScreen';
-import { LlmSettingsScreen } from './screens/LlmSettingsScreen';
-import { PlanImportScreen } from './screens/PlanImportScreen';
-import { PlanScreen } from './screens/PlanScreen';
-import { PrivacyScreen } from './screens/PrivacyScreen';
-import { ResultScreen } from './screens/ResultScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
+import { AppNavigator } from './Navigator';
 import { SignInScreen } from './screens/SignInScreen';
 import { VaultScreen } from './screens/VaultScreen';
-import { ImportDiaryScreen } from './screens/ImportDiaryScreen';
 import type { Vault } from '../cloud/vault';
-import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { DialogProvider, RepoProvider } from './state';
-import { colors, space, type } from './theme';
-
-function renderRoute(route: Route) {
-  switch (route.name) {
-    case 'home': return <HomeScreen />;
-    case 'checkin': return <CheckinScreen />;
-    case 'result': return <ResultScreen entryId={route.entryId} />;
-    case 'plan': return <PlanScreen />;
-    case 'planImport': return <PlanImportScreen />;
-    case 'settings': return <SettingsScreen />;
-    case 'llm': return <LlmSettingsScreen />;
-    case 'garmin': return <GarminScreen />;
-    case 'suggestions': return <SuggestionsScreen />;
-    case 'knowledge': return <KnowledgeScreen />;
-    case 'privacy': return <PrivacyScreen />;
-    case 'history': return <HistoryScreen />;
-    case 'importDiary': return <ImportDiaryScreen />;
-  }
-}
+import { applyBoldText, colors, space, type } from './theme';
 
 /** Fetches missing Garmin days when the unlocked app opens or comes back to the front. */
 function GarminAutoSync(props: { repo: Repository }) {
@@ -153,6 +122,19 @@ export default function App() {
   // Web with Firebase: undefined while Firebase answers, null when signed out.
   const [user, setUser] = useState<CloudUser | null | undefined>(cloudConfigured ? undefined : null);
 
+  // iOS Bold Text: the text styles get heavier weights, and the screens are drawn again.
+  const [boldText, setBoldText] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const set = (on: boolean) => {
+      applyBoldText(on);
+      setBoldText(on);
+    };
+    AccessibilityInfo.isBoldTextEnabled().then(set).catch(() => undefined);
+    const sub = AccessibilityInfo.addEventListener('boldTextChanged', set);
+    return () => sub.remove();
+  }, []);
+
   // Web with Firebase: the key from the user's password, in memory only. Null until unlocked.
   const [vault, setVault] = useState<Vault | null>(null);
 
@@ -192,7 +174,7 @@ export default function App() {
       <RepoProvider repo={repo}>
         <DialogProvider>
           <LockGate repo={repo}>
-            <NavProvider>{renderRoute}</NavProvider>
+            <AppNavigator key={boldText ? 'bold' : 'regular'} />
           </LockGate>
         </DialogProvider>
       </RepoProvider>
@@ -201,7 +183,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       {body}
     </SafeAreaProvider>
   );

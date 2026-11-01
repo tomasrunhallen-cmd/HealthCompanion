@@ -27,7 +27,7 @@ export function PrivacyScreen() {
       ? `Rensad text går till din egen server ${llm.baseUrl}. Den lämnar inte dina enheter.`
       : `Rensad text går till ${llm.provider === 'openai-compatible' ? llm.baseUrl : PROVIDERS[llm.provider].label} (${llm.model}) när du gör kvällens avstämning eller importerar en krisplan.`;
   return (
-    <Screen title="Data och integritet" back>
+    <Screen title="Integritet" back>
       <Card tone={info.encrypted ? 'green' : 'yellow'}>
         <Text style={type.h2}>Lagring på den här enheten</Text>
         <P style={{ marginTop: space.xs }}>{info.detail}</P>

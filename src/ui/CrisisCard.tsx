@@ -11,12 +11,13 @@ import { colors, space, type } from './theme';
 export const MILD_TITLE = 'Om du har tankar på att inte vilja leva finns det hjälp att få';
 
 /** `mild`: the note mentioned it with a negation ("vill inte dö"). Same help, gentler words. */
-export function CrisisCard({ plan, mild = false }: { plan: PlanItem[]; mild?: boolean }) {
+/** `sheet`: the "Hjälp nu" sheet, opened by the person, not by something they wrote. */
+export function CrisisCard({ plan, mild = false, sheet = false }: { plan: PlanItem[]; mild?: boolean; sheet?: boolean }) {
   const { steps, numbers } = crisisInfo(plan);
   return (
     <Card style={{ borderColor: mild ? colors.border : colors.red, borderWidth: mild ? 1 : 2 }}>
       <Text style={type.h2} accessibilityRole="header">{mild ? MILD_TITLE : 'Du behöver inte vara ensam med det här'}</Text>
-      {mild ? null : <P style={{ marginTop: space.xs }}>Det du skrev låter som att du har det mycket svårt just nu.</P>}
+      {mild || sheet ? null : <P style={{ marginTop: space.xs }}>Det du skrev låter som att du har det mycket svårt just nu.</P>}
 
       <Text style={[type.label, { marginTop: space.m }]}>DIN PLAN VID RÖTT</Text>
       {steps.length ? (
@@ -31,15 +32,16 @@ export function CrisisCard({ plan, mild = false }: { plan: PlanItem[]; mild?: bo
           key={n.number}
           accessibilityRole="link"
           accessibilityLabel={`Ring ${n.number}, ${n.label}`}
+          accessibilityHint="Öppnar telefonens uppringning. Samtalet startar först när du trycker på ring där."
           onPress={() => Linking.openURL(`tel:${n.number}`).catch(() => undefined)}
           style={({ pressed }) => ({
             marginTop: space.s, padding: space.m, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
             backgroundColor: pressed ? colors.redSoft : colors.surface,
           })}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.m }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: space.m }}>
             <Text selectable style={[type.title, { color: colors.red, minWidth: 92 }]}>{n.number}</Text>
-            <Text style={[type.body, { flex: 1 }]}>{n.label}</Text>
+            <Text style={[type.body, { flexShrink: 1 }]}>{n.label}</Text>
           </View>
         </Pressable>
       ))}

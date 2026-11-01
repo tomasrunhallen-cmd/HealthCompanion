@@ -195,7 +195,7 @@ export function PlanImportScreen() {
   if (reviewScrub && !rows) {
     return (
       <Screen
-        title="Kontrollera rensningen"
+        title="Rensad text"
         back
         footer={<Button big title={`Skicka till ${providerLabel}`} onPress={sendToModel} busy={busy} />}
       >
@@ -232,7 +232,7 @@ export function PlanImportScreen() {
   if (!rows) {
     return (
       <Screen
-        title="Lägg in krisplan"
+        title="Lägg in plan"
         back
         footer={
           adapter ? (

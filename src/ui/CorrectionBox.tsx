@@ -46,7 +46,11 @@ export function CorrectionBox({ assessment }: { assessment: Assessment }) {
           message: fresh[0].reason,
           confirmLabel: 'Visa förslaget',
         });
-        if (go) nav.push({ name: 'suggestions' });
+        if (go) {
+          // HIG: one sheet at a time. Close this one before the proposals open.
+          nav.close();
+          nav.push({ name: 'suggestions' });
+        }
       }
     } finally {
       setBusy(false);

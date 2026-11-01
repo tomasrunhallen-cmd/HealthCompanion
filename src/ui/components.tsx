@@ -1,45 +1,49 @@
-import React from 'react';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+import { SymbolView } from 'expo-symbols';
+import React, { useContext, useLayoutEffect } from 'react';
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
-  type StyleProp, type TextInputProps, type ViewStyle,
+  type ColorValue, type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Level } from '../domain/types';
-import { useNav } from './nav';
-import { colors, LEVEL_TEXT, levelColor, levelSoft, radius, space, type } from './theme';
+import { colors, LEVEL_TEXT, levelColor, levelSoft, MIN_TOUCH, radius, space, type } from './theme';
 
+/**
+ * A screen inside a native stack. The title goes to the native navigation bar (large on
+ * each tab's first screen); the content scrolls under it, which lets the large title
+ * collapse (contentInsetAdjustmentBehavior). Safe areas: the bar and the tab bar handle
+ * top and bottom; a footer outside the tabs, in a sheet, adds the bottom inset itself.
+ */
 export function Screen(props: {
   title?: string;
+  /** Kept for older callers; the native back button is always there when there is somewhere to go. */
   back?: boolean;
   children: React.ReactNode;
   footer?: React.ReactNode;
   scroll?: boolean;
 }) {
   const insets = useSafeAreaInsets();
-  const nav = useNav();
-  const body = (
-    <View style={styles.inner}>
-      {(props.title || props.back) && (
-        <View style={styles.header}>
-          {props.back && nav.canGoBack && (
-            <Pressable accessibilityRole="button" accessibilityLabel="Tillbaka" onPress={nav.back} hitSlop={12} style={styles.backBtn}>
-              <Text style={styles.backText}>‹ Tillbaka</Text>
-            </Pressable>
-          )}
-          {props.title ? <Text style={type.title} accessibilityRole="header">{props.title}</Text> : null}
-        </View>
-      )}
-      {props.children}
-    </View>
-  );
+  const navigation = useNavigation();
+  const tabBarHeight = useContext(BottomTabBarHeightContext);
+  useLayoutEffect(() => {
+    if (props.title) navigation.setOptions({ title: props.title });
+  }, [navigation, props.title]);
+  const bottom = tabBarHeight ? 0 : insets.bottom;
+  const body = <View style={styles.inner}>{props.children}</View>;
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={styles.screen}>
       {props.scroll === false ? body : (
-        <ScrollView contentContainerStyle={{ paddingBottom: space.xxl + insets.bottom }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{ paddingBottom: space.xxl + (props.footer ? 0 : bottom) }}
+          keyboardShouldPersistTaps="handled"
+        >
           {body}
         </ScrollView>
       )}
-      {props.footer ? <View style={[styles.footer, { paddingBottom: space.m + insets.bottom }]}>{props.footer}</View> : null}
+      {props.footer ? <View style={[styles.footer, { paddingBottom: space.m + bottom }]}>{props.footer}</View> : null}
     </View>
   );
 }
@@ -61,11 +65,12 @@ export function Button(props: {
   const kind = props.kind ?? 'primary';
   const bg =
     kind === 'primary' ? colors.accent : kind === 'danger' ? colors.danger : kind === 'secondary' ? colors.surfaceAlt : 'transparent';
-  const fg = kind === 'primary' || kind === 'danger' ? '#fff' : kind === 'ghost' ? colors.accent : colors.text;
+  const fg = kind === 'primary' ? colors.onAccent : kind === 'danger' ? colors.onDanger : kind === 'ghost' ? colors.accent : colors.text;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: !!props.disabled }}
+      accessibilityLabel={props.title}
+      accessibilityState={{ disabled: !!props.disabled, busy: !!props.busy }}
       disabled={props.disabled || props.busy}
       onPress={props.onPress}
       style={({ pressed }) => [
@@ -83,49 +88,69 @@ export function Button(props: {
   );
 }
 
-export function Chip(props: { label: string; selected?: boolean; onPress?: () => void; color?: string }) {
+export function Chip(props: { label: string; selected?: boolean; onPress?: () => void; color?: ColorValue }) {
   const c = props.color ?? colors.accent;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={props.label}
       accessibilityState={{ selected: !!props.selected }}
       onPress={props.onPress}
       style={[styles.chip, props.selected ? { backgroundColor: c, borderColor: c } : null]}
     >
-      <Text style={[styles.chipText, props.selected ? { color: '#fff' } : null]}>{props.label}</Text>
+      <Text style={[styles.chipText, props.selected ? { color: colors.onAccent } : null]}>{props.label}</Text>
     </Pressable>
   );
 }
 
-export function LevelLight(props: { level: Level; size?: number }) {
-  const size = props.size ?? 88;
+/** Each level's own shape, so the level never rests on colour alone (HIG: Accessibility). */
+const LEVEL_SYMBOL: Record<Level, { ios: string; material: string; fallback: string }> = {
+  green: { ios: 'checkmark.circle.fill', material: 'check_circle', fallback: '●' },
+  yellow: { ios: 'exclamationmark.triangle.fill', material: 'warning', fallback: '▲' },
+  red: { ios: 'exclamationmark.octagon.fill', material: 'report', fallback: '◆' },
+};
+
+export function LevelSymbol(props: { level: Level; size?: number }) {
+  const size = props.size ?? 24;
+  const s = LEVEL_SYMBOL[props.level];
   return (
-    <View style={{ alignItems: 'center' }} accessible accessibilityLabel={`Nivå: ${LEVEL_TEXT[props.level]}`}>
-      <View style={styles.light}>
-        {(['red', 'yellow', 'green'] as Level[]).map((l) => (
-          <View
-            key={l}
-            style={{
-              width: size / 2.6, height: size / 2.6, borderRadius: size, marginVertical: 3,
-              backgroundColor: l === props.level ? levelColor(l) : '#D8D2C8',
-            }}
-          />
-        ))}
-      </View>
-      <Text style={[type.h2, { color: levelColor(props.level), marginTop: space.s }]}>{LEVEL_TEXT[props.level]}</Text>
+    <SymbolView
+      name={{ ios: s.ios, android: s.material, web: s.material } as never}
+      size={size}
+      tintColor={levelColor(props.level) as string}
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      fallback={<Text style={{ fontSize: size * 0.8, color: levelColor(props.level) }}>{s.fallback}</Text>}
+    />
+  );
+}
+
+/** The day's level: symbol, word and colour together. VoiceOver reads it as one element. */
+export function LevelLight(props: { level: Level; size?: number }) {
+  const size = props.size ?? 72;
+  return (
+    <View style={{ alignItems: 'center' }} accessible accessibilityRole="text" accessibilityLabel={`Nivå: ${LEVEL_TEXT[props.level]}`}>
+      <LevelSymbol level={props.level} size={size} />
+      <Text style={[type.title, { color: levelColor(props.level), marginTop: space.s }]}>{LEVEL_TEXT[props.level]}</Text>
     </View>
   );
 }
 
+/** A small level marker for lists: the level's symbol, or an empty ring for a day without level. */
 export function Dot(props: { level: Level | null; size?: number }) {
-  const s = props.size ?? 14;
+  const s = props.size ?? 18;
+  if (props.level) {
+    return (
+      <View accessible accessibilityLabel={LEVEL_TEXT[props.level]}>
+        <LevelSymbol level={props.level} size={s} />
+      </View>
+    );
+  }
   return (
     <View
-      style={{
-        width: s, height: s, borderRadius: s,
-        backgroundColor: props.level ? levelColor(props.level) : 'transparent',
-        borderWidth: props.level ? 0 : 1.5, borderColor: colors.border,
-      }}
+      accessible
+      accessibilityLabel="Ingen bedömning"
+      style={{ width: s, height: s, borderRadius: s, borderWidth: 1.5, borderColor: colors.border }}
     />
   );
 }
@@ -149,7 +174,7 @@ export function Section(props: { title: string; children: React.ReactNode; right
   return (
     <View style={{ marginTop: space.xl }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.s }}>
-        <Text style={type.h2}>{props.title}</Text>
+        <Text style={[type.h2, { flexShrink: 1 }]} accessibilityRole="header">{props.title}</Text>
         {props.right}
       </View>
       {props.children}
@@ -168,9 +193,6 @@ export function P(props: { children: React.ReactNode; muted?: boolean; style?: a
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   inner: { paddingHorizontal: space.l, paddingTop: space.m, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  header: { marginBottom: space.l },
-  backBtn: { paddingVertical: space.xs, marginBottom: space.xs, alignSelf: 'flex-start' },
-  backText: { color: colors.accent, fontSize: 16, fontWeight: '600' },
   footer: {
     paddingHorizontal: space.l, paddingTop: space.m, borderTopWidth: 1, borderColor: colors.border,
     backgroundColor: colors.bg,
@@ -181,15 +203,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center', marginVertical: space.xs,
   },
   buttonBig: { minHeight: 60, borderRadius: radius.l },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  buttonText: { fontSize: 17, fontWeight: '600', textAlign: 'center' },
   chip: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: space.m,
-    paddingVertical: 6, backgroundColor: colors.surface,
+    paddingVertical: space.s, minHeight: MIN_TOUCH, justifyContent: 'center', backgroundColor: colors.surface,
   },
-  chipText: { fontSize: 14, color: colors.text, fontWeight: '600' },
-  light: { backgroundColor: '#3B3935', borderRadius: 28, paddingHorizontal: 10, paddingVertical: 8 },
+  chipText: { fontSize: 15, color: colors.text, fontWeight: '600' },
   input: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.m, backgroundColor: colors.surface,
-    paddingHorizontal: space.m, paddingVertical: space.m, fontSize: 16, color: colors.text,
+    paddingHorizontal: space.m, paddingVertical: space.m, minHeight: MIN_TOUCH, fontSize: 17, color: colors.text,
   },
 });

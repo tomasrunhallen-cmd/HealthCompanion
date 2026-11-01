@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../analysis/dates';
 import { silentDaysUntil } from '../../analysis/scoring';
@@ -17,6 +17,7 @@ export function HomeScreen() {
   const repo = useRepo();
   const nav = useNav();
   const dialog = useDialog();
+  const { fontScale } = useWindowDimensions();
   const [busy, setBusy] = useState(false);
 
   const today = eveningDateKey(new Date());
@@ -82,9 +83,8 @@ export function HomeScreen() {
   };
 
   return (
-    <Screen>
-      <Text style={[type.small, {}]}>{formatDateSvTitle(today)}</Text>
-      <Text style={[type.title, { marginBottom: space.l }]}>Dagsljus</Text>
+    <Screen title="Dagsljus">
+      <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
 
       {!hasSigns && (
         <Card tone="accent">
@@ -169,9 +169,15 @@ export function HomeScreen() {
 
       <Section title="Senaste veckan" right={<Button kind="ghost" title="Alla dagar" onPress={() => nav.push({ name: 'history' })} />}>
         <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          {/* HIG: fewer columns at large text sizes, so nothing is cut off. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: fontScale > 1.4 ? 'flex-start' : 'space-between', rowGap: space.m, columnGap: space.m }}>
             {week.map((d) => (
-              <View key={d.date} style={{ alignItems: 'center', gap: 6 }}>
+              <View
+                key={d.date}
+                style={{ alignItems: 'center', gap: 6, minWidth: 36 }}
+                accessible
+                accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`}
+              >
                 <Dot level={d.level} size={22} />
                 <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
               </View>
@@ -180,12 +186,6 @@ export function HomeScreen() {
         </Card>
       </Section>
 
-      <Section title="Mer">
-        <Button kind="secondary" title="Min krisplan" onPress={() => nav.push({ name: 'plan' })} />
-        <Button kind="secondary" title="Det appen vet om mig" onPress={() => nav.push({ name: 'knowledge' })} />
-        <Button kind="secondary" title="Inställningar" onPress={() => nav.push({ name: 'settings' })} />
-        <Button kind="secondary" title="Data och integritet" onPress={() => nav.push({ name: 'privacy' })} />
-      </Section>
     </Screen>
   );
 }

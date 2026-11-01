@@ -25,7 +25,8 @@ Run lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
-- This project deliberately does NOT use Expo Router. Navigation is a small state-based stack in `src/ui/nav.tsx`, so the same build runs in Expo Go, a development build and the web preview without URL handling. Add screens to the `Route` union and to `renderRoute` in `src/ui/App.tsx`.
+- This project deliberately does NOT use Expo Router. Navigation is React Navigation 7 (native stack per tab, bottom tabs, modal sheets), which runs in Expo Go, a development build and the web version without URL handling. Screens navigate with `useNav()` from `src/ui/nav.tsx` and the `Route` union there. Add a screen to the `Route` union, to `COMPONENT` and `TITLE` in `src/ui/Navigator.tsx`, and to `PUSHED` or `SHEET_OF` in `nav.tsx`.
+- Follow `DESIGN.md` (Apple's Human Interface Guidelines): system colours from `src/ui/theme.ts`, no colour alone for a level, touch targets of at least 44 points, VoiceOver labels on every control.
 
 ## Project rules (Dagsljus)
 

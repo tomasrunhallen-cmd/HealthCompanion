@@ -4,7 +4,7 @@ import { actionsForLevel, displaySentence, firstStep, SERIOUS_INTRO, seriousActi
 import { formatDateSv, formatDateSvYear, formatTime } from '../../analysis/dates';
 import { explainAssessment } from '../../analysis/explain';
 import { CrisisCard } from '../CrisisCard';
-import { CorrectionBox } from '../CorrectionBox';
+import { correctionFor } from '../../context/corrections';
 import type { Signal } from '../../domain/types';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
@@ -54,10 +54,11 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   const first = a.level === 'green' ? null : firstStep(a.level, plan);
   // A serious sign shows the plan's red steps, also when the level is yellow.
   const serious = seriousActions(a, plan);
+  const answered = correctionFor(repo, a.id).length > 0;
 
   return (
     <Screen
-      title={entry.kind === 'heavy' ? 'Dagen är loggad' : entry.kind === 'imported' ? 'Importerad dag' : 'Kvällens bedömning'}
+      title={entry.kind === 'heavy' ? 'Loggad dag' : entry.kind === 'imported' ? 'Importerad dag' : 'Bedömning'}
       back
       footer={<Button title="Till startsidan" onPress={() => nav.reset()} />}
     >
@@ -128,7 +129,14 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         </Card>
       </Section>
 
-      <CorrectionBox assessment={a} />
+      <Section title="Stämmer bedömningen?">
+        <Card>
+          <P muted style={{ marginBottom: space.s }}>
+            {answered ? 'Du har redan svarat. Du kan ändra ditt svar.' : 'Ditt svar hjälper appen att lära sig vad som stämmer för dig.'}
+          </P>
+          <Button kind="secondary" title={answered ? 'Ändra ditt svar' : 'Svara'} onPress={() => nav.push({ name: 'correction', assessmentId: a.id })} />
+        </Card>
+      </Section>
 
       {actions.length > 0 && !(serious && a.level === 'red') && (
         <Section title={a.level === 'red' ? 'Åtgärder vid rött' : 'Åtgärder vid gult'}>

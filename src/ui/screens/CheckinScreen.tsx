@@ -1,15 +1,16 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Text, useColorScheme, View } from 'react-native';
 import { eveningDateKey } from '../../analysis/dates';
 import { parseSleepHours } from '../../analysis/sleep';
 import { akutLevel } from '../../context/akut';
 import { CrisisCard } from '../CrisisCard';
+import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
 import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
-import { colors, space, type } from '../theme';
+import { colors, MIN_TOUCH, paletteHex, space, type } from '../theme';
 
 const QUESTIONS = [
   'Hur har du sovit?',
@@ -18,6 +19,7 @@ const QUESTIONS = [
 ];
 
 function Scale(props: { label: string; value: number; onChange: (v: number) => void; low: string; high: string }) {
+  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   return (
     <View style={{ marginBottom: space.l }}>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -28,19 +30,22 @@ function Scale(props: { label: string; value: number; onChange: (v: number) => v
       </Row>
       <Slider
         accessibilityLabel={props.label}
+        accessibilityHint={`Från ${props.low} till ${props.high}`}
+        accessibilityValue={{ min: 1, max: 10, now: props.value, text: `${props.value} av 10` }}
         minimumValue={1}
         maximumValue={10}
         step={1}
         value={props.value}
         onValueChange={(v) => props.onChange(Math.round(v))}
-        minimumTrackTintColor={colors.accent}
-        maximumTrackTintColor={colors.border}
-        thumbTintColor={colors.accent}
-        style={{ height: 40 }}
+        // The slider takes plain colour strings; pick the pair for the current appearance.
+        minimumTrackTintColor={paletteHex('accent', scheme)}
+        maximumTrackTintColor={paletteHex('border', scheme)}
+        thumbTintColor={paletteHex('accent', scheme)}
+        style={{ height: MIN_TOUCH }}
       />
       <Row style={{ justifyContent: 'space-between' }}>
-        <Text style={type.small}>{props.low}</Text>
-        <Text style={type.small}>{props.high}</Text>
+        <Text style={[type.small, { flexShrink: 1 }]}>{props.low}</Text>
+        <Text style={[type.small, { flexShrink: 1, textAlign: 'right' }]}>{props.high}</Text>
       </Row>
     </View>
   );
@@ -65,8 +70,18 @@ export function CheckinScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain }, new Date(), { browser: Platform.OS === 'web' });
-      nav.replace({ name: 'result', entryId: entry.id, fresh: true });
+      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain }, new Date(), { browser: Platform.OS === 'web' });
+      // HIG: haptics sparingly. A light confirmation that the check-in is saved, never on a red day.
+      if (Platform.OS !== 'web' && assessment.level !== 'red' && !assessment.akut) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      }
+      nav.push({ name: 'result', entryId: entry.id, fresh: true });
+      // The tab keeps this screen; start the next evening with an empty form.
+      setText('');
+      setMood(5);
+      setEnergy(5);
+      setMedication(null);
+      setStrain(false);
     } finally {
       setBusy(false);
     }
@@ -74,7 +89,7 @@ export function CheckinScreen() {
 
   return (
     <Screen
-      title="Kvällens avstämning"
+      title="Avstämning"
       back
       footer={<Button big title="Spara och se bedömningen" onPress={save} busy={busy} />}
     >

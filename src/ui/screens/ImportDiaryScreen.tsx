@@ -115,7 +115,7 @@ export function ImportDiaryScreen() {
 
   if (step === 'done' && result) {
     return (
-      <Screen title="Importen är klar" back footer={<Button title="Visa historiken" onPress={() => nav.replace({ name: 'history' })} />}>
+      <Screen title="Klart" back footer={<Button title="Visa historiken" onPress={() => nav.replace({ name: 'history' })} />}>
         <Card tone="green">
           <P>{`${result.entries.length} dagar importerades. Nivån räknades i appen med samma regler som en vanlig kväll.`}</P>
         </Card>
@@ -136,7 +136,7 @@ export function ImportDiaryScreen() {
     const overlap = overlapWith(repo, parsed);
     return (
       <Screen
-        title="Granska importen"
+        title="Granska"
         back
         footer={
           step === 'running' ? (
@@ -227,7 +227,7 @@ export function ImportDiaryScreen() {
   }
 
   return (
-    <Screen title={`Importera från ${SOURCE_NAME}`} back>
+    <Screen title="Importera" back>
       <P style={{ marginBottom: space.m }}>
         Välj årsrapporterna från {SOURCE_NAME} (CSV-filer). Du kan välja flera på en gång. Filerna läses här, och du ser
         och kopplar allt innan något sparas. Importen kan tas bort i sin helhet efteråt.
