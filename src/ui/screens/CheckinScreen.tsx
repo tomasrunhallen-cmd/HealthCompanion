@@ -1,7 +1,9 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
 import { Platform, Text, useColorScheme, View } from 'react-native';
-import { eveningDateKey } from '../../core/analysis/dates';
+import { eveningDateKey, formatDateSv } from '../../core/analysis/dates';
+import { redFollowup, redStepAnswers } from '../../core/analysis/afterRed';
+import { setRedStep } from '../../services/afterRed';
 import { parseSleepHours } from '../../core/analysis/sleep';
 import { akutLevel } from '../../core/context/akut';
 import { CrisisCard } from '../CrisisCard';
@@ -69,6 +71,9 @@ export function CheckinScreen() {
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
   const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
   const garmin = repo.measuredDay(eveningDateKey(new Date()));
+  // Dagen efter rött: asked first, answered with one tap per step.
+  const followup = redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), eveningDateKey(new Date()));
+  const stepAnswers = followup ? redStepAnswers(repo.contextEntries('dagligt'), followup.date) : new Map<string, boolean>();
   const garminSleep = garmin?.sleepHours ?? null;
 
   const save = async () => {
@@ -99,6 +104,27 @@ export function CheckinScreen() {
       back
       footer={<Button big title="Spara och se bedömningen" onPress={save} busy={busy} />}
     >
+      {followup ? (
+        <Card tone="accent">
+          <Text style={type.h2} accessibilityRole="header">
+            {followup.yesterday ? 'I går var det rött.' : `Den ${formatDateSv(followup.date)} var det rött.`} Gjorde du något av stegen?
+          </Text>
+          <P muted style={{ marginTop: space.xs }}>Svaren sparas till Inför återbesök. De ändrar inte nivån.</P>
+          {followup.steps.map((step) => {
+            const v = stepAnswers.get(step);
+            return (
+              <View key={step} style={{ marginTop: space.s }}>
+                <Text style={type.body}>{step}</Text>
+                <Row style={{ marginTop: space.xs }}>
+                  <Chip label="Ja" selected={v === true} color={colors.green} onPress={() => setRedStep(repo, followup.date, step, v === true ? null : true)} />
+                  <Chip label="Nej" selected={v === false} onPress={() => setRedStep(repo, followup.date, step, v === false ? null : false)} />
+                </Row>
+              </View>
+            );
+          })}
+        </Card>
+      ) : null}
+
       <Card>
         {QUESTIONS.map((q, i) => (
           <Text key={q} style={[type.body, { fontWeight: '600', marginBottom: i < 2 ? space.s : 0 }]}>

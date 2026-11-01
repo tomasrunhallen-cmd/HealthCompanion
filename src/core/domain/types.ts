@@ -82,7 +82,7 @@ export type ProfilKind =
   | 'period_mixed' // tidigare blandad period
   | 'course'; // känt förlopp: vilket tecken som kommer först, dagar till nästa
 
-export type DagligtKind = 'medication_taken' | 'event' | 'correction' | 'routine_done';
+export type DagligtKind = 'medication_taken' | 'event' | 'correction' | 'routine_done' | 'red_step';
 
 export type ContextKind = GrundKind | ProfilKind | DagligtKind;
 
@@ -166,7 +166,7 @@ export const LAYER_OF: Record<ContextKind, ContextLayer> = {
   routine: 'grund', contact: 'grund', value_anchor: 'grund', wish: 'grund', note_for_care: 'grund',
   normal_state: 'profil', typical_phrase: 'profil', period_low: 'profil', period_high: 'profil',
   period_mixed: 'profil', course: 'profil',
-  medication_taken: 'dagligt', event: 'dagligt', correction: 'dagligt', routine_done: 'dagligt',
+  medication_taken: 'dagligt', event: 'dagligt', correction: 'dagligt', routine_done: 'dagligt', red_step: 'dagligt',
 };
 
 export interface PlanSettings {

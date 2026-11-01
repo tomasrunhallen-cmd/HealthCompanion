@@ -5,6 +5,7 @@
 import type { Assessment, ContextEntry, DateKey, Entry, Level, MeasuredDay, PlanItem, Polarity } from '../domain/types';
 import { addDays } from './dates';
 import { routines } from '../plan/routines';
+import { redStepsBetween } from './afterRed';
 
 export interface VisitDay {
   date: DateKey;
@@ -91,7 +92,7 @@ export function buildVisitSummary(input: {
     stressAvg: avg(days.map((d) => d.stressAvg).filter((v): v is number => v != null)),
     signs: { up: sorted(signDays.up), down: sorted(signDays.down), both: sorted(signDays.both) },
     routines: routineRows,
-    redSteps: [],
+    redSteps: redStepsBetween(input.context, addDays(from, -1), input.today),
     topics: input.topics,
   };
 }
