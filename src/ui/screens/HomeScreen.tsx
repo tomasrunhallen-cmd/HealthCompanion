@@ -15,6 +15,7 @@ import { useNav } from '../nav';
 import { RoutinesToday } from '../RoutinesToday';
 import { suggestionsOnHome } from '../../core/analysis/signals';
 import { greenDayLine } from '../../core/plan/routines';
+import { adviceForTomorrow } from '../../core/analysis/events';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -38,6 +39,7 @@ export function HomeScreen() {
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
   const sleepNote = todaysSleepNotice(repo);
+  const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
   const greenLine = greenDayLine(repo.contextEntries(), today, { measured: repo.measuredDays(), window: repo.planSettings().sleepWindow ?? null });
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   const [reviewing, setReviewing] = useState(false);
@@ -165,6 +167,19 @@ export function HomeScreen() {
           </P>
         </Card>
       )}
+
+      {tomorrow.map((t) => (
+        <Card key={t.event + t.date} tone="accent">
+          <Text style={type.h2} accessibilityRole="header">I morgon: {t.event}</Text>
+          {t.trigger ? <P style={{ marginTop: space.xs }}>Din plan nämner det som en risksituation: ”{t.trigger}”.</P> : null}
+          {t.routines.length ? (
+            <>
+              <P style={{ marginTop: space.xs }}>Din plan:</P>
+              {t.routines.map((r) => <P key={r}>{`• ${r}`}</P>)}
+            </>
+          ) : null}
+        </Card>
+      ))}
 
       {sleepNote ? (
         <Card tone="accent">

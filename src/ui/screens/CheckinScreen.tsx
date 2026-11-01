@@ -8,6 +8,7 @@ import { parseSleepHours } from '../../core/analysis/sleep';
 import { akutLevel } from '../../core/context/akut';
 import { CrisisCard } from '../CrisisCard';
 import { RoutinesToday } from '../RoutinesToday';
+import { EventQuestion } from '../EventQuestion';
 import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
 import { FROM_SOURCE, MANUAL_STRESS, sleepSourceOf, stressSourceOf } from '../../core/analysis/sources';
@@ -124,6 +125,8 @@ export function CheckinScreen() {
           })}
         </Card>
       ) : null}
+
+      <EventQuestion />
 
       <Card>
         {QUESTIONS.map((q, i) => (
