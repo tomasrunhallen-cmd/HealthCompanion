@@ -331,6 +331,8 @@ export interface Assessment {
   akutMild?: boolean;
   /** Neutral lines on a green day: sleep or stress moved the wrong way three days in a row, still within the limit. No points, no colour. */
   trend?: string[];
+  /** B7: word matching's result, shown because the model had not answered within the budget. Cleared when its answer is saved. */
+  awaitingModel?: boolean;
   /** Everything the assessment was computed from, so it can be computed again. Missing on assessments saved before it existed. */
   inputs?: AssessmentInputs;
   /** Set when the level was computed again with newer rules: what it was before. */

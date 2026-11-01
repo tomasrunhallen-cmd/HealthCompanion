@@ -41,9 +41,11 @@ export function RecomputeScreen() {
     <Screen
       title="Räkna om"
       footer={
-        days ? (
+        days && !changed.length && !outdated ? (
+          <Button big title="Klar" onPress={() => setDays(null)} />
+        ) : days ? (
           <>
-            <Button big title={changed.length ? `Spara de nya nivåerna (${changed.length} dagar ändras)` : 'Spara regelversionen'} onPress={async () => {
+            <Button big title={changed.length ? `Spara de nya nivåerna (${changed.length === 1 ? 'en dag ändras' : `${changed.length} dagar ändras`})` : 'Spara regelversionen'} onPress={async () => {
               const n = await applyRecompute(repo, days);
               setDays(null);
               await dialog.info('Sparat', n ? `${n} dagar fick en ny nivå. Den tidigare nivån finns kvar i varje bedömning.` : 'Inga nivåer ändrades. Alla dagar är nu räknade med reglerna ' + RULES_VERSION + '.');
@@ -65,9 +67,9 @@ export function RecomputeScreen() {
       </P>
       {days ? (
         <>
-          <Section title={changed.length ? `${changed.length} dagar ändras` : 'Inga dagar ändras'}>
+          <Section title={changed.length ? (changed.length === 1 ? 'En dag ändras' : `${changed.length} dagar ändras`) : 'Inga dagar ändras'}>
             <Card>
-              {changed.length ? changed.map((d) => <DayRow key={d.entryId} d={d} />) : <P>Alla {days.length} dagar får samma nivå och poäng.</P>}
+              {changed.length ? changed.map((d) => <DayRow key={d.entryId} d={d} />) : <P>{days.length === 1 ? 'Dagen får samma nivå och poäng.' : `Alla ${days.length} dagar får samma nivå och poäng.`}</P>}
             </Card>
           </Section>
           {approximate ? (

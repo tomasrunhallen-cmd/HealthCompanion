@@ -235,9 +235,9 @@ All kunskap om användaren ligger i en egen kontextbank, skild från promptarna 
 
 Varje post har ursprung (`standard`, `crisis_plan`, `user`, `suggested`, `correction`) och datum för när den skapades och godkändes. Vyn *Det appen vet om mig* visar allt och låter användaren ändra och radera.
 
-- **`buildContext`** i `src/context/buildContext.ts` bygger promptens variabler ur banken. Rensningen körs på resultatet.
+- **`buildContext`** i `src/core/context/buildContext.ts` bygger promptens variabler ur banken. Rensningen körs på resultatet.
 - **Standardläget** laddar `context/standard.md`. Obekräftade standardrader kan bara ge gult.
-- **Akutregeln** i `src/context/akut.ts` matchar `context/akut.md` och användarens egna formuleringar i koden, före och oberoende av modellen. Träff utan negation ger röd dag och krisruta. Träff med negation ger en mildare krisruta utan att ändra nivån.
+- **Akutregeln** i `src/core/context/akut.ts` matchar `context/akut.md` och användarens egna formuleringar i koden, före och oberoende av modellen. Träff utan negation ger röd dag och krisruta. Träff med negation ger en mildare krisruta utan att ändra nivån.
 - **Lärandet** sker bara genom förslag: rättelser (tre likadana om samma tecken), profilgenomgång varje månad och efter en period, och förlopp räknat i koden. Inget når banken utan godkännande.
 - **Baslinjer** för sömn, stress, ord per minut och klocktid räknas om varje måndag ur gröna dagar de senaste 28 dagarna.
 - **Export och import** av kontexten ger tre läsbara markdownfiler, `grund.md`, `profil.md` och `dagligt.md`.
@@ -275,6 +275,16 @@ DAGSLJUS_LLM_PROVIDER=mistral DAGSLJUS_LLM_KEY=... \
 DAGSLJUS_IMPORT_MODELS=mistral-small-latest,mistral-large-latest npm run plan:check
 ```
 
+## Arkitektur (fas B)
+
+- **Kärnpaketet `src/core`** (`@dagsljus/core`) innehåller poäng, nivå, akutregel, rensning, krisplansimport, promptladdare och kontextbank. Det importerar inget från React Native, Expo, databasen, nätverket eller filer, och ett test kontrollerar det. Telefonen och webben använder samma kod. `npm run test:core` kör alla testfall på webb, Node, iOS och Android och kräver samma nivå på alla fyra.
+- **Reglerna som data.** Alla trösklar och poäng står i `rules/rules.json`, med ett JSON-schema och ett versionsnummer. Appen startar inte med en regelfil som inte följer schemat. `rules/README.md` förklarar varje regel i klartext för en klinisk granskare, och ett test kontrollerar att varje fält finns förklarat.
+- **Reproducerbara bedömningar.** Varje bedömning sparar sin indata: anteckningen som den skickades (rensad), modellens råa svar, tecknen och träffarna, mätvärdena de dagar reglerna tittar på, medicinsvaren, baslinjen, regelversionen och promptversionen. *Alla dagar → Räkna om historiken med nya regler* räknar om varje dag med de nuvarande reglerna utifrån det sparade, utan att fråga någon modell igen, och visar vilka dagar som ändras innan något sparas. Den tidigare nivån finns kvar i varje omräknad bedömning.
+- **Dygnet går 04:00–04:00 i lokal tid.** Inlägg sparar klockslaget där de gjordes. Testerna körs med telefonen i Stockholm och i New York, med sommartid åt båda hållen och en resa.
+- **Sömn och stress från tre källor** i ett gemensamt format: egen uppgift i avstämningen, Garmin, och Apple Hälsa eller Health Connect. Samma dag slås de ihop fält för fält i den ordningen. Bedömningen och prompten säger vilken källa som användes, och stress jämförs bara med en baslinje från samma källa. Att läsa Apple Hälsa och Health Connect kräver en utvecklingsbuild med en modul för hälsodata, som inte finns ännu.
+- **Schemanummer på exporten.** Varje kontextfil har `<!-- dagsljus-schema 2 -->` under rubriken. Filer utan nummer är schema 1 och flyttas framåt när de läses. En fil från en nyare version avvisas.
+- **Prestandabudget.** Bedömningen visas inom 10 sekunder. Garmin får högst 3 sekunder före bedömningen. Modellen får tiden som är kvar. Hinner den inte svara visas ordmatchningens resultat direkt, med en rad om att bedömningen fylls på, och modellens svar ersätter det när det kommer.
+
 ## Avvikelser och antaganden som du behöver ta ställning till
 
 - **`context/krisplan-rubriker.md` är ett utkast och bör granskas av en människa med klinisk kunskap.** Tabellen bygger på hur svenska krisplaner brukar se ut. Rubriker som inte finns där går till modellen eller till din sortering.
@@ -288,7 +298,7 @@ DAGSLJUS_IMPORT_MODELS=mistral-small-latest,mistral-large-latest npm run plan:ch
 
 - **Grönt säger alltid "Inget av dina tecken syntes i dag."** Texten sätts i koden, aldrig av modellen, och appen skriver aldrig att allt ser bra ut. Har sömnen blivit kortare tre nätter i rad, eller stressen ökat tre dagar i rad, utan att passera gränsen, visas en neutral rad under ampeln, till exempel "Din sömn har blivit kortare tre nätter i rad." Den ger ingen poäng och ingen färg.
 - **Ett allvarligt tecken visar planens åtgärder vid rött, också när ampeln är gul.** Ampel och poäng ändras inte. Bedömningen säger "Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:" och listar stegen vid rött. *Testa modellen* kontrollerar också detta, så att en modell som tar ett allvarligt tecken för ett tidigt inte godkänns.
-- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn under gränsen, stress över baslinjen och insomning efter 02:00 0 poäng den dagen, och bedömningen säger det. En festkväll med insomning 03:00, 4 timmars sömn och stress 1,6 gånger det vanliga ger alltså gult utan ja och grönt med ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Reglerna står i `src/analysis/rules.ts` och `src/analysis/scoring.ts` och bör stämmas av med din vårdkontakt.
+- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn under gränsen, stress över baslinjen och insomning efter 02:00 0 poäng den dagen, och bedömningen säger det. En festkväll med insomning 03:00, 4 timmars sömn och stress 1,6 gånger det vanliga ger alltså gult utan ja och grönt med ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Trösklarna och poängen står i `rules/rules.json` och förklaras i `rules/README.md`. Logiken står i `src/core/analysis/scoring.ts`. Båda bör stämmas av med din vårdkontakt.
 - **Orkar bara trycka ger gult.** Specen säger att dagen loggas som tung och att första gula steget visas. Jag har gjort det till ett tecken värt en poäng, så att nivån fortfarande räknas i koden.
 - **Dygnet går 04:00–04:00 i lokal tid.** Ett inlägg 00:30 hör till dagen innan. Annars skulle ett inlägg 01:15 räknas som en ny dag och ge falsk tystnad. Varje inlägg sparar klockslaget där det gjordes, så en resa över tidszoner ändrar inte gamla dagar i efterhand. Regeln om inlägg mitt i natten gäller fortfarande 00:00–05:00, så ett inlägg 04:30 hör till den nya dagen men räknas som ett nattinlägg.
 - **Ett inlägg per kväll.** En ny avstämning samma kväll ersätter den förra, efter bekräftelse.
@@ -374,22 +384,27 @@ Expo ger en kodbas för iOS och Android och kan provas direkt i Expo Go utan Xco
 ```
 prompts/            Promptfilerna i markdown med versionsnummer (källan, ingen prompttext i koden)
 schemas/            JSON-scheman för modellens svar
-scripts/            build-prompts.js buntar prompts/ och schemas/ in i appen
-src/analysis/       Poäng och nivå, ordmatchning, sömn ur text, testfall
-src/privacy/        Rensning av personuppgifter
-src/prompts/        Promptladdare: frontmatter, # System, # User, {{variabler}}
-src/adapter/        LLM-gränssnittet, Mistral, Anthropic, OpenAI-kompatibel, schemavalidering, fejkad modell
+rules/              rules.json med alla trösklar och poäng, schemat och README för en klinisk granskare
+context/            Akutordlistan, standardinnehållet och regeltabellen för krisplanens rubriker
+scripts/            build-prompts.js buntar prompts/, schemas/, context/ och rules/ in i appen
+src/core/           @dagsljus/core, utan plattformsberoenden, samma kod på telefon och webb:
+  analysis/           poäng och nivå, regler, dygnet, källor för sömn och stress, omräkning, testfall
+  context/            akutregeln, kontextbanken, export med schemanummer
+  privacy/            rensning av personuppgifter
+  plan/               krisplansimporten, radernas fält, rutiner
+  prompts/            promptladdare
+  llm/                gränssnittet mot en modell, schemakontroll, fejkade modeller
+src/adapter/        Mistral, Anthropic, OpenAI-kompatibel över HTTP
 src/llm/            Modellinställningar, samtycke per leverantör, tokenräkning och kostnad
 src/garmin/         Garmin Personal API: token, sömn, stress, Body Battery
 src/cloud/          Webbversionen: inloggning och Firestore i ditt eget Firebase-projekt
-netlify/functions/  Webbversionen: vidarekoppling till Garmin och kalenderhändelse för påminnelsen
-src/plan/           Krisplansimporten: PDF, Word och text, sidhuvud, rubrikträd, regeltabell, granskning, radernas fält
+netlify/functions/  Webbversionen: vidarekoppling till Garmin och kalenderhändelser för påminnelser
 src/storage/        Krypterad SQLite på telefonen, webbvariant, repository
 src/backup/         Lösenordsskyddad export (PBKDF2 och AES-256-GCM)
-src/platform/       Applås, påminnelse, filer, nycklar i Keychain/Keystore, med webbvarianter
-src/services/       Kvällens avstämning, Orkar bara trycka, Testa modellen, Garmin-synk
+src/platform/       Applås, påminnelser, filer, hälsodata, nycklar i Keychain/Keystore, med webbvarianter
+src/services/       Det som skriver till databasen: avstämningen, rättelser, standardinnehåll, sparad plan, omräkning, Garmin-synk
 src/ui/             Skärmar och komponenter
-tests/              Jest-tester
+tests/              Jest-tester; tests/core körs på webb, Node, iOS och Android, tests/tz i två tidszoner
 ```
 
 ## Nästa steg

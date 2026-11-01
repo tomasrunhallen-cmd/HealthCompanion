@@ -34,13 +34,46 @@ export async function setMedicationTaken(repo: Repository, date: string, taken: 
   await repo.addContextEntry({ kind: 'medication_taken', text: '', origin: 'user', date, taken });
 }
 
+/** B7: the assessment is shown within this many milliseconds, also on a four-year-old phone. */
+export const ASSESSMENT_BUDGET_MS = 10_000;
+/** Fresh Garmin numbers may take at most this long; on timeout the stored values are used. */
+export const GARMIN_BUDGET_MS = 3_000;
+/** Kept for the word matching, saving and showing the result after the model's deadline. */
+const MARGIN_MS = 1_000;
+
+export interface CheckinResult {
+  entry: Entry;
+  assessment: Assessment;
+  /**
+   * Set when the model had not answered within the budget: the assessment shown is word
+   * matching's, saved with awaitingModel. Resolves to the model's assessment once it is saved
+   * in its place (same id), or null if the day was replaced in the meantime.
+   */
+  later?: Promise<Assessment | null>;
+}
+
+export interface BudgetOptions {
+  budgetMs?: number;
+  garminBudgetMs?: number;
+  /** Milliseconds since some start; Date.now by default. Tests pass their own. */
+  clock?: () => number;
+}
+
+function timeout(ms: number): Promise<'timeout'> {
+  return new Promise((resolve) => setTimeout(() => resolve('timeout'), Math.max(0, ms)));
+}
+
 export async function saveCheckin(
   repo: Repository,
   input: CheckinInput,
   now = new Date(),
   adapterOptions: AdapterOptions = {},
   garminOptions: GarminOptions = {},
-): Promise<{ entry: Entry; assessment: Assessment }> {
+  budget: BudgetOptions = {},
+): Promise<CheckinResult> {
+  const clock = budget.clock ?? Date.now;
+  const started = clock();
+  const budgetMs = budget.budgetMs ?? ASSESSMENT_BUDGET_MS;
   const date = eveningDateKey(now);
   // The emergency rule runs first, in code, before anything can leave the phone. On a
   // match nothing is fetched or sent: the crisis numbers must show at once, also offline.
@@ -54,7 +87,7 @@ export async function saveCheckin(
     if (routine?.kind === 'routine') await setRoutineDone(repo, date, routine, done);
   }
   // Fresh numbers for today's stress; on failure the stored values are used.
-  if (!akut) await refreshForCheckin(repo, { ...garminOptions, now });
+  if (!akut) await refreshForCheckin(repo, { ...garminOptions, now, timeoutMs: garminOptions.timeoutMs ?? budget.garminBudgetMs ?? GARMIN_BUDGET_MS });
   if (input.manualSleepHours != null || input.manualStress != null) {
     const prev = repo.manualDays()[date];
     await repo.saveManualDay({
@@ -83,22 +116,45 @@ export async function saveCheckin(
     stressSource: stressSourceOf(g),
     ...(input.strainYesterday ? { strainYesterday: true } : {}),
   };
-  const assessment = await assessEntry({
+  const base = {
     entry,
     plan: repo.plan(),
     planSettings: repo.planSettings(),
     history: repo.history(),
-    // The configured language model when there is one; word matching otherwise, and
-    // always word matching when the emergency rule matched.
-    matcher: akut || akutMild ? wordMatcher : await currentMatcher(repo, { now: () => now, ...adapterOptions }),
     garmin: repo.measuredDays(),
     context: repo.contextEntries(),
     akut,
     akutMild,
     now,
-  });
-  await repo.saveEntry(entry, assessment);
-  return { entry, assessment };
+  };
+  // The configured language model when there is one; word matching otherwise, and always
+  // word matching when the emergency rule matched.
+  const matcher = akut || akutMild ? wordMatcher : await currentMatcher(repo, { now: () => now, ...adapterOptions });
+  if (matcher === wordMatcher) {
+    const assessment = await assessEntry({ ...base, matcher });
+    await repo.saveEntry(entry, assessment);
+    return { entry, assessment };
+  }
+
+  // B7: the model gets the time that is left of the budget. If it has not answered by then,
+  // word matching's result is saved and shown at once, and the model's fills it in later.
+  const fromModel = assessEntry({ ...base, matcher });
+  const left = budgetMs - (clock() - started) - MARGIN_MS;
+  const first = await Promise.race([fromModel, timeout(left)]);
+  if (first !== 'timeout') {
+    await repo.saveEntry(entry, first);
+    return { entry, assessment: first };
+  }
+  const quick = { ...(await assessEntry({ ...base, matcher: wordMatcher })), awaitingModel: true };
+  await repo.saveEntry(entry, quick);
+  const later = fromModel.then(async (a) => {
+    // A new check-in the same evening replaced this one: keep that one.
+    if (!repo.assessmentFor(entry.id)) return null;
+    const filled: Assessment = { ...a, id: quick.id, createdAt: quick.createdAt };
+    await repo.saveAssessments([filled]);
+    return filled;
+  }).catch(() => null);
+  return { entry, assessment: quick, later };
 }
 
 export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{ entry: Entry; assessment: Assessment }> {

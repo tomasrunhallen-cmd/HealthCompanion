@@ -7,6 +7,7 @@
 import { formatDateSv } from '../analysis/dates';
 import { LAYER_OF, type ContextEntry, type ContextKind, type ContextLayer } from '../domain/types';
 import { KIND_TEXT, LAYER_TEXT, ORIGIN_TEXT } from './labels';
+import { fieldsFromKind } from '../plan/fields';
 
 export const CONTEXT_FILES: Record<ContextLayer, string> = { grund: 'grund.md', profil: 'profil.md', dagligt: 'dagligt.md' };
 
@@ -18,6 +19,26 @@ const KIND_ORDER: ContextKind[] = [
 ];
 
 const MARK = 'dagsljus';
+
+/**
+ * The context files' schema (B6). Written in every exported file; a file without it is
+ * schema 1. Files from older schemas are migrated forward when they are read.
+ *   1: before the crisis plan rows had fields.
+ *   2: grund rows carry their fields (plan), routines their settings, days their routine answers.
+ */
+export const CONTEXT_SCHEMA = 2;
+const SCHEMA_MARK = `${MARK}-schema`;
+
+/** Forward migrations, one per schema step: MIGRATIONS[1] takes an entry from schema 1 to 2. */
+const MIGRATIONS: Record<number, (e: ContextEntry) => ContextEntry> = {
+  1: (e) => (e.layer === 'grund' && !e.plan && fieldsFromKind(e.kind) ? { ...e, plan: fieldsFromKind(e.kind) } : e),
+};
+
+export function migrateEntries(entries: ContextEntry[], from: number): ContextEntry[] {
+  let out = entries;
+  for (let v = from; v < CONTEXT_SCHEMA; v++) out = out.map(MIGRATIONS[v]);
+  return out;
+}
 const EMPTY_TEXT = '(ingen text)';
 
 /** Everything but the text, which is the bullet itself. */
@@ -40,6 +61,7 @@ export function exportLayer(layer: ContextLayer, entries: ContextEntry[], now = 
   const own = entries.filter((e) => e.layer === layer);
   const lines: string[] = [
     `# ${LAYER_TEXT[layer].title}`,
+    `<!-- ${SCHEMA_MARK} ${CONTEXT_SCHEMA} -->`,
     '',
     `${LAYER_TEXT[layer].help} Exporterad från Dagsljus ${formatDateSv(now.toISOString().slice(0, 10))}.`,
     '',
@@ -76,6 +98,8 @@ export function exportAll(entries: ContextEntry[], now = new Date(), dagligtSumm
 export interface ParsedLayer {
   layer: ContextLayer;
   entries: ContextEntry[];
+  /** The schema the file was written with, before migration. */
+  fromSchema: number;
 }
 
 const LAYER_BY_TITLE: Record<string, ContextLayer> = Object.fromEntries(
@@ -97,6 +121,9 @@ export function parseLayer(markdown: string, now = new Date()): ParsedLayer {
   const title = lines.find((l) => /^#\s+/.test(l))?.replace(/^#\s+/, '').trim().toLowerCase() ?? '';
   const layer = LAYER_BY_TITLE[title];
   if (!layer) throw new Error('Filen är inte en exporterad kontextfil från Dagsljus (Grund, Profil eller Dagligt).');
+  const schemaLine = lines.map((l) => l.match(new RegExp(`^<!--\\s*${SCHEMA_MARK}\\s+(\\d+)\\s*-->$`))).find(Boolean);
+  const fromSchema = schemaLine ? Number(schemaLine[1]) : 1;
+  if (fromSchema > CONTEXT_SCHEMA) throw new Error('Filen kommer från en nyare version av Dagsljus. Uppdatera appen och försök igen.');
 
   const entries: ContextEntry[] = [];
   let kind: ContextKind | null = null;
@@ -116,7 +143,8 @@ export function parseLayer(markdown: string, now = new Date()): ParsedLayer {
       entries.push({ ...(rest as Omit<ContextEntry, 'text' | 'layer'>), layer, text } as ContextEntry);
     } else if (text && LAYER_OF[kind] === layer) {
       const order = entries.filter((e) => e.kind === kind).reduce((mx, e) => Math.max(mx, e.order + 1), 0);
-      entries.push({ id: newId(), layer, kind, text, order, origin: 'user', createdAt: stamp, approvedAt: stamp });
+      const plan = layer === 'grund' ? fieldsFromKind(kind) : null;
+      entries.push({ id: newId(), layer, kind, text, order, origin: 'user', createdAt: stamp, approvedAt: stamp, ...(plan ? { plan } : {}) });
     }
     current = null;
   };
@@ -150,5 +178,5 @@ export function parseLayer(markdown: string, now = new Date()): ParsedLayer {
     else flush();
   }
   flush();
-  return { layer, entries };
+  return { layer, entries: migrateEntries(entries, fromSchema), fromSchema };
 }

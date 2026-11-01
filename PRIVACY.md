@@ -34,7 +34,9 @@ Vid krisplansimport läses PDF- och Word-filer på telefonen. Sidhuvuden och sid
 
 Före första anropet till en leverantör visas vart texten går, att leverantörens villkor för lagring och träning gäller, och en länk till villkoren. Samtycket gäller exakt den leverantören och adressen. Byts något av dem frågar appen igen. Appen påstår inget om leverantörens lagring som den inte kan visa. Med en OpenAI-kompatibel adress på det egna nätverket, till exempel Ollama på en hemdator, säger appen att texten inte lämnar användarens enheter.
 
-Om modellen inte svarar, eller svarar fel två gånger, gör appen bedömningen med ordmatchning och visar att det skedde.
+Om modellen inte svarar, eller svarar fel två gånger, gör appen bedömningen med ordmatchning och visar att det skedde. Hinner modellen inte svara inom tio sekunder visas ordmatchningens resultat först och fylls på när svaret kommer.
+
+Varje bedömning sparar på telefonen det den räknades fram ur: anteckningen som den skickades till modellen (rensad), modellens svar, mätvärdena och vilka regler och vilken prompt som användes. Det gör att bedömningen kan räknas om med nya regler och granskas i efterhand. Uppgifterna sparas på samma sätt som anteckningen och följer med exporten.
 
 Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery från användarens eget konto med användarens egen Personal API-nyckel. Hämtningen sker från telefonen direkt till Garmin. Appen skickar bara nyckeln och vilka datum den vill ha. Inget av det användaren skriver skickas till Garmin. Garmins Personal API är avsett för personligt bruk av den egna datan.
 

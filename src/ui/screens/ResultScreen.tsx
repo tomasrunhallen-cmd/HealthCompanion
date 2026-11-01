@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { actionsForLevel, displaySentence, firstStep, SERIOUS_INTRO, seriousActions } from '../../core/analysis/assess';
 import { formatDateSv, formatDateSvYear, formatTime } from '../../core/analysis/dates';
@@ -36,6 +36,8 @@ function SignalRow({ s }: { s: Signal }) {
 }
 
 export function ResultScreen({ entryId }: { entryId: string }) {
+  // When the screen opened: an assessment still waiting for the model after two minutes will not get an answer.
+  const [openedAt] = useState(() => Date.now());
   const repo = useRepo();
   const nav = useNav();
   const entry = repo.entries().find((e) => e.id === entryId);
@@ -83,6 +85,16 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         <Card tone="accent">
           <Text style={type.label} accessibilityRole="header">DET SOM ÄR VIKTIGT FÖR DIG</Text>
           {anchors.map((e) => <P key={e.id} style={{ marginTop: space.xs }}>{e.text}</P>)}
+        </Card>
+      ) : null}
+
+      {a.awaitingModel ? (
+        <Card>
+          <Text accessibilityLiveRegion="polite" style={type.body}>
+            {openedAt - new Date(a.createdAt).getTime() < 120_000
+              ? 'Språkmodellen har inte svarat än. Det här är ordmatchningens resultat från telefonen. Bedömningen fylls på när svaret kommer.'
+              : 'Språkmodellen hann inte svara. Ordmatchningens resultat från telefonen gäller för dagen.'}
+          </Text>
         </Card>
       ) : null}
 
