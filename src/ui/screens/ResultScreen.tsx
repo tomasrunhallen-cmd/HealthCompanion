@@ -9,6 +9,7 @@ import { MEDICAL_REMINDER } from '../../legal';
 import type { Signal } from '../../core/domain/types';
 import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../core/plan/guidance';
 import { routineSummary } from '../../core/plan/routines';
+import { SOURCE_TEXT } from '../../core/analysis/sources';
 import { Button, Card, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -48,7 +49,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
     );
   }
 
-  const garminDay = repo.garminDay(entry.date);
+  const garminDay = repo.measuredDay(entry.date);
   const why = explainAssessment(entry, a, garminDay);
   const plan = repo.plan();
   // Which way the signs point, in the plan's own words. Points and level are unchanged.
@@ -208,10 +209,10 @@ export function ResultScreen({ entryId }: { entryId: string }) {
                 entry.mood != null ? `Stämning ${entry.mood}` : null,
                 entry.energy != null ? `energi ${entry.energy}` : null,
                 entry.sleepHours != null
-                  ? `sömn ${String(entry.sleepHours).replace('.', ',')} h${entry.sleepSource === 'transcript' ? ' (skattat)' : entry.sleepSource === 'garmin' ? ' (Garmin)' : ''}`
+                  ? `sömn ${String(entry.sleepHours).replace('.', ',')} h${entry.sleepSource ? ` (${SOURCE_TEXT[entry.sleepSource]})` : ''}`
                   : 'sömn saknas',
-                garminDay?.sleepStart && entry.sleepSource === 'garmin' ? `somnade ${garminDay.sleepStart}` : null,
-                entry.stressAvg != null ? `stress ${entry.stressAvg}` : null,
+                garminDay?.sleepStart && entry.sleepSource !== 'transcript' ? `somnade ${garminDay.sleepStart}` : null,
+                entry.stressAvg != null ? `stress ${entry.stressAvg} (${SOURCE_TEXT[entry.stressSource ?? 'garmin']})` : null,
                 garminDay?.bodyBatteryWake != null ? `Body Battery ${garminDay.bodyBatteryWake} vid uppvaknandet` : null,
                 entry.wordsPerMinute != null ? `${entry.wordsPerMinute} ord/min` : 'talhastighet ej mätt',
               ].filter(Boolean).join(', ')}

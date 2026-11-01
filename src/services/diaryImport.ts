@@ -38,7 +38,7 @@ export async function runDiaryImport(
     entries: repo.entries(),
     assessments: repo.assessments(),
     context: repo.contextEntries(),
-    garmin: repo.allGarminDays(),
+    garmin: repo.allMeasuredDays(),
     now,
     onProgress: opts.onProgress,
   });

@@ -2,7 +2,7 @@
 // compute signals, points and level. Pure and fully testable.
 
 import type {
-  Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, PlanItem, PlanSettings, Signal, SignalKind, SignMatch,
+  Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, MeasureSource, PlanItem, PlanSettings, Signal, SignalKind, SignMatch,
 } from '../domain/types';
 import { addDays, daysBetween, entryClock, weekStart } from './dates';
 import { RULES } from './rules';
@@ -66,7 +66,7 @@ function clock(minutesAfterNoonValue: number): string {
  * Baselines from green days in the 28 days before the Monday of `date`'s week. They are
  * recomputed once a week, so a whole week is judged against the same baseline. Pure code.
  */
-export function computeBaseline(date: DateKey, history: HistoryDay[]): Baseline {
+export function computeBaseline(date: DateKey, history: HistoryDay[], stressSource: MeasureSource = 'garmin'): Baseline {
   const monday = weekStart(date);
   const from = addDays(monday, -RULES.baselineWindowDays);
   const green = history.filter(
@@ -74,7 +74,8 @@ export function computeBaseline(date: DateKey, history: HistoryDay[]): Baseline 
   );
   const enough = (v: number[]) => v.length >= RULES.baselineMinSamples;
   const wpm = green.map((h) => h.entry.wordsPerMinute).filter((v): v is number => v != null);
-  const stress = green.map((h) => h.entry.stressAvg).filter((v): v is number => v != null);
+  // Stress is compared only with stress from the same source: an own estimate is not on Garmin's scale.
+  const stress = green.filter((h) => (h.entry.stressSource ?? 'garmin') === stressSource).map((h) => h.entry.stressAvg).filter((v): v is number => v != null);
   const sleep = green.map((h) => h.entry.sleepHours).filter((v): v is number => v != null);
   const times = green.filter((h) => h.entry.kind === 'checkin').map((h) => minutesAfterNoon(h.entry));
   return {
@@ -290,7 +291,7 @@ export function score(input: ScoreInput): ScoreResult {
     }
   }
 
-  const baseline = computeBaseline(entry.date, history);
+  const baseline = computeBaseline(entry.date, history, entry.stressSource ?? 'garmin');
 
   if (entry.stressAvg != null && baseline.stressAvg != null &&
       entry.stressAvg > baseline.stressAvg * RULES.stressFactor) {

@@ -10,7 +10,7 @@ export function previewRecompute(repo: Repository, now = new Date()): Recomputed
   return recomputeHistory(repo.entries(), repo.assessments(), {
     plan: repo.plan(),
     planSettings: repo.planSettings(),
-    garmin: repo.allGarminDays(),
+    garmin: repo.allMeasuredDays(),
     medication,
   }, now);
 }

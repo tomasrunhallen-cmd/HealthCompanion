@@ -25,7 +25,7 @@ describe('@dagsljus/core', () => {
 
   it.each(files(CORE).map((f) => [path.relative(CORE, f), f]))('%s imports nothing outside the core but plain libraries', (_name, file) => {
     const src = fs.readFileSync(file, 'utf8');
-    const specs = [...src.matchAll(/(?:from|import\()\s*['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    const specs = [...src.matchAll(/^\s*(?:import|export)\b[^;]*?\bfrom\s*['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]/gm)].map((m) => m[1] ?? m[2]);
     for (const spec of specs) {
       if (spec.startsWith('.')) {
         const target = path.resolve(path.dirname(file), spec);

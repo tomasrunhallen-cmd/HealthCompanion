@@ -3,6 +3,7 @@
 // assessment, never by the language model, so it always matches the level shown.
 
 import type { Assessment, Entry, GarminDay, LevelReason } from '../domain/types';
+import { FROM_SOURCE } from './sources';
 import { formatTime } from './dates';
 import { RULES } from './rules';
 
@@ -68,19 +69,21 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
 
   if (entry.sleepHours != null) {
     data.push(
-      entry.sleepSource === 'garmin'
-        ? `Sömn ${dec(entry.sleepHours)} h från Garmin${garmin?.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`
-        : `Sömn ${dec(entry.sleepHours)} h, skattat ur anteckningen`,
+      entry.sleepSource === 'transcript' || !entry.sleepSource
+        ? `Sömn ${dec(entry.sleepHours)} h, skattat ur anteckningen`
+        : `Sömn ${dec(entry.sleepHours)} h ${FROM_SOURCE[entry.sleepSource]}${garmin?.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`,
     );
   } else {
     data.push('Sömn saknas');
   }
 
   if (entry.stressAvg != null) {
+    // Garmin is the usual source; any other is named, and has its own baseline.
+    const stressFrom = entry.stressSource && entry.stressSource !== 'garmin' ? ` ${FROM_SOURCE[entry.stressSource]}` : '';
     data.push(
       a.baseline.stressAvg != null
-        ? `Stress ${entry.stressAvg} i dag, ditt vanliga ${dec(a.baseline.stressAvg)}`
-        : `Stress ${entry.stressAvg} i dag, ingen baslinje än`,
+        ? `Stress ${entry.stressAvg} i dag, ditt vanliga ${dec(a.baseline.stressAvg)}${stressFrom}`
+        : `Stress ${entry.stressAvg} i dag${stressFrom}, ingen baslinje än`,
     );
   }
   if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');

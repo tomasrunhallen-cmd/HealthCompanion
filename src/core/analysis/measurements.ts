@@ -1,14 +1,16 @@
 // Today's and the past week's measured sleep and stress, as plain Swedish text for the
 // analys prompt. The model gets them as background for its sentence; the level is still
-// computed in scoring.ts. Garmin values win over values estimated from the note.
+// computed in scoring.ts. Measured values (own entry, Garmin, health app) win over values
+// estimated from the note, and every value that is not from Garmin says where it came from.
 
-import type { Baseline, DateKey, Entry, GarminDay, SleepSource } from '../domain/types';
+import type { Baseline, DateKey, Entry, GarminDay, MeasureSource, SleepSource } from '../domain/types';
+import { SOURCE_TEXT, sleepSourceOf, stressSourceOf } from './sources';
 import { addDays, formatDateSv } from './dates';
 import type { HistoryDay } from './scoring';
 
 export const NO_MEASUREMENTS = 'Inga mätvärden finns för i dag eller veckan innan.';
 
-export interface MeasuredDay {
+export interface PromptDay {
   date: DateKey;
   sleepHours: number | null;
   sleepSource: SleepSource | null;
@@ -17,21 +19,23 @@ export interface MeasuredDay {
   deepMinutes: number | null;
   remMinutes: number | null;
   stressAvg: number | null;
+  stressSource: MeasureSource | null;
   stressHighMinutes: number | null;
   bodyBatteryWake: number | null;
 }
 
-function dayFor(date: DateKey, entry: Entry | undefined, g: GarminDay | undefined): MeasuredDay {
+function dayFor(date: DateKey, entry: Entry | undefined, g: GarminDay | undefined): PromptDay {
   const garminSleep = g?.sleepHours ?? null;
   return {
     date,
     sleepHours: garminSleep ?? entry?.sleepHours ?? null,
-    sleepSource: garminSleep != null ? 'garmin' : entry?.sleepSource ?? null,
+    sleepSource: garminSleep != null ? sleepSourceOf(g) : entry?.sleepSource ?? null,
     sleepStart: g?.sleepStart ?? null,
     sleepEnd: g?.sleepEnd ?? null,
     deepMinutes: g?.deepMinutes ?? null,
     remMinutes: g?.remMinutes ?? null,
     stressAvg: g?.stressAvg ?? entry?.stressAvg ?? null,
+    stressSource: g?.stressAvg != null ? stressSourceOf(g) : entry?.stressAvg != null ? entry.stressSource ?? 'garmin' : null,
     stressHighMinutes: g?.stressHighMinutes ?? null,
     bodyBatteryWake: g?.bodyBatteryWake ?? null,
   };
@@ -43,8 +47,8 @@ export function measuredDays(
   history: HistoryDay[],
   garmin: Record<DateKey, GarminDay> = {},
   days = 7,
-): MeasuredDay[] {
-  const out: MeasuredDay[] = [];
+): PromptDay[] {
+  const out: PromptDay[] = [];
   for (let i = 0; i <= days; i++) {
     const date = addDays(entry.date, -i);
     const e = i === 0 ? entry : history.find((h) => h.entry.date === date)?.entry;
@@ -57,14 +61,15 @@ function dec(n: number): string {
   return String(Math.round(n * 10) / 10).replace('.', ',');
 }
 
-function hasAny(d: MeasuredDay): boolean {
+function hasAny(d: PromptDay): boolean {
   return d.sleepHours != null || d.stressAvg != null || d.bodyBatteryWake != null;
 }
 
-function sleepText(d: MeasuredDay, detailed: boolean): string | null {
+function sleepText(d: PromptDay, detailed: boolean): string | null {
   if (d.sleepHours == null) return null;
   const parts = [`${dec(d.sleepHours)} h`];
   if (d.sleepSource === 'transcript') parts[0] += ' (skattat ur anteckningen, inte mätt)';
+  else if (d.sleepSource && d.sleepSource !== 'garmin') parts[0] += ` (${SOURCE_TEXT[d.sleepSource]})`;
   if (d.sleepStart) parts.push(`somnade ${d.sleepStart}`);
   if (detailed && d.sleepEnd) parts.push(`vaknade ${d.sleepEnd}`);
   if (detailed && d.deepMinutes != null) parts.push(`djupsömn ${d.deepMinutes} min`);
@@ -76,7 +81,7 @@ function mean(values: number[]): number | null {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 }
 
-export function formatMeasurements(days: MeasuredDay[], baseline: number | Partial<Baseline> | null = null): string {
+export function formatMeasurements(days: PromptDay[], baseline: number | Partial<Baseline> | null = null): string {
   const b: Partial<Baseline> = typeof baseline === 'number' ? { stressAvg: baseline } : baseline ?? {};
   const stressBaseline = b.stressAvg ?? null;
   if (!days.some(hasAny)) return NO_MEASUREMENTS;
@@ -89,7 +94,7 @@ export function formatMeasurements(days: MeasuredDay[], baseline: number | Parti
   if (today.bodyBatteryWake != null) lines.push(`- Body Battery vid uppvaknandet: ${today.bodyBatteryWake} av 100`);
   lines.push(
     today.stressAvg != null
-      ? `- Stress hittills i dag: snitt ${today.stressAvg} av 100${today.stressHighMinutes != null ? `, hög stress ${today.stressHighMinutes} min` : ''}`
+      ? `- Stress hittills i dag: snitt ${today.stressAvg} av 100${today.stressSource && today.stressSource !== 'garmin' ? ` (${SOURCE_TEXT[today.stressSource]})` : ''}${today.stressHighMinutes != null ? `, hög stress ${today.stressHighMinutes} min` : ''}`
       : '- Stress i dag: saknas',
   );
 
@@ -102,7 +107,7 @@ export function formatMeasurements(days: MeasuredDay[], baseline: number | Parti
     lines.push(`- ${formatDateSv(d.date)}: ${parts.length ? parts.join(', ') : 'inga mätvärden'}`);
   }
 
-  const weekSleep = mean(week.filter((d) => d.sleepSource === 'garmin').map((d) => d.sleepHours!).filter((v) => v != null));
+  const weekSleep = mean(week.filter((d) => d.sleepSource != null && d.sleepSource !== 'transcript').map((d) => d.sleepHours!).filter((v) => v != null));
   const weekStress = mean(week.map((d) => d.stressAvg).filter((v): v is number => v != null));
   const summary: string[] = [];
   if (weekSleep != null) summary.push(`sömn ${dec(weekSleep)} h`);

@@ -83,7 +83,7 @@ export function TrendScreen() {
   const [asList, setAsList] = useState(false);
   const today = eveningDateKey(new Date());
   const trend = useMemo(
-    () => buildTrend(repo.entries(), repo.assessments(), repo.allGarminDays(), today, length),
+    () => buildTrend(repo.entries(), repo.assessments(), repo.allMeasuredDays(), today, length),
     [repo, repo.revision, today, length],
   );
   const limit = repo.planSettings().sleepThresholdHours;

@@ -8,6 +8,7 @@ import { CrisisCard } from '../CrisisCard';
 import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
 import { routineLog, trackedRoutines } from '../../core/plan/routines';
+import { FROM_SOURCE, MANUAL_STRESS, sleepSourceOf, stressSourceOf } from '../../core/analysis/sources';
 import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -62,6 +63,8 @@ export function CheckinScreen() {
   const hasMedication = repo.contextOf('medication').length > 0;
   const [medication, setMedication] = useState<boolean | null>(null);
   const [strain, setStrain] = useState(false);
+  const [manualSleep, setManualSleep] = useState<number | null>(null);
+  const [manualStress, setManualStress] = useState<number | null>(null);
   // Routines to tick off, from Livsstil och rutiner in the plan. Earlier answers this evening are kept.
   const tracked = trackedRoutines(repo.contextEntries('grund'));
   const [routineDone, setRoutineDone] = useState<Record<string, boolean>>(() =>
@@ -70,13 +73,13 @@ export function CheckinScreen() {
   const sleep = useMemo(() => parseSleepHours(text), [text]);
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
   const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
-  const garmin = repo.garminDay(eveningDateKey(new Date()));
+  const garmin = repo.measuredDay(eveningDateKey(new Date()));
   const garminSleep = garmin?.sleepHours ?? null;
 
   const save = async () => {
     setBusy(true);
     try {
-      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain, routines: Object.fromEntries(tracked.map((r) => [r.id, routineDone[r.id] ?? null])) }, new Date(), { browser: Platform.OS === 'web' });
+      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain, manualSleepHours: manualSleep, manualStress, routines: Object.fromEntries(tracked.map((r) => [r.id, routineDone[r.id] ?? null])) }, new Date(), { browser: Platform.OS === 'web' });
       // HIG: haptics sparingly. A light confirmation that the check-in is saved, never on a red day.
       if (Platform.OS !== 'web' && assessment.level !== 'red' && !assessment.akut) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
@@ -89,6 +92,8 @@ export function CheckinScreen() {
       setMedication(null);
       setStrain(false);
       setRoutineDone({});
+      setManualSleep(null);
+      setManualStress(null);
     } finally {
       setBusy(false);
     }
@@ -124,20 +129,38 @@ export function CheckinScreen() {
         }
       />
       {akut ? <CrisisCard plan={repo.plan()} mild={akut === 'mild'} /> : null}
-      {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
-        <Card>
-          <Text style={type.label}>FRÅN GARMIN</Text>
+      <Card>
+        <Text style={type.label} accessibilityRole="header">SÖMN OCH STRESS</Text>
+        {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
           <P style={{ marginTop: space.xs }}>
             {[
               garminSleep != null
-                ? `Sömn i natt ${String(garminSleep).replace('.', ',')} h${garmin.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`
+                ? `Sömn i natt ${String(garminSleep).replace('.', ',')} h ${FROM_SOURCE[sleepSourceOf(garmin) ?? 'garmin']}${garmin.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`
                 : null,
-              garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg}` : null,
+              garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg} ${FROM_SOURCE[stressSourceOf(garmin) ?? 'garmin']}` : null,
             ].filter(Boolean).join(', ') + '.'}
           </P>
-          <P muted>Uppdateras när du sparar. Dagens och veckans värden följer med till bedömningen.</P>
-        </Card>
-      ) : null}
+        ) : (
+          <P muted style={{ marginTop: space.xs }}>Inga mätvärden för i dag. Ange själv om du vill.</P>
+        )}
+        <Text style={[type.small, { marginTop: space.s }]}>Egen uppgift går före klockan och telefonens hälsoapp.</Text>
+        <Row style={{ marginTop: space.s }}>
+          <Text style={[type.body, { flex: 1 }]}>Sömn i natt</Text>
+          <Button kind="secondary" title="−" onPress={() => setManualSleep(Math.max(0, (manualSleep ?? garminSleep ?? sleep ?? 7) - 0.5))} />
+          <Text style={[type.h2, { minWidth: 72, textAlign: 'center' }]} accessibilityLabel={manualSleep != null ? `Sömn ${manualSleep} timmar` : 'Sömn inte angiven'}>
+            {manualSleep != null ? `${String(manualSleep).replace('.', ',')} h` : '–'}
+          </Text>
+          <Button kind="secondary" title="+" onPress={() => setManualSleep(Math.min(16, (manualSleep ?? garminSleep ?? sleep ?? 7) + 0.5))} />
+        </Row>
+        <Text style={[type.body, { marginTop: space.s }]}>Stress i dag</Text>
+        <Row style={{ marginTop: space.xs }}>
+          {(['low', 'medium', 'high'] as const).map((k) => (
+            <Chip key={k} label={{ low: 'Låg', medium: 'Medel', high: 'Hög' }[k]} selected={manualStress === MANUAL_STRESS[k]}
+              onPress={() => setManualStress(manualStress === MANUAL_STRESS[k] ? null : MANUAL_STRESS[k])} />
+          ))}
+        </Row>
+        <P muted style={{ marginTop: space.s }}>Uppdateras när du sparar. Dagens och veckans värden följer med till bedömningen, med källan.</P>
+      </Card>
       <Card tone="accent">
         <P muted>
           Inspelning med taligenkänning på telefonen (Whisper) kräver en utvecklingsbuild och läggs till senare.

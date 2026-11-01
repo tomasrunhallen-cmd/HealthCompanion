@@ -1,10 +1,11 @@
 // The app's single source of data. Keeps a cache in memory and writes through to the backend.
 
 import { buildHistory, type HistoryDay } from '../core/analysis/scoring';
+import { mergeSources } from '../core/analysis/sources';
 import {
   DEFAULT_APP_SETTINGS, DEFAULT_PLAN_SETTINGS, LAYER_OF, PLAN_KINDS,
   type AppSettings, type Assessment, type ContextEntry, type ContextKind, type ContextLayer, type ContextOrigin,
-  type Correction, type DateKey, type PlanFields, type RoutineSettings, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
+  type Correction, type DateKey, type MeasuredDay, type PlanFields, type RoutineSettings, type Suggestion, type Entry, type GarminDay, type ImportSource, type PlanItem, type PlanItemKind, type PlanSettings,
 } from '../core/domain/types';
 import { addDays } from '../core/analysis/dates';
 import { fieldsFromKind } from '../core/plan/fields';
@@ -281,6 +282,46 @@ export class Repository {
     this.snap.kv.garmin = next;
     await this.backend.put('kv', 'garmin', next);
     this.changed();
+  }
+
+  // ---- sleep and stress from every source (B5) ----
+  /** The person's own sleep and stress, entered in the check-in. */
+  manualDays(): Record<DateKey, MeasuredDay> {
+    return (this.snap.kv.manualMeasures as Record<DateKey, MeasuredDay> | undefined) ?? {};
+  }
+
+  async saveManualDay(day: Omit<MeasuredDay, 'source' | 'fetchedAt'>, now = new Date()): Promise<void> {
+    const next = { ...this.manualDays(), [day.date]: { ...day, source: 'manual' as const, fetchedAt: now.toISOString() } };
+    this.snap.kv.manualMeasures = next;
+    await this.backend.put('kv', 'manualMeasures', next);
+    this.changed();
+  }
+
+  /** Days from Apple Hälsa or Health Connect. */
+  healthDays(): Record<DateKey, MeasuredDay> {
+    return (this.snap.kv.healthDays as Record<DateKey, MeasuredDay> | undefined) ?? {};
+  }
+
+  async saveHealthDays(days: MeasuredDay[]): Promise<void> {
+    const next = { ...this.healthDays() };
+    for (const d of days) next[d.date] = { ...d, source: 'health' };
+    this.snap.kv.healthDays = next;
+    await this.backend.put('kv', 'healthDays', next);
+    this.changed();
+  }
+
+  /** The recent days of all sources merged: own entry first, then Garmin, then the phone's health app. */
+  measuredDays(): Record<DateKey, MeasuredDay> {
+    return mergeSources({ manual: this.manualDays(), garmin: this.garminDays(), health: this.healthDays() });
+  }
+
+  measuredDay(date: DateKey): MeasuredDay | null {
+    return this.measuredDays()[date] ?? null;
+  }
+
+  /** Like measuredDays, with the Garmin archive from a diary import. */
+  allMeasuredDays(): Record<DateKey, MeasuredDay> {
+    return mergeSources({ manual: this.manualDays(), garmin: this.allGarminDays(), health: this.healthDays() });
   }
 
   // ---- Garmin history, one document per month ----

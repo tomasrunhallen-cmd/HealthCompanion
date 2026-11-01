@@ -220,7 +220,7 @@ export function KnowledgeScreen() {
     id: 'probe', date: today, createdAt: new Date().toISOString(), kind: 'checkin', transcript: '', mood: null, energy: null,
     wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
   };
-  const derived = buildContext({ entries: repo.contextEntries(), entry: probe, history: repo.history(), garmin: repo.garminDays() }).variables.dagligt;
+  const derived = buildContext({ entries: repo.contextEntries(), entry: probe, history: repo.history(), garmin: repo.measuredDays() }).variables.dagligt;
 
   return (
     <Screen title="Det appen vet" back>

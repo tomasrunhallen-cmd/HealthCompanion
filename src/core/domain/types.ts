@@ -181,7 +181,10 @@ export interface PlanSettings {
 /** imported: a day brought in from another mood diary; it has no clock time. */
 export type EntryKind = 'checkin' | 'heavy' | 'imported';
 
-export type SleepSource = 'garmin' | 'transcript';
+/** Where sleep and stress came from. manual: the person's own entry; health: Apple Hälsa or Health Connect. */
+export type MeasureSource = 'garmin' | 'health' | 'manual';
+/** transcript: estimated from "sov sex timmar" in the note. */
+export type SleepSource = MeasureSource | 'transcript';
 
 export interface Entry {
   id: string;
@@ -201,6 +204,8 @@ export interface Entry {
   /** Hours of sleep the night before, and where the value came from. */
   sleepHours: number | null;
   sleepSource: SleepSource | null;
+  /** Where the day's stress came from. Missing on entries saved before sources existed: those are Garmin. */
+  stressSource?: MeasureSource | null;
   /** Daily average stress (Garmin, step 3). */
   stressAvg: number | null;
   /** "Alkohol, sjuk eller hård träning i går?" Yes: the sleep and stress rules give 0 points that day. */
@@ -219,8 +224,16 @@ export interface ImportedFrom {
 export type ImportSource = 'bipolar-dagbok';
 
 /** One day of measured values from the user's own Garmin account. */
-export interface GarminDay {
-  /** Garmin's calendar date. Sleep belongs to the morning the user woke up. */
+/**
+ * One day of sleep and stress, whatever the source (B5). Sleep belongs to the morning the
+ * person woke up. A day merged from several sources says where its sleep and stress came from.
+ */
+export interface MeasuredDay {
+  /** Where the sleep values come from. Missing: Garmin (saved before sources existed). */
+  source?: MeasureSource;
+  /** Where the stress values come from, when not the same as the sleep. */
+  stressSource?: MeasureSource;
+  /** The calendar date. Sleep belongs to the morning the user woke up. */
   date: DateKey;
   sleepHours: number | null;
   deepMinutes: number | null;
@@ -228,14 +241,17 @@ export interface GarminDay {
   /** Local wall-clock time "HH:MM" when the user fell asleep and woke up. */
   sleepStart: string | null;
   sleepEnd: string | null;
-  /** Garmin's overall stress level for the day, 0-100. */
+  /** Stress for the day, 0-100 on Garmin's scale. A manual entry (låg, medel, hög) is 25, 50 or 75. */
   stressAvg: number | null;
-  /** Minutes in Garmin's high stress band. */
+  /** Minutes in the high stress band (Garmin only). */
   stressHighMinutes: number | null;
   /** Body Battery at the first reading after waking. */
   bodyBatteryWake: number | null;
   fetchedAt: string;
 }
+
+/** The name the Garmin code has always used for the same format. */
+export type GarminDay = MeasuredDay;
 
 export type SignalKind =
   | 'early_sign'

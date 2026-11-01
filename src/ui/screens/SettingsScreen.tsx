@@ -12,6 +12,7 @@ import { deleteSecret } from '../../platform/secrets';
 import { LLM_KEY_NAME } from '../../services/llm';
 import { GARMIN_KEY_NAME } from '../../services/garmin';
 import { signOutUser } from '../../cloud/firebase';
+import { healthAvailable, healthUnavailableReason } from '../../platform/health';
 import { Button, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -200,6 +201,16 @@ export function SettingsScreen() {
               : 'Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.'}
           </P>
           <Button kind="secondary" title={llm.provider ? 'Ändra språkmodell' : 'Koppla en språkmodell'} onPress={() => nav.push({ name: 'llm' })} />
+        </Card>
+      </Section>
+
+      <Section title="Sömn och stress">
+        <Card>
+          <P>Tre källor, i den här ordningen när flera har värden samma dag:</P>
+          <P style={{ marginTop: space.xs }}>1. Din egen uppgift i kvällens avstämning.</P>
+          <P style={{ marginTop: space.xs }}>2. Garmin{repo.garminStatus().connected ? ', ansluten.' : ', inte ansluten.'}</P>
+          <P style={{ marginTop: space.xs }}>3. Apple Hälsa eller Health Connect. {healthAvailable ? 'Tillgänglig.' : healthUnavailableReason}</P>
+          <P muted style={{ marginTop: space.s }}>Bedömningen visar alltid vilken källa som användes. Stress jämförs bara med stress från samma källa.</P>
         </Card>
       </Section>
 

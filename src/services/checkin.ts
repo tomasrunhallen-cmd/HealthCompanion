@@ -6,6 +6,7 @@ import { parseSleepHours } from '../core/analysis/sleep';
 import type { Assessment, Entry } from '../core/domain/types';
 import { akutLevel } from '../core/context/akut';
 import { setRoutineDone } from './routines';
+import { sleepSourceOf, stressSourceOf } from '../core/analysis/sources';
 import type { Repository } from '../storage/repository';
 import { refreshForCheckin, type GarminOptions } from './garmin';
 import { currentMatcher, type AdapterOptions } from './llm';
@@ -20,6 +21,9 @@ export interface CheckinInput {
   medicationTaken?: boolean | null;
   /** "Alkohol, sjuk eller hård träning i går?" One tap; yes puts sleep, late sleep and stress at 0. */
   strainYesterday?: boolean;
+  /** The person's own sleep and stress (B5), used when entered. They go before Garmin and the phone's health app. */
+  manualSleepHours?: number | null;
+  manualStress?: number | null;
   /** Routines ticked off this evening, by routine id; null removes an earlier answer. Never part of the assessment. */
   routines?: Record<string, boolean | null>;
 }
@@ -51,10 +55,18 @@ export async function saveCheckin(
   }
   // Fresh numbers for today's stress; on failure the stored values are used.
   if (!akut) await refreshForCheckin(repo, { ...garminOptions, now });
-  const g = repo.garminDay(date);
-  // Garmin first; "sov X timmar" in the note is the fallback, marked as estimated.
+  if (input.manualSleepHours != null || input.manualStress != null) {
+    const prev = repo.manualDays()[date];
+    await repo.saveManualDay({
+      date, deepMinutes: null, remMinutes: null, sleepStart: null, sleepEnd: null, stressHighMinutes: null, bodyBatteryWake: null,
+      sleepHours: input.manualSleepHours ?? prev?.sleepHours ?? null,
+      stressAvg: input.manualStress ?? prev?.stressAvg ?? null,
+    }, now);
+  }
+  const g = repo.measuredDay(date);
+  // The sources in order (own entry, Garmin, health app); "sov X timmar" in the note is the fallback, marked as estimated.
   const sleep = g?.sleepHours ?? parseSleepHours(input.transcript);
-  const sleepSource = g?.sleepHours != null ? 'garmin' : sleep != null ? 'transcript' : null;
+  const sleepSource = sleepSourceOf(g) ?? (sleep != null ? 'transcript' : null);
   const entry: Entry = {
     id: newId('e'),
     date,
@@ -68,6 +80,7 @@ export async function saveCheckin(
     sleepHours: sleep,
     sleepSource,
     stressAvg: g?.stressAvg ?? null,
+    stressSource: stressSourceOf(g),
     ...(input.strainYesterday ? { strainYesterday: true } : {}),
   };
   const assessment = await assessEntry({
@@ -78,7 +91,7 @@ export async function saveCheckin(
     // The configured language model when there is one; word matching otherwise, and
     // always word matching when the emergency rule matched.
     matcher: akut || akutMild ? wordMatcher : await currentMatcher(repo, { now: () => now, ...adapterOptions }),
-    garmin: repo.garminDays(),
+    garmin: repo.measuredDays(),
     context: repo.contextEntries(),
     akut,
     akutMild,
@@ -90,7 +103,7 @@ export async function saveCheckin(
 
 export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{ entry: Entry; assessment: Assessment }> {
   // No network here: the button must answer at once. Stored Garmin values are used.
-  const g = repo.garminDay(eveningDateKey(now));
+  const g = repo.measuredDay(eveningDateKey(now));
   const entry: Entry = {
     id: newId('e'),
     date: eveningDateKey(now),
@@ -102,8 +115,9 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     energy: null,
     wordsPerMinute: null,
     sleepHours: g?.sleepHours ?? null,
-    sleepSource: g?.sleepHours != null ? 'garmin' : null,
+    sleepSource: sleepSourceOf(g),
     stressAvg: g?.stressAvg ?? null,
+    stressSource: stressSourceOf(g),
   };
   const assessment = await assessEntry({
     entry,
@@ -111,7 +125,7 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     planSettings: repo.planSettings(),
     history: repo.history(),
     matcher: wordMatcher,
-    garmin: repo.garminDays(),
+    garmin: repo.measuredDays(),
     context: repo.contextEntries(),
     now,
   });
