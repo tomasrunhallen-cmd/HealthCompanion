@@ -9,6 +9,7 @@ import type { ContextEntry, RoutineSettings } from '../../core/domain/types';
 import { polarityText } from '../../core/plan/fields';
 import { routineSettings, routineStats, routines, suggestReminderTime } from '../../core/plan/routines';
 import { cancelHint, cancelRoutineReminder, reminderSupported, reminderViaCalendar, scheduleRoutineReminder } from '../../platform/reminder';
+import { planBlocks, saveBlock } from '../../services/planBlocks';
 import { Button, Card, Field, P, Row, Screen, Section, Toggle } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
@@ -123,7 +124,9 @@ export function RoutinesScreen() {
           title="Lägg till"
           disabled={!text.trim()}
           onPress={async () => {
-            await repo.addContextEntry({ kind: 'routine', text, origin: 'user', plan: { kind: 'routine', polarity: 'both' }, routine: { track: true, reminder: null } });
+            // A new routine is a new line in the plan's daily routines, so the plan stays the source.
+            const block = planBlocks(repo).find((b) => b.type === 'routine');
+            if (block) await saveBlock(repo, { ...block, text: block.text.trim() ? `${block.text.trim()}\n${text.trim()}` : text.trim() });
             setText('');
           }}
         />

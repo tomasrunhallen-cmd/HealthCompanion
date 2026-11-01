@@ -267,6 +267,8 @@ Krisplanen skrivs eller klistras in som text under samma rubriker för alla. Var
 
 Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poäng, rutiner bockas av och stegen visas i *Hjälp nu*. Rader som står kvar ordagrant behåller sitt id, sina påminnelser och sin historik, också när en ny version av planen läses in. En plan från vården (text, PDF eller Word) delas upp efter sina egna rubriker. Personen kontrollerar blocken och väljer bara för rubriker som appen inte känner igen. Inget skickas till en modell vid importen, och planen som den lästes in sparas och går att läsa.
 
+**Rensa.** Varje block har *Töm blocket*, som tar bort raderna under rubriken men låter rubriken stå kvar. Längst ner under *Min krisplan* finns *Rensa hela krisplanen*. Den tömmer alla block och tar bort tecken, rutiner, steg och standardinnehåll ur appen, liksom planen som den lästes in, planens egna ord för riktningarna och sömnfönstret. Dagar, bedömningar, avbockade rutiner och akuta formuleringar som personen lagt till själv finns kvar, och så gör sömngränsen. En kopia sparas på telefonen, och *Återställ den rensade planen* tar tillbaka allt utom påminnelserna för rutinerna, som behöver ställas in igen.
+
 **Rutiner i dag** på startsidan och i avstämningen: dagens grundrutiner med en bock per rutin, under dagen eller på kvällen. Pekade de senaste tecknen åt ett håll föreslår appen att följa planens rutiner för det hållet, till exempel *Livsstil och rutiner vid uppvarvning*. De visas då under grundrutinerna tills personen slutar följa dem. Avbockningen ändrar aldrig nivån och skickas aldrig till en modell.
 
 ### Funktionerna från granskningen (fas C)

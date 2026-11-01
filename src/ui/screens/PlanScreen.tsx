@@ -8,7 +8,8 @@ import { newId } from '../../core/analysis/assess';
 import { blockLines, isSignBlock, TEMPLATE, BLOCK_TEXT, type BlockType, type PlanBlock } from '../../core/plan/blocks';
 import { windowHours } from '../../core/plan/importPlan';
 import type { PlanItem } from '../../core/domain/types';
-import { planBlocks, removeBlock, saveBlock } from '../../services/planBlocks';
+import { clearBlock, clearPlan, dropPlanBackup, planBackup, planBlocks, removeBlock, restorePlan, saveBlock } from '../../services/planBlocks';
+import { formatDateSv } from '../../core/analysis/dates';
 import { confirmStandard, unconfirmedStandard } from '../../services/standard';
 import { Button, Card, Chip, Field, P, Row, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
@@ -110,6 +111,17 @@ function BlockCard({ block, template }: { block: PlanBlock; template: boolean })
           options={[{ value: 'self', label: 'Jag märker' }, { value: 'others', label: 'Andra ser' }]}
         />
       ) : null}
+      {lines.length && !editing ? (
+        <Button kind="ghost" title="Töm blocket" onPress={async () => {
+          const ok = await dialog.confirm({
+            title: `Tömma ${block.heading}?`,
+            message: `${lines.length === 1 ? 'Raden' : `Alla ${lines.length} rader`} under rubriken tas bort. Rubriken finns kvar, och du kan skriva nytt när du vill.`,
+            confirmLabel: 'Töm blocket',
+            danger: true,
+          });
+          if (ok) await clearBlock(repo, block.id);
+        }} />
+      ) : null}
       {!template && !editing ? (
         <Button kind="ghost" title="Ta bort blocket" onPress={async () => {
           const ok = await dialog.confirm({ title: 'Ta bort blocket?', message: block.heading, confirmLabel: 'Ta bort', danger: true });
@@ -137,6 +149,7 @@ function AkutRow({ item }: { item: PlanItem }) {
 export function PlanScreen() {
   const repo = useRepo();
   const nav = useNav();
+  const dialog = useDialog();
   const blocks = planBlocks(repo);
   const ps = repo.planSettings();
   const [threshold, setThreshold] = useState(ps.sleepThresholdHours);
@@ -144,6 +157,7 @@ export function PlanScreen() {
   const standard = unconfirmedStandard(repo);
   const templateIds = new Set(TEMPLATE.filter((t) => t.inTemplate).map((t) => t.heading));
   const hasText = blocks.some((b) => b.text.trim());
+  const backup = planBackup(repo);
 
   return (
     <Screen title="Min krisplan" back>
@@ -194,6 +208,39 @@ export function PlanScreen() {
       </Section>
 
       <Button kind="ghost" title="Rutiner: påminnelser" onPress={() => nav.push({ name: 'routines' })} />
+
+      <Section title="Rensa">
+        {backup ? (
+          <Card tone="accent">
+            <P>Du rensade planen {formatDateSv(backup.at.slice(0, 10))}. En kopia finns kvar på telefonen.</P>
+            <Button title="Återställ den rensade planen" onPress={async () => {
+              await restorePlan(repo);
+              await dialog.info('Planen är återställd', 'Påminnelser för rutinerna behöver ställas in igen under Rutiner.');
+            }} />
+            <Button kind="ghost" title="Ta bort kopian" onPress={async () => {
+              const ok = await dialog.confirm({ title: 'Ta bort kopian?', message: 'Den rensade planen går då inte att återställa.', confirmLabel: 'Ta bort kopian', danger: true });
+              if (ok) await dropPlanBackup(repo);
+            }} />
+          </Card>
+        ) : null}
+        <Card>
+          <P muted>
+            Tömmer alla delar av krisplanen på en gång. Dina dagar, bedömningar och avbockade rutiner finns kvar, liksom akuta
+            formuleringar du lagt till själv. En kopia av planen sparas, så att du kan ångra.
+          </P>
+          <Button kind="danger" title="Rensa hela krisplanen" disabled={!hasText && !standard.length} onPress={async () => {
+            const ok = await dialog.confirm({
+              title: 'Rensa hela krisplanen?',
+              message: 'Alla rubriker töms, och tecknen, rutinerna och stegen tas bort ur appen. Bedömningen räknar sedan bara med mätvärden tills du lagt in en plan igen. Du kan återställa planen härifrån.',
+              confirmLabel: 'Rensa hela krisplanen',
+              danger: true,
+            });
+            if (!ok) return;
+            const res = await clearPlan(repo);
+            await dialog.info('Planen är rensad', `${res.rows} rader togs bort. Du kan skriva en ny plan eller återställa den gamla.`);
+          }} />
+        </Card>
+      </Section>
     </Screen>
   );
 }

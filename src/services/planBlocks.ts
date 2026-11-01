@@ -17,7 +17,9 @@ export function planBlocks(repo: Repository): PlanBlock[] {
   const blocks = saved?.length ? saved : blocksFromSavedRows(repo.contextEntries('grund'));
   // Every heading of the template is always there, empty if the plan has nothing under it.
   const missing = emptyPlan().filter((t) => !blocks.some((b) => b.type === t.type));
-  return orderBlocks([...blocks, ...missing]);
+  // Mitt normalläge is the profile's normal state, also when it was written elsewhere.
+  const normalState = repo.planSettings().normalState;
+  return orderBlocks([...blocks, ...missing]).map((b) => (b.type === 'normal' && !b.text.trim() && normalState ? { ...b, text: normalState } : b));
 }
 
 export const ORIGINAL_KEY = 'planOriginal';
@@ -109,8 +111,12 @@ export async function savePlanBlocks(repo: Repository, blocks: PlanBlock[], now 
   for (const e of existing) if (!used.has(e.id) && !(e.kind === 'akut' && !e.blockId)) await repo.removeContextEntry(e.id, false);
 
   // Normalläge is the person's own description, kept as the profile's normal state.
-  const normal = ordered.filter((b) => b.type === 'normal').flatMap((b) => blockLines(b.text).map((l) => l.text)).join(' ');
-  if (normal) await repo.updatePlanSettings({ normalState: normal });
+  // Only when the plan has the block: an imported plan without it keeps the normal state.
+  const normalBlocks = ordered.filter((b) => b.type === 'normal');
+  if (normalBlocks.length) {
+    const normal = normalBlocks.flatMap((b) => blockLines(b.text).map((l) => l.text)).join(' ');
+    if (normal !== repo.planSettings().normalState) await repo.updatePlanSettings({ normalState: normal });
+  }
   if (repo.settings().contextMode !== 'own' && rows) await repo.updateSettings({ contextMode: 'own' });
 
   const routines = repo.contextOf('routine').map((e) => ({ text: e.text, fields: e.plan ?? { kind: 'routine' as const, polarity: 'both' as const } }));
@@ -128,4 +134,68 @@ export async function saveBlock(repo: Repository, block: PlanBlock, now = new Da
 
 export async function removeBlock(repo: Repository, id: string): Promise<void> {
   await savePlanBlocks(repo, planBlocks(repo).filter((b) => b.id !== id));
+}
+
+/** One part of the plan emptied: its rows go, the heading stays. */
+export async function clearBlock(repo: Repository, id: string): Promise<void> {
+  const block = planBlocks(repo).find((b) => b.id === id);
+  if (block) await saveBlock(repo, { ...block, text: '' });
+}
+
+// ---- the whole plan ----
+
+export const BACKUP_KEY = 'planBackup';
+
+/** The plan as it was before it was cleared, so the person can take it back. */
+export interface PlanBackup {
+  blocks: PlanBlock[];
+  original: PlanOriginal | null;
+  polarityWords: { up?: string; down?: string } | null;
+  sleepWindow: { start: string; end: string } | null;
+  at: string;
+}
+
+export function planBackup(repo: Repository): PlanBackup | null {
+  return (repo.kvGet(BACKUP_KEY) as PlanBackup | null | undefined) ?? null;
+}
+
+/**
+ * Clears the whole crisis plan: every block and every row made from it, standard content, the
+ * plan as read in, and what the app took from the plan (its words for the directions, the sleep
+ * window). Kept: the days and assessments, routine ticks, and emergency phrases the person added
+ * themselves. A copy is kept so the plan can be taken back.
+ */
+export async function clearPlan(repo: Repository, now = new Date()): Promise<{ rows: number }> {
+  const ps = repo.planSettings();
+  const backup: PlanBackup = {
+    blocks: planBlocks(repo),
+    original: planOriginal(repo),
+    polarityWords: ps.polarityWords ?? null,
+    sleepWindow: ps.sleepWindow ?? null,
+    at: now.toISOString(),
+  };
+  await repo.kvSet(BACKUP_KEY, backup);
+  const before = repo.contextEntries('grund').filter((e) => e.origin === 'crisis_plan' || e.origin === 'standard' || e.blockId).length;
+  await savePlanBlocks(repo, emptyPlan(now), now);
+  for (const e of repo.contextEntries('grund').filter((x) => x.origin === 'standard')) await repo.removeContextEntry(e.id, false);
+  await repo.kvSet(ORIGINAL_KEY, null);
+  await repo.updatePlanSettings({ polarityWords: null, sleepWindow: null });
+  if (repo.settings().contextMode !== 'unset') await repo.updateSettings({ contextMode: 'unset' });
+  const after = repo.contextEntries('grund').filter((e) => e.origin === 'crisis_plan' || e.origin === 'standard' || e.blockId).length;
+  return { rows: before - after };
+}
+
+/** Takes back the cleared plan. Routine reminders have to be set again. */
+export async function restorePlan(repo: Repository): Promise<boolean> {
+  const b = planBackup(repo);
+  if (!b) return false;
+  await savePlanBlocks(repo, b.blocks);
+  await repo.kvSet(ORIGINAL_KEY, b.original);
+  await repo.updatePlanSettings({ polarityWords: b.polarityWords, sleepWindow: b.sleepWindow });
+  await repo.kvSet(BACKUP_KEY, null);
+  return true;
+}
+
+export async function dropPlanBackup(repo: Repository): Promise<void> {
+  await repo.kvSet(BACKUP_KEY, null);
 }
