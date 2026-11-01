@@ -152,6 +152,7 @@ export function HomeScreen() {
 
       <Section title="Mer">
         <Button kind="secondary" title="Min krisplan" onPress={() => nav.push({ name: 'plan' })} />
+        <Button kind="secondary" title="Det appen vet om mig" onPress={() => nav.push({ name: 'knowledge' })} />
         <Button kind="secondary" title="Inställningar" onPress={() => nav.push({ name: 'settings' })} />
         <Button kind="secondary" title="Data och integritet" onPress={() => nav.push({ name: 'privacy' })} />
       </Section>

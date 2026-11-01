@@ -83,3 +83,16 @@ describe('context bank entries', () => {
     expect(repo.contextOf('normal_state')).toEqual([]);
   });
 });
+
+describe('medication in the check-in', () => {
+  it('stores one answer per evening in dagligt and tells the model', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { saveCheckin } = require('../src/services/checkin');
+    const repo = await Repository.create(memoryBackend());
+    await repo.addContextEntry({ kind: 'medication', text: 'Litium 600 mg', origin: 'user' });
+    const now = new Date(2026, 10, 1, 21, 0);
+    await saveCheckin(repo, { transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, medicationTaken: true }, now);
+    await saveCheckin(repo, { transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, medicationTaken: false }, now);
+    expect(repo.contextOf('medication_taken')).toEqual([expect.objectContaining({ layer: 'dagligt', date: '2026-11-01', taken: false })]);
+  });
+});

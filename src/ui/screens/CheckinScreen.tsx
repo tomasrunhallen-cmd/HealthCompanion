@@ -6,7 +6,7 @@ import { parseSleepHours } from '../../analysis/sleep';
 import { isAkut } from '../../context/akut';
 import { CrisisCard } from '../CrisisCard';
 import { saveCheckin } from '../../services/checkin';
-import { Button, Card, Field, P, Row, Screen } from '../components';
+import { Button, Card, Chip, Field, P, Row, Screen } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
 import { colors, space, type } from '../theme';
@@ -53,6 +53,8 @@ export function CheckinScreen() {
   const [mood, setMood] = useState(5);
   const [energy, setEnergy] = useState(5);
   const [busy, setBusy] = useState(false);
+  const hasMedication = repo.contextOf('medication').length > 0;
+  const [medication, setMedication] = useState<boolean | null>(null);
   const sleep = useMemo(() => parseSleepHours(text), [text]);
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
   const akut = useMemo(() => isAkut(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
@@ -62,7 +64,7 @@ export function CheckinScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null }, new Date(), { browser: Platform.OS === 'web' });
+      const { entry } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication }, new Date(), { browser: Platform.OS === 'web' });
       nav.replace({ name: 'result', entryId: entry.id, fresh: true });
     } finally {
       setBusy(false);
@@ -121,6 +123,15 @@ export function CheckinScreen() {
         </P>
       </Card>
 
+      {hasMedication ? (
+        <View style={{ marginBottom: space.l }}>
+          <Text style={type.label}>TOG DU DIN MEDICIN I DAG?</Text>
+          <Row style={{ marginTop: space.xs }}>
+            <Chip label="Ja" selected={medication === true} onPress={() => setMedication(medication === true ? null : true)} />
+            <Chip label="Nej" selected={medication === false} onPress={() => setMedication(medication === false ? null : false)} />
+          </Row>
+        </View>
+      ) : null}
       <Scale label="Stämning" value={mood} onChange={setMood} low="1 Mycket låg" high="10 Mycket hög" />
       <Scale label="Energi" value={energy} onChange={setEnergy} low="1 Ingen" high="10 Väldigt mycket" />
     </Screen>

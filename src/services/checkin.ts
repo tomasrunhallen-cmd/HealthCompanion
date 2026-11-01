@@ -15,6 +15,14 @@ export interface CheckinInput {
   energy: number;
   /** Only set when speech was recorded and timed. */
   wordsPerMinute: number | null;
+  /** Asked only when the user has medication in grund. Null: not answered. */
+  medicationTaken?: boolean | null;
+}
+
+/** One medication answer per evening; a new answer replaces the old. */
+export async function setMedicationTaken(repo: Repository, date: string, taken: boolean): Promise<void> {
+  for (const old of repo.contextOf('medication_taken').filter((e) => e.date === date)) await repo.removeContextEntry(old.id, false);
+  await repo.addContextEntry({ kind: 'medication_taken', text: '', origin: 'user', date, taken });
 }
 
 export async function saveCheckin(
@@ -28,6 +36,7 @@ export async function saveCheckin(
   // The emergency rule runs first, in code, before anything can leave the phone. On a
   // match nothing is fetched or sent: the crisis numbers must show at once, also offline.
   const akut = isAkut(input.transcript, repo.contextOf('akut').map((e) => e.text));
+  if (input.medicationTaken != null) await setMedicationTaken(repo, date, input.medicationTaken);
   // Fresh numbers for today's stress; on failure the stored values are used.
   if (!akut) await refreshForCheckin(repo, { ...garminOptions, now });
   const g = repo.garminDay(date);

@@ -13,6 +13,7 @@ import { CheckinScreen } from './screens/CheckinScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
 import { GarminScreen } from './screens/GarminScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { KnowledgeScreen } from './screens/KnowledgeScreen';
 import { LlmSettingsScreen } from './screens/LlmSettingsScreen';
 import { PlanImportScreen } from './screens/PlanImportScreen';
 import { PlanScreen } from './screens/PlanScreen';
@@ -35,7 +36,7 @@ function renderRoute(route: Route) {
     case 'llm': return <LlmSettingsScreen />;
     case 'garmin': return <GarminScreen />;
     case 'suggestions': return <SuggestionsScreen />;
-    case 'knowledge': return <SuggestionsScreen />;
+    case 'knowledge': return <KnowledgeScreen />;
     case 'privacy': return <PrivacyScreen />;
     case 'history': return <HistoryScreen />;
   }
