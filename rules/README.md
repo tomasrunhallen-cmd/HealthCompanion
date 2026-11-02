@@ -62,6 +62,50 @@ Reglerna prövas i den här ordningen, och den första som gäller visas för pe
 
 Två begränsningar gäller alltid, oavsett siffrorna: standardrader som personen inte bekräftat kan bara ge gult, och mätta tecken som inte fanns dagen innan kan bara ge gult.
 
+## Algoritmen i ordning
+
+Så räknas en dag, steg för steg. Koden ligger i `src/core/analysis/scoring.ts` (`score`, `levelFromSignals`) och `assess.ts`.
+
+1. **Akutregeln** (`context/akut.md`) körs först, på telefonen. Fullt larm ger rött, krisrutan och att inget skickas. Milt larm vid negation eller sammanhang ger den mildare rutan, och dagen räknas vidare som vanligt utan modell.
+2. **Tecken ur planen.** Ordmatchningen eller modellen avgör vilka tecken anteckningen beskriver.
+   - En träff med en negation som tecknet inte har räknas inte.
+   - Med modell räknas ett allvarligt tecken som ordmatchningen hittar, även om modellen inte tog med det.
+   - Tidigt tecken 1 poäng, allvarligt 2.
+3. **Mätta tecken:** sömn under gränsen, andra natten i rad, stress, sen insomning och talhastighet.
+   - Ett tecken märks *fanns i går* om det fanns även dagen innan.
+   - Efter ja på alkoholfrågan märks det *möjlig förklaring*.
+   - Tillsammans ger de högst `measuredCapPerDay` poäng, i den ordningen.
+4. **Övriga tecken:**
+   - nattinlägg 00:00–04:00
+   - tystnad
+   - medicin
+   - stämning skattad till ±2 eller ±3, där ±3 väger som ett allvarligt tecken
+   - hopp i stämning eller energi; ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte
+   - *Orkar bara trycka*
+5. **Nivån.** Den första regeln som gäller avgör:
+   1. Poäng ≥ `redAt` ger rött.
+   2. Ett allvarligt tecken tillsammans med minst ett annat tecken ger rött.
+   3. Poäng ≥ `redWithHistoryAt` ger rött om minst `historyNonGreenDays` av de `historyWindowDays` dagarna före i dag var gula eller röda. Dagen själv räknas inte.
+   4. Poäng ≥ `yellowAt` ger gult.
+   5. Annars grönt.
+6. **Spärrar mot rött.** Blir det rött räknas dagen om utan tre sorters tecken:
+   - obekräftade standardrader
+   - mätta tecken som inte fanns i går
+   - mätta tecken med möjlig förklaring
+
+   Blir det fortfarande rött är dagen röd. Annars blir den gul, med skälet: standardinnehåll, första dagen eller möjlig förklaring.
+7. **Grönt** visar alltid samma mening, och neutrala trendrader utan poäng.
+
+**Tid och källor**
+
+- **Dygnet** går 04:00–04:00. Ett inlägg 01:30 hör till dagen innan.
+- **Sömnen** hör till morgonen man vaknade, alltså till dygnet som börjar den morgonen.
+- **"I går"** i alkoholfrågan är dygnet före avstämningen.
+- **En ny avstämning samma dygn** ersätter den förra.
+- **Källor för sömn och stress:** egen uppgift går före Garmin, Garmin före telefonens hälsoapp, och anteckningen används bara om inget annat finns.
+- **Omräkning:** när en äldre dag uppdateras, till exempel med klockans senare värden, räknas senare dagar inte om automatiskt. *Räkna om historiken* räknar om alla dagar i ordning.
+- **Ingen avdubblering** mellan planens tecken om kort sömn och den mätta sömnen. Båda räknas.
+
 ## Utanför reglerna
 
 Akutregeln ligger i `context/akut.md` och avgörs före allt annat. En träff utan negation ger röd dag och krisrutan, oavsett poäng.

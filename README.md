@@ -151,7 +151,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 480 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 4 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 551 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 7 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -209,7 +209,7 @@ Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bo
 | Precis på gult: samma dag med 4,9 h sömn | gult |
 | Fyra timmars sömn, 180 ord per minut, inlägg 01:15 | gult |
 | Festkväll med alkohol: insomning 03:00, 4 h sömn, stress 48 mot 30 (1,6 gånger det vanliga) | gult |
-| Samma festkväll med ja på *Alkohol, sjuk eller hård träning i går?* | grönt |
+| Samma festkväll med ja på *Alkohol, sjuk eller hård träning i går?* | gult, värdena syns med "möjlig förklaring" |
 | En kort natt och två tidiga tecken | gult |
 | Samma dag efter två korta nätter i rad | rött |
 | Sömn 6,5, 6,0 och 5,5 h tre nätter i rad | grönt, med raden om kortare sömn |
@@ -220,7 +220,7 @@ Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bo
 | Standardläget med fyra tecken och kort sömn | gult, aldrig rött |
 | "Jag vill inte leva längre" (akutregeln, når inte modellen) | rött |
 | "Jag vill inte dö" (mild akutträff, når inte modellen) | grönt |
-| "Självmordsförsök för tio år sedan" (kärnord, når inte modellen) | rött |
+| "Självmordsförsök för tio år sedan" (sammanhang, når inte modellen) | grönt, med den mildare krisrutan |
 
 - **Testa modellen godkänner en ny modell bara om alla fall ger samma nivå som referenssvaren.** Fallen som skilde sig visas först, med nivån modellen gav och nivån som väntades. Akutfallen avgörs i koden precis som i avstämningen och skickas aldrig till modellen. En modell du redan sparat fortsätter att användas tills du sparar en ny.
 - **En ändrad analysprompt måste klara alla fall innan den checkas in.** Godkännandet står i `prompts/godkand.json` med ett fingeravtryck av `prompts/analys.md` och `schemas/analys.json`. Testet `tests/prompt-gate.test.ts` i `npm test` stoppar så fort prompten eller schemat ändrats utan nytt godkännande. Ett nytt godkännande får man bara genom att köra alla fall mot en riktig modell:
@@ -309,15 +309,35 @@ Stämningen skattas på en bipolär skala med sju steg:
 | +2 | Uppvarvning | Svårt att bromsa, vardagen påverkas |
 | +3 | Akut mani | Klarar inte vardagen |
 
-- **Skalan** är den som patienterna använde i de danska MONARCA-studierna, där stämningen skattades varje kväll från −3 (depressiv) till +3 (manisk).
+- **Skalan** är inspirerad av de danska MONARCA-studierna, där stämningen skattades varje kväll från −3 (depressiv) till +3 (manisk). MONARCA hade också halvsteg och en fråga om blandat läge; Dagsljus har inte det, och etiketterna och poängen är inte validerade.
 - **Hur svårt ett steg är** avgörs av hur mycket vardagen påverkas, som i NIMH:s Life Chart Method.
 - **Orden** är desamma som i Bipolär dagbok.
 
-**Poäng (regler 1.1.0):**
+**Poäng (regler 1.2.0):**
 - ±2 ger 1 poäng och ±3 ger 2 poäng, i den riktning skattningen pekar. Åtgärderna i planen väljs efter samma riktning.
-- Ett hopp på minst 2 steg mot snittet för de senaste sju dagarna ger 1 poäng, som förut.
+- ±3 väger som ett allvarligt tecken: planens steg vid rött visas, och tillsammans med ett annat tecken blir dagen röd.
+- Ett hopp på minst 2 steg mot snittet för de senaste sju dagarna ger 1 poäng, men inte när en skattning på ±2 eller mer redan pekar åt samma håll.
 
 **Gamla värden:** värden på den gamla skalan 1–10 flyttades en gång till den nya. 1 blir −3, 5 och 6 blir 0, och 10 blir +3. Det gamla värdet sparas på dagen (`moodTen`). Importerade dagar läses om från dagbokens egna ord. *Räkna om historiken* visar vilka dagar som får en annan nivå med de nya reglerna.
+
+### Ändringar efter granskningen 2 november 2026
+
+| Fynd | Åtgärd |
+| --- | --- |
+| F01 alkoholfrågan | Värdena räknas och syns med "möjlig förklaring", men bara mot gult (`excusedMeasuredToRed`) |
+| F02 grönt med tunt underlag | "Underlaget är tunt: …" intill nivån. Baslinjen tar bara fullständiga gröna dagar. En behållen dag säger vad klockans senare värden hade gett |
+| F03 ±3 ger gult | ±3 väger som ett allvarligt tecken: planens steg vid rött, och rött med ett annat tecken |
+| F04 akutregeln | Fem missar täppta. Sammanhang (förr, någon annan, ämne) ger den mildare rutan. 48 formuleringar som test |
+| F05 modellen | Allvarliga tecken från ordmatchningen räknas alltid. Negation kontrolleras på telefonen. Modellens mening bara när den nämner det som gav poäng. Injektionstester |
+| F06 hjälp och rensning | *Hjälp nu* på låsskärm, inloggning, kryptering, laddning och vid fel. Rensningen säger vad som försvinner |
+| F07 rensning av text | Skickad text syns under *Så räknade appen*. Samtycket säger rensad, inte anonym |
+| F08 säkerhet | `THREATS.md`. Netlify-funktionerna nekar andra webbplatser och begränsar antal anrop |
+| F11 reglernas samspel | Algoritmen i ordning i `rules/README.md`. Nattinlägg till 04:00. Stämningshopp räknas inte dubbelt |
+| F12 kvällsflödet | Högst fem rutiner först, "Vill inte svara" efter röd dag, veckofrågan märkt valfri, avstämningens längd sparas |
+| F13 återbesök | Dag för dag med stämning, sömn, riktning och anmärkningar. Färgen förklaras som regelutfall |
+| F14 tangentbord | Reglagen tar fokus med Tab och flyttas med piltangenterna i webben |
+
+Inte åtgärdat i koden: F09 (kräver riktig iPhone), F10 (regelverk, beslut före extern användning) och skalans namn (diagnosord, behållna på din begäran).
 
 ### Enkelhet
 
@@ -378,12 +398,12 @@ DAGSLJUS_IMPORT_MODELS=mistral-small-latest,mistral-large-latest npm run plan:ch
 - **Rubriknivåer i inklistrad text gissas.** Utan # eller teckenstorlek vet appen inte vad som är underrubrik. En underrubrik som *Anhöriga* efter rader under *Vid rött* blir en egen huvudrubrik. Läs gärna in PDF:en eller Word-filen i stället för att klistra in.
 - **pdf.js är inte provat på en riktig telefon.** PDF-läsningen är provad i webbversionen och i testerna med den text pdf.js ger. På iPhone och Android kör appen Hermes, och pdf.js kan behöva justeras där. Det går att se först i en utvecklingsbuild.
 
-- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Fraserna tål böjningar och ord emellan. Sju kärnord, som "självmord", "dödslängt" och "livsled", ger träff som början på ett ord oavsett vad som följer, så "självmordstankar", "självmordsförsök", "dödslängtan" och "livsleda" ger full krisruta. Också "självmordsförsök för tio år sedan" ger träff, eftersom ett falsklarm är bättre än en miss. En undantagslista tar hand om kända falska träffar: "för mig själv" ger ingen träff, och "jag skärper mig" räknas inte som "skär mig". En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 29 fraser, 7 kärnord och 5 undantag och bör prövas mot verkliga formuleringar.
+- **`context/akut.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Ordlistan matchas i appen innan något skickas till en modell. Vid träff blir dagen röd, krisplanens steg vid rött och numren 112, 1177 och Självmordslinjen 90101 visas, och anteckningen skickas inte till modellen. Fraserna tål böjningar och ord emellan. Sju kärnord, som "självmord", "dödslängt" och "livsled", ger träff som början på ett ord oavsett vad som följer, så "självmordstankar", "självmordsförsök", "dödslängtan" och "livsleda" ger full krisruta. En träff i samma sats som ett sammanhangsord, som "för tio år sedan", "min vän" eller "självmordsprevention", ger den mildare rutan: hjälpen visas men dagen räknas som vanligt. Personens egna formuleringar räknas alltid fullt. Utdragna bokstäver ("döö"), ett stavfel i långa kärnord ("sjävmordstankar") och upp till tre ord emellan ger träff. Granskarens 48 formuleringar ligger som test i `tests/akut-review.test.ts`. En undantagslista tar hand om kända falska träffar: "för mig själv" ger ingen träff, och "jag skärper mig" räknas inte som "skär mig". En negation mellan orden eller strax före frasen, som i "vill inte dö" eller "tänker inte göra mig illa", ger en mild träff: en mildare krisruta med samma steg och nummer, dagen blir inte röd, och anteckningen skickas inte till modellen. Listan har 31 fraser, 7 kärnord, 5 undantag och 30 sammanhangsord och bör prövas mot verkliga formuleringar.
 - **`context/standard.md` är ett utkast och måste granskas av en människa med klinisk kunskap innan release.** Filen innehåller allmänna tidiga tecken, åtgärder och ton för den som börjar utan egen krisplan. Jag har skrivit innehållet själv. Raderna är korta, eftersom ordmatchningen kräver att alla viktiga ord i ett tecken finns i samma mening. Standardrader kan bara ge gult tills de bekräftats eller ersatts.
 
 - **Grönt säger alltid "Inget av dina tecken syntes i dag."** Texten sätts i koden, aldrig av modellen, och appen skriver aldrig att allt ser bra ut. Har sömnen blivit kortare tre nätter i rad, eller stressen ökat tre dagar i rad, utan att passera gränsen, visas en neutral rad under ampeln, till exempel "Din sömn har blivit kortare tre nätter i rad." Den ger ingen poäng och ingen färg.
 - **Ett allvarligt tecken visar planens åtgärder vid rött, också när ampeln är gul.** Ampel och poäng ändras inte. Bedömningen säger "Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:" och listar stegen vid rött. *Testa modellen* kontrollerar också detta, så att en modell som tar ett allvarligt tecken för ett tidigt inte godkänns.
-- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* ger sömn under gränsen, stress över baslinjen och insomning efter 02:00 0 poäng den dagen, och bedömningen säger det. En festkväll med insomning 03:00, 4 timmars sömn och stress 1,6 gånger det vanliga ger alltså gult utan ja och grönt med ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Trösklarna och poängen står i `rules/rules.json` och förklaras i `rules/README.md`. Logiken står i `src/core/analysis/scoring.ts`. Båda bör stämmas av med din vårdkontakt.
+- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* räknas sömn under gränsen, stress över baslinjen och insomning efter 02:00 som vanligt och syns med "möjlig förklaring", men de kan bara ge gult, aldrig bidra till rött (regler 1.2.0, efter granskningen). En festkväll med insomning 03:00, 4 timmars sömn och stress 1,6 gånger det vanliga ger gult både med och utan ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Trösklarna och poängen står i `rules/rules.json` och förklaras i `rules/README.md`. Logiken står i `src/core/analysis/scoring.ts`. Båda bör stämmas av med din vårdkontakt.
 - **Orkar bara trycka ger gult.** Specen säger att dagen loggas som tung och att första gula steget visas. Jag har gjort det till ett tecken värt en poäng, så att nivån fortfarande räknas i koden.
 - **Dygnet går 04:00–04:00 i lokal tid.** Ett inlägg 00:30 hör till dagen innan. Annars skulle ett inlägg 01:15 räknas som en ny dag och ge falsk tystnad. Varje inlägg sparar klockslaget där det gjordes, så en resa över tidszoner ändrar inte gamla dagar i efterhand. Regeln om inlägg mitt i natten gäller fortfarande 00:00–05:00, så ett inlägg 04:30 hör till den nya dagen men räknas som ett nattinlägg.
 - **Ett inlägg per kväll.** En ny avstämning samma kväll ersätter den förra, efter bekräftelse.

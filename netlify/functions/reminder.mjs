@@ -2,11 +2,14 @@
 // The web version cannot schedule notifications itself, so the phone's own calendar
 // reminds the user. Only the time and today's date are sent here; nothing is stored.
 
+import { createLimiter, guard } from '../lib/guard.mjs';
+
 const pad = (n) => String(n).padStart(2, '0');
+const limiter = createLimiter(30);
 
 // A routine's reminder (what=rutin) gets a neutral title: the routine's own words are never sent here.
 const KINDS = {
-  kvall: { uid: 'dagsljus-kvallens-avstamning', summary: 'Dagsljus: kvällens avstämning', description: 'Tre frågor och två reglage. Under två minuter.', alarm: 'Dags för kvällens avstämning' },
+  kvall: { uid: 'dagsljus-kvallens-avstamning', summary: 'Dagsljus: kvällens avstämning', description: 'Några meningar och två reglage. Under två minuter.', alarm: 'Dags för kvällens avstämning' },
   rutin: { uid: 'dagsljus-rutin', summary: 'Dagsljus: din rutin', description: 'En rutin ur din krisplan. Öppna Dagsljus för att se vilken.', alarm: 'Dags för din rutin' },
 };
 
@@ -49,6 +52,8 @@ export function calendarFor({ time, date, origin, what = 'kvall', now = new Date
 }
 
 export default async (req) => {
+  const refused = guard(req, limiter);
+  if (refused) return refused;
   const url = new URL(req.url);
   const body = calendarFor({ time: url.searchParams.get('time'), date: url.searchParams.get('date'), what: url.searchParams.get('what') ?? 'kvall', origin: url.origin });
   if (!body) return new Response('Bad time or date', { status: 400 });

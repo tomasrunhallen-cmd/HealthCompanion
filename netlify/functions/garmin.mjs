@@ -3,7 +3,11 @@
 // Garmin directly. Only the paths the app uses are forwarded. Nothing is logged or stored:
 // the key, the token and the answers pass straight through.
 
+import { createLimiter, guard } from '../lib/guard.mjs';
+
 export const GARMIN = 'https://personal.connectapi.garmin.com';
+// A sync is at most four calls; 60 a minute leaves room for retries.
+const limiter = createLimiter(60);
 
 const ALLOWED = [
   { method: 'POST', prefix: '/personalapitoken-service/personal-api/personal-api-key/token' },
@@ -20,6 +24,8 @@ export function targetFor(method, url) {
 }
 
 export default async (req, _context, doFetch = fetch) => {
+  const refused = guard(req, limiter);
+  if (refused) return refused;
   const target = targetFor(req.method, req.url);
   if (!target) return new Response('Not found', { status: 404 });
   const headers = { accept: req.headers.get('accept') ?? '*/*' };
