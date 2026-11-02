@@ -56,6 +56,9 @@ export interface ImportRecord {
 /** Version 2: crisis plan and normal state moved into the context bank. Version 3: plan rows get their fields. */
 export const SCHEMA_VERSION = 5;
 
+/** kv document with the keys that follow the account in the web version. Never exported. */
+export const SYNCED_KEYS = 'syncedKeys';
+
 const LAYERS: ContextLayer[] = ['grund', 'profil', 'dagligt'];
 
 export interface NewContextEntry {
@@ -645,14 +648,24 @@ export class Repository {
       format: EXPORT_FORMAT,
       version: EXPORT_VERSION,
       exportedAt: now.toISOString(),
-      data: JSON.parse(JSON.stringify(this.snap)),
+      data: (() => {
+        const copy = JSON.parse(JSON.stringify(this.snap));
+        // Keys to the model and Garmin never leave in a file.
+        delete copy.kv[SYNCED_KEYS];
+        return copy;
+      })(),
     };
   }
 
   async importData(data: ExportData): Promise<void> {
     if (data.format !== EXPORT_FORMAT || typeof data.data !== 'object') throw new Error('Filen är inte en Dagsljus-export');
     if (data.version > EXPORT_VERSION) throw new Error('Exporten kommer från en nyare version av appen');
-    await this.backend.replaceAll(data.data);
+    // An import never brings keys, and never takes away the ones this account has.
+    const keys = this.snap.kv[SYNCED_KEYS];
+    const incoming = JSON.parse(JSON.stringify(data.data));
+    if (incoming.kv) delete incoming.kv[SYNCED_KEYS];
+    if (keys) incoming.kv = { ...(incoming.kv ?? {}), [SYNCED_KEYS]: keys };
+    await this.backend.replaceAll(incoming);
     this.snap = await this.backend.load();
     await this.migrate();
     this.changed();

@@ -63,7 +63,7 @@ Webbversionen är samma app i webbläsaren. Allt fungerar där utom inspelning, 
 
 - **Data sparas i ditt eget Firebase-projekt** hos Google, bakom din inloggning, och inte bara på telefonen. Den krypteras i webbläsaren innan den sparas, med en nyckel från ett lösenord som bara du känner till. Se *Krypteringen i webbversionen* nedan.
 - **Två små funktioner körs på din Netlify.** Den ena skickar Garmin-anropen vidare, eftersom Garmin inte tar emot anrop från webbläsare. Den andra skapar kalenderhändelsen för påminnelsen. Ingen av dem sparar något.
-- **Nycklarna till Mistral och Garmin sparas okrypterade** i webbläsaren.
+- **Nycklarna till Mistral och Garmin följer kontot.** De sparas krypterade med övrig data i Firebase och finns därför i alla webbläsare och på hemskärmsappen när du loggat in. En nyckel som tidigare låg okrypterad i en webbläsare flyttas dit nästa gång appen öppnas där. Nycklarna följer aldrig med en export.
 - **Applåset är en sifferkod**, inte Face ID. **Påminnelsen är en återkommande händelse i telefonens kalender**, eftersom en webbapp inte kan schemalägga notiser.
 
 Mistral och Anthropic anropas direkt från webbläsaren. Ingen text passerar Netlify.

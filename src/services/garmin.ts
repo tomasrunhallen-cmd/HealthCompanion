@@ -5,7 +5,7 @@ import { addDays, toDateKey } from '../core/analysis/dates';
 import type { DateKey, GarminDay } from '../core/domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
 import { garminBaseUrl } from '../platform/endpoints';
-import { deleteSecret, getSecret, setSecret } from '../platform/secrets';
+import { deleteKey, getKey, setKey } from './keys';
 import type { Repository } from '../storage/repository';
 
 export const GARMIN_KEY_NAME = 'dagsljus.garminkey.v1';
@@ -53,7 +53,7 @@ export async function connectGarmin(repo: Repository, apiKey: string, opts: Garm
   const key = apiKey.trim();
   try {
     const days = await fetchRange(clientFor(key, opts), today, FIRST_SYNC_DAYS, now);
-    await setSecret(GARMIN_KEY_NAME, key);
+    await setKey(repo, GARMIN_KEY_NAME, key);
     await repo.saveGarminDays(days, today);
     await repo.updateGarminStatus({ connected: true, lastSyncAt: now.toISOString(), lastError: null });
     return { ok: true, days, error: null };
@@ -64,14 +64,14 @@ export async function connectGarmin(repo: Repository, apiKey: string, opts: Garm
 
 export async function disconnectGarmin(repo: Repository): Promise<void> {
   cached = null;
-  await deleteSecret(GARMIN_KEY_NAME);
+  await deleteKey(repo, GARMIN_KEY_NAME);
   await repo.updateGarminStatus({ connected: false, lastError: null });
 }
 
 /** Fetches recent days. Never throws: the result and the stored status carry the error. */
 export async function syncGarmin(repo: Repository, opts: GarminOptions & { days?: number } = {}): Promise<SyncResult> {
   if (!repo.garminStatus().connected) return { ok: false, days: [], error: null };
-  const key = await getSecret(GARMIN_KEY_NAME);
+  const key = await getKey(repo, GARMIN_KEY_NAME);
   if (!key) {
     await repo.updateGarminStatus({ lastError: 'Garmin-nyckeln saknas på den här telefonen. Anslut igen.' });
     return { ok: false, days: [], error: 'Garmin-nyckeln saknas.' };

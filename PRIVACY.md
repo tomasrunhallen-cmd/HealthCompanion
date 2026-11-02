@@ -86,7 +86,7 @@ Det som syns för Google är antalet poster, deras storlek och när de ändrades
 | Data | Var | Skydd |
 | --- | --- | --- |
 | Krisplan, anteckningar, bedömningar, kontextbank, inställningar, Garmin-värden | Användarens eget Firebase-projekt (Firestore hos Google, i EU), plus Firestores cache i webbläsaren | Krypterade i webbläsaren innan de sparas: AES-256-GCM med en nyckel som härleds ur ett lösenord som bara användaren känner till (PBKDF2-SHA256, 600 000 iterationer, Web Crypto). Lösenordet och nyckeln lämnar aldrig webbläsaren och sparas inte. Dokumentens id är en HMAC av postens id, så varken typ av post eller datum syns. Firebase har bara krypterad data, saltet och ett kontrollvärde. Glömt lösenord betyder att datan inte går att läsa. Dessutom inloggning, och reglerna i `firestore.rules` låter bara det egna kontot läsa och skriva. |
-| Nycklar till språkmodell och Garmin | Webbläsarens lagring på enheten | Okrypterade. Följer inte med till Firebase. |
+| Nycklar till språkmodell och Garmin | Användarens Firebase-projekt, med övrig data | Krypterade i webbläsaren med samma nyckel som allt annat, innan de sparas. Följer kontot till alla webbläsare. Ingen okrypterad kopia ligger kvar i webbläsarens lagring. Följer aldrig med en export, och en import tar inte bort dem. |
 | Applåsets kod | Webbläsarens lagring | Bara som saltad hash (PBKDF2) |
 
 Två funktioner körs på användarens egen Netlify:

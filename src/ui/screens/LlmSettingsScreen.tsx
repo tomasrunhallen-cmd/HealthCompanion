@@ -4,7 +4,8 @@ import { createCompleter } from '../../core/llm/complete';
 import { PROVIDER_ORDER, PROVIDERS, normalizeBaseUrl, type ProviderId } from '../../adapter/providers';
 import { eveningDateKey } from '../../core/analysis/dates';
 import { destinationKey, estimateMonthlyCost, hasConsent, importModelOf, isLocalDestination } from '../../llm/config';
-import { deleteSecret, getSecret, secretsPersist, setSecret } from '../../platform/secrets';
+import { secretsPersist } from '../../platform/secrets';
+import { deleteKey, getKey, keysSync, setKey } from '../../services/keys';
 import { buildAdapter, differingCases, LLM_KEY_NAME, runModelTest, type CaseResult, type ModelTestReport } from '../../services/llm';
 import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
 import { useDialog, useRepo } from '../state';
@@ -52,7 +53,7 @@ export function LlmSettingsScreen() {
   const [priceOut, setPriceOut] = useState(saved.priceOutPerMillion?.toString().replace('.', ',') ?? '');
 
   useEffect(() => {
-    getSecret(LLM_KEY_NAME).then((k) => setSavedKey(!!k));
+    getKey(repo, LLM_KEY_NAME).then((k) => setSavedKey(!!k));
   }, []);
 
   const info = PROVIDERS[provider];
@@ -109,7 +110,7 @@ export function LlmSettingsScreen() {
     setBusy(true);
     setProgress('Kör testfallen…');
     try {
-      const key = usingSavedKey ? await getSecret(LLM_KEY_NAME) : keyInput.trim() || null;
+      const key = usingSavedKey ? await getKey(repo, LLM_KEY_NAME) : keyInput.trim() || null;
       const adapter = buildAdapter({ provider, model, baseUrl }, key, { browser: Platform.OS === 'web' });
       // Test calls cost tokens too, so they are counted; they are not "the last assessment".
       const completer = createCompleter(adapter, { onUsage: (u) => void repo.recordUsage(eveningDateKey(new Date()), u) });
@@ -138,8 +139,8 @@ export function LlmSettingsScreen() {
       return;
     }
     if (!usingSavedKey) {
-      if (keyInput.trim()) await setSecret(LLM_KEY_NAME, keyInput.trim());
-      else await deleteSecret(LLM_KEY_NAME);
+      if (keyInput.trim()) await setKey(repo, LLM_KEY_NAME, keyInput.trim());
+      else await deleteKey(repo, LLM_KEY_NAME);
     }
     await repo.updateLlmConfig({
       provider,
@@ -165,7 +166,7 @@ export function LlmSettingsScreen() {
       danger: true,
     });
     if (!ok) return;
-    await deleteSecret(LLM_KEY_NAME);
+    await deleteKey(repo, LLM_KEY_NAME);
     await repo.updateLlmConfig({ provider: null, consentFor: null, lastTest: null });
     setSavedKey(false);
     setConsented(null);
@@ -186,7 +187,9 @@ export function LlmSettingsScreen() {
         <Card tone="yellow">
           <Text style={type.h2} accessibilityRole="header">Nyckeln saknas på den här enheten</Text>
           <P style={{ marginTop: space.xs }}>
-            Nycklar sparas bara där de skrevs in, i webbversionen i just den webbläsaren, och en app på hemskärmen har egen lagring. Skriv in nyckeln nedan och spara. Till dess används ordmatchning.
+            {keysSync(repo)
+              ? 'Skriv in nyckeln nedan och spara. Den sparas då krypterad med ditt konto och finns i alla dina webbläsare. Till dess används ordmatchning.'
+              : 'På telefonen sparas nycklar bara där de skrevs in. Skriv in nyckeln nedan och spara. Till dess används ordmatchning.'}
           </P>
         </Card>
       ) : null}

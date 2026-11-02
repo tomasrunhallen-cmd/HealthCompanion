@@ -8,7 +8,7 @@ import { addDays, toDateKey } from '../core/analysis/dates';
 import type { DateKey } from '../core/domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
 import { garminBaseUrl } from '../platform/endpoints';
-import { getSecret } from '../platform/secrets';
+import { getKey } from './keys';
 import type { Repository } from '../storage/repository';
 import { GARMIN_KEY_NAME } from './garmin';
 
@@ -62,7 +62,7 @@ export async function backfillGarmin(
     now?: Date;
   } = {},
 ): Promise<BackfillResult> {
-  const key = await getSecret(GARMIN_KEY_NAME);
+  const key = await getKey(repo, GARMIN_KEY_NAME);
   let state = planBackfill(backfillState(repo), from, to);
   if (!key) return { state, done: false, error: 'Garmin är inte anslutet på den här enheten.' };
   const client = new GarminClient({ apiKey: key, baseUrl: garminBaseUrl(), fetch: opts.fetch });

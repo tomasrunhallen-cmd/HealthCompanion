@@ -15,7 +15,7 @@ import { PLAN_KINDS, type ContextEntry, type Level } from '../core/domain/types'
 import { hasConsent, importModelOf, type LlmConfig } from '../llm/config';
 import { loadPrompt } from '../core/prompts/loader';
 import { namesFromPlanText } from '../core/privacy/scrub';
-import { getSecret } from '../platform/secrets';
+import { getKey, keysSync } from './keys';
 import type { Repository } from '../storage/repository';
 
 export const LLM_KEY_NAME = 'dagsljus.llmkey.v1';
@@ -74,11 +74,13 @@ export async function llmStatus(repo: Repository): Promise<{ ready: boolean; pro
   const c = repo.llmConfig();
   if (!c.provider) return { ready: false, problem: 'none', message: 'Ingen språkmodell är vald. Välj en under Inställningar, Språkmodell.' };
   if (!llmReady(c)) return { ready: false, problem: 'unfinished', message: 'Språkmodellen är inte färdig. Öppna Inställningar, Språkmodell, och spara igen.' };
-  if (c.provider !== 'openai-compatible' && !(await getSecret(LLM_KEY_NAME))) {
+  if (c.provider !== 'openai-compatible' && !(await getKey(repo, LLM_KEY_NAME))) {
     return {
       ready: false,
       problem: 'key',
-      message: 'Nyckeln till språkmodellen finns inte på den här enheten. Nycklar sparas bara där de skrevs in, i webbversionen i just den webbläsaren, och en app på hemskärmen har egen lagring. Skriv in nyckeln igen under Inställningar, Språkmodell. Till dess används ordmatchning.',
+      message: keysSync(repo)
+        ? 'Nyckeln till språkmodellen är inte sparad för ditt konto. Öppna appen en gång i den webbläsare där du skrev in den, så flyttas den dit, eller skriv in den igen under Inställningar, Språkmodell. Till dess används ordmatchning.'
+        : 'Nyckeln till språkmodellen finns inte på den här enheten. På telefonen sparas nycklar bara där de skrevs in. Skriv in nyckeln igen under Inställningar, Språkmodell. Till dess används ordmatchning.',
     };
   }
   return { ready: true, problem: null, message: null };
@@ -88,7 +90,7 @@ export async function llmStatus(repo: Repository): Promise<{ ready: boolean; pro
 export async function activeAdapter(repo: Repository, opts: AdapterOptions = {}): Promise<LlmAdapter | null> {
   const c = repo.llmConfig();
   if (!llmReady(c) || !c.provider) return null;
-  const key = await getSecret(LLM_KEY_NAME);
+  const key = await getKey(repo, LLM_KEY_NAME);
   if (c.provider !== 'openai-compatible' && !key) return null;
   const model = opts.purpose === 'import' ? importModelOf(c) : c.model;
   return buildAdapter({ provider: c.provider, model, baseUrl: c.baseUrl }, key, opts);

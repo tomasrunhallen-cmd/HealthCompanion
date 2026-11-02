@@ -49,7 +49,7 @@ PDF:er (Inför återbesök, Visa för någon, Anhörigkort): okrypterade, delas 
 | Databasnyckel (telefonen) | Första start, slumpad | Keychain / Keystore, följer inte med backup | När appen tas bort |
 | Webbens krypteringsnyckel | Ur lösenordet och ett slumpat salt | Bara i webbläsarens minne | Vid utloggning eller stängd flik |
 | Exportens nyckel | Ur exportlösenordet och ett slumpat salt | Ingenstans | Direkt efter export |
-| Modell- och Garmin-nyckel | Personen klistrar in | Keychain / Keystore, i webben webbläsarens lagring (okrypterat) | När personen raderar den |
+| Modell- och Garmin-nyckel | Personen klistrar in | Telefonen: Keychain / Keystore. Webben med Firebase: krypterad med övrig data, följer kontot, aldrig i en export (`src/services/keys.ts`) | När personen raderar den, eller med *Radera allt* |
 
 ## Nästa steg
 
