@@ -130,13 +130,23 @@ export function LlmSettingsScreen() {
   const save = async () => {
     const r = currentReport;
     if (!r) return;
-    // A model is approved only when every case gave the reference level.
-    if (!r.approved) {
-      await dialog.info(
-        'Modellen är inte godkänd',
-        `${r.total - r.passed} av ${r.total} testfall gav en annan nivå än referenssvaret. Appen fortsätter med det du hade förut.`,
-      );
+    // A model that did not answer, or not by the schema, is never saved.
+    const failed = r.cases.find((c) => c.got == null);
+    if (failed) {
+      await dialog.info('Modellen svarade inte som den skulle', `${failed.error} Kontrollera nyckeln och modellnamnet och testa igen.`);
       return;
+    }
+    // A model that answers but gives another level in some cases may be used, knowingly: the
+    // level is still computed in the app, and serious signs found on the phone always count.
+    if (!r.approved) {
+      const ok = await dialog.confirm({
+        title: 'Använda modellen ändå?',
+        message:
+          `${r.total - r.passed} av ${r.total} testfall gav en annan nivå än referenssvaret, se listan. ` +
+          'Nivån räknas fortfarande i appen, och allvarliga tecken som ordmatchningen hittar räknas alltid. Du kan byta eller koppla bort modellen när du vill.',
+        confirmLabel: 'Använd ändå',
+      });
+      if (!ok) return;
     }
     if (!usingSavedKey) {
       if (keyInput.trim()) await setKey(repo, LLM_KEY_NAME, keyInput.trim());
@@ -155,7 +165,7 @@ export function LlmSettingsScreen() {
     setKeyInput('');
     setReplaceKey(false);
     setSavedKey(!!(usingSavedKey || keyInput.trim()));
-    await dialog.info('Sparat', `Kvällens bedömning använder nu ${model.trim()}. Nyckeln ligger i telefonens nyckelring och visas inte igen.`);
+    await dialog.info('Sparat', `Kvällens bedömning använder nu ${model.trim()}. ${keysSync(repo) ? 'Nyckeln sparas krypterad med ditt konto' : 'Nyckeln ligger i telefonens nyckelring'} och visas inte igen.`);
   };
 
   const disconnect = async () => {
@@ -274,7 +284,7 @@ export function LlmSettingsScreen() {
           <Card tone={currentReport.approved ? 'green' : 'yellow'}>
             {!currentReport.approved ? (
               <P style={{ marginBottom: space.s }}>
-                En ny modell godkänns bara när alla fall ger samma nivå som referenssvaren. Fallen som skilde sig står först.
+                Fallen som skilde sig står först. Du kan använda modellen ändå, men vet då att den ibland läser annorlunda än facit.
               </P>
             ) : null}
             {[...differingCases(currentReport), ...currentReport.cases.filter((c) => c.ok)].map((c) => (
@@ -290,7 +300,12 @@ export function LlmSettingsScreen() {
               Prompt analys version {currentReport.promptVersion}, testfall version {currentReport.suiteVersion}.
             </P>
           </Card>
-          <Button title={`Spara ${model.trim()}`} onPress={save} disabled={!currentReport.approved} />
+          <Button
+            title={currentReport.approved ? `Spara ${model.trim()}` : `Använd ${model.trim()} ändå`}
+            kind={currentReport.approved ? 'primary' : 'secondary'}
+            onPress={save}
+            disabled={currentReport.cases.some((c) => c.got == null)}
+          />
         </Section>
       ) : null}
 

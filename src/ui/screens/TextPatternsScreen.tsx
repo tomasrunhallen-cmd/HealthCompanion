@@ -37,7 +37,7 @@ function PatternCard({ p, refs }: { p: TextPattern; refs: ReferenceText[] }) {
     <Card>
       <Text style={[type.body, { fontWeight: '600' }]}>{p.description}</Text>
       <Text style={type.small}>Riktning {DIRECTION_TEXT[p.direction]} · {PHENOMENON_TEXT[p.phenomenon]} · {STATUS_TEXT[p.status]}</Text>
-      <Text style={[type.label, { marginTop: space.s }]}>BELÄGG, {new Set(p.evidence.map((e) => e.refId)).size} TEXTER, {periods.length} PERIODER</Text>
+      <Text style={[type.label, { marginTop: space.s }]}>BELÄGG, {new Set(p.evidence.map((e) => e.refId)).size} TEXTER, {periods.length === 1 ? 'EN PERIOD' : `${periods.length} PERIODER`}</Text>
       {p.evidence.map((e, i) => <P key={i} style={{ marginTop: 2 }}>{`”${e.quote}” (${refLabel(e.refId, refs)})`}</P>)}
       {p.counterExamples.length ? (
         <>

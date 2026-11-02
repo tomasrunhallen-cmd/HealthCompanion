@@ -4,20 +4,25 @@
 
 import React from 'react';
 import { Text, View } from 'react-native';
-import type { Assessment, ReferenceText, TextObservationResult } from '../core/domain/types';
+import type { Assessment, ReferenceText, TextObservationResult, TextPattern } from '../core/domain/types';
 import { DIRECTION_TEXT, PERIOD_TEXT } from '../core/references/references';
-import { referenceTexts, rejectObservation } from '../services/references';
+import { referenceTexts, rejectObservation, textPatterns } from '../services/references';
 import { Button, Card, P, Section } from './components';
 import { useDialog, useRepo } from './state';
 import { colors, LEVEL_TEXT, space, type } from './theme';
 
-/** "Uttrycket återkommer från texter du själv märkt som uppvarvad (ca 2024-03)." */
-function whereFrom(o: TextObservationResult, refs: ReferenceText[]): string {
-  const used = o.referenceIds.map((id) => refs.find((r) => r.id === id)).filter((r): r is ReferenceText => !!r);
-  if (!used.length) return '';
-  const parts = used.map((r) => `${PERIOD_TEXT[r.periodType].toLowerCase()}${r.approxDate ? `, ca ${r.approxDate}` : ''}`);
-  const own = used.every((r) => r.labelSource === 'self_after') ? 'du själv märkt' : 'märkts';
-  return `Jämfört med texter ${own} som ${[...new Set(parts)].join('; ')}.`;
+const periodPart = (r: ReferenceText) => `${PERIOD_TEXT[r.periodType].toLowerCase()} (${[r.periodId, r.approxDate ? `ca ${r.approxDate}` : null].filter(Boolean).join(', ')})`;
+
+/**
+ * "Mönstret kommer från texter du själv märkt som uppvarvad eller mani (Våren 2024)." From the
+ * pattern's own evidence, not from the excerpts the model happened to cite.
+ */
+function whereFrom(o: TextObservationResult, refs: ReferenceText[], patterns: TextPattern[]): string {
+  const p = patterns.find((x) => x.id === o.patternId);
+  const sources = (p?.evidence ?? []).map((e) => refs.find((r) => r.id === e.refId)).filter((r): r is ReferenceText => !!r);
+  if (!sources.length) return '';
+  const own = sources.every((r) => r.labelSource === 'self_after') ? 'du själv märkt' : 'märkts';
+  return `Mönstret kommer från texter ${own} som ${[...new Set(sources.map(periodPart))].join('; ')}.`;
 }
 
 export function TextPatternResult({ a }: { a: Assessment }) {
@@ -26,6 +31,7 @@ export function TextPatternResult({ a }: { a: Assessment }) {
   const t = a.textPatterns;
   if (!t) return null;
   const refs = referenceTexts(repo);
+  const patterns = textPatterns(repo);
   const counted = t.observations.filter((o) => o.counted && !o.rejectedAt);
   const other = t.observations.filter((o) => !o.counted || o.rejectedAt);
   const changed = t.levelWithout !== a.level;
@@ -45,7 +51,7 @@ export function TextPatternResult({ a }: { a: Assessment }) {
           <View key={o.patternId + o.quote} style={{ marginTop: space.m, borderTopWidth: 1, borderColor: colors.border, paddingTop: space.s }}>
             <Text style={[type.body, { fontWeight: '600' }]}>”{o.quote}”</Text>
             <P style={{ marginTop: 2 }}>{`Liknar ditt mönster: ${o.description} (riktning ${DIRECTION_TEXT[o.direction]}). Gav 1 poäng.`}</P>
-            {whereFrom(o, refs) ? <Text style={[type.small, { marginTop: 2 }]}>{whereFrom(o, refs)}</Text> : null}
+            {whereFrom(o, refs, patterns) ? <Text style={[type.small, { marginTop: 2 }]}>{whereFrom(o, refs, patterns)}</Text> : null}
             {o.note ? <Text style={[type.small, { marginTop: 2 }]}>{o.note}</Text> : null}
             <Button kind="ghost" title="Stämmer inte" label={`Säg att observationen ${o.quote} inte stämmer`} onPress={async () => {
               const ok = await dialog.confirm({

@@ -222,7 +222,7 @@ Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bo
 | "Jag vill inte dö" (mild akutträff, når inte modellen) | grönt |
 | "Självmordsförsök för tio år sedan" (sammanhang, når inte modellen) | grönt, med den mildare krisrutan |
 
-- **Testa modellen godkänner en ny modell bara om alla fall ger samma nivå som referenssvaren.** Fallen som skilde sig visas först, med nivån modellen gav och nivån som väntades. Akutfallen avgörs i koden precis som i avstämningen och skickas aldrig till modellen. En modell du redan sparat fortsätter att användas tills du sparar en ny.
+- **Testa modellen godkänner en ny modell bara om alla fall ger samma nivå som referenssvaren.** Fallen som skilde sig visas först, med nivån modellen gav och nivån som väntades. En modell som svarar men skiljer sig i några fall kan ändå sparas med *Använd ändå*, efter en varning. En modell som inte svarar alls, eller inte enligt schemat, kan aldrig sparas. Akutfallen avgörs i koden precis som i avstämningen och skickas aldrig till modellen. En modell du redan sparat fortsätter att användas tills du sparar en ny.
 - **En ändrad analysprompt måste klara alla fall innan den checkas in.** Godkännandet står i `prompts/godkand.json` med ett fingeravtryck av `prompts/analys.md` och `schemas/analys.json`. Testet `tests/prompt-gate.test.ts` i `npm test` stoppar så fort prompten eller schemat ändrats utan nytt godkännande. Ett nytt godkännande får man bara genom att köra alla fall mot en riktig modell:
 
   ```bash
