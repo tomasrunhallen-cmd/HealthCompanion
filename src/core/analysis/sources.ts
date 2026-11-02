@@ -42,6 +42,9 @@ function mergeDay(date: DateKey, days: Partial<Record<MeasureSource, MeasuredDay
     source: sleep.s,
     ...(stress ? { stressSource: stress.s } : {}),
   };
+  // How far the watch had synced: Garmin's own readings, whichever value the day shows.
+  const until = days.garmin?.dataUntil;
+  if (until) out.dataUntil = until;
   for (const f of SLEEP_FIELDS) (out as unknown as Record<string, unknown>)[f] = sleep.d[f] ?? null;
   return out;
 }

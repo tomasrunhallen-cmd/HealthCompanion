@@ -20,6 +20,8 @@ import { adviceForTomorrow } from '../../core/analysis/events';
 import { GREEN_MEANS } from '../../core/analysis/firstWeek';
 import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
+import { remeasurePending } from '../../services/remeasure';
+import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
 
@@ -48,6 +50,8 @@ export function HomeScreen() {
   const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
   const greenLine = greenDayLine(repo.contextEntries(), today, { measured: repo.measuredDays(), window: repo.planSettings().sleepWindow ?? null });
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
+  // Days saved while the watch lagged, whose level would change with the values it synced later.
+  const remeasured = remeasurePending(repo);
   const [reviewing, setReviewing] = useState(false);
 
   const review = async () => {
@@ -136,6 +140,7 @@ export function HomeScreen() {
     silent >= RULES.silenceDays ? { kind: 'silence' as const, id: `silence_${silent}` } : null,
     !hasSigns ? { kind: 'start' as const, id: 'start' } : null,
     ...tomorrow.map((t) => ({ kind: 'tomorrow' as const, id: `tomorrow_${t.date}_${t.event}` })),
+    ...remeasured.map((r) => ({ kind: 'remeasure' as const, id: `remeasure_${r.entry.id}` })),
     sleepNote ? { kind: 'sleepNotice' as const, id: 'sleepNotice' } : null,
     fw?.weekPicture ? { kind: 'weekPicture' as const, id: 'weekPicture' } : null,
     fw?.offerSleepSource ? { kind: 'sleepSource' as const, id: 'sleepSource' } : null,
@@ -195,6 +200,10 @@ export function HomeScreen() {
             {notNow(c.id)}
           </Card>
         );
+      }
+      case 'remeasure': {
+        const r = remeasured.find((x) => `remeasure_${x.entry.id}` === c.id)!;
+        return <RemeasureCard r={r} />;
       }
       case 'sleepNotice':
         return (

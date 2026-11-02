@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { clearPin, lockSupport, unlock, usesPin } from '../platform/lock';
 import { cloudConfigured, onUserChanged, signOutUser, type CloudUser } from '../cloud/firebase';
 import { syncOnOpen } from '../services/garmin';
+import { afterSync } from '../services/remeasure';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
 import { Button, Field } from './components';
@@ -19,12 +20,17 @@ import type { Vault } from '../cloud/vault';
 import { DialogProvider, RepoProvider } from './state';
 import { applyBoldText, colors, space, type } from './theme';
 
-/** Fetches missing Garmin days when the unlocked app opens or comes back to the front. */
+/**
+ * Fetches missing Garmin days when the unlocked app opens or comes back to the front. Days
+ * saved while the watch lagged are then updated with the new values, or shown on Hem when the
+ * level would change.
+ */
 function GarminAutoSync(props: { repo: Repository }) {
   useEffect(() => {
-    syncOnOpen(props.repo);
+    const run = () => syncOnOpen(props.repo).then((r) => (r?.ok ? afterSync(props.repo) : null)).catch(() => null);
+    run();
     const sub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') syncOnOpen(props.repo);
+      if (next === 'active') run();
     });
     return () => sub.remove();
   }, [props.repo]);

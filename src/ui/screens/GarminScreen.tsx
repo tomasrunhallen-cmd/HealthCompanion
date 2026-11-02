@@ -4,6 +4,7 @@ import { addDays, formatDateSv, formatTime, toDateKey } from '../../core/analysi
 import { GARMIN_KEY_PAGE } from '../../garmin/client';
 import { secretsPersist } from '../../platform/secrets';
 import { connectGarmin, disconnectGarmin, syncGarmin } from '../../services/garmin';
+import { afterSync } from '../../services/remeasure';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
@@ -43,6 +44,7 @@ export function GarminScreen() {
     try {
       const res = await syncGarmin(repo);
       if (!res.ok && res.error) await dialog.info('Hämtningen misslyckades', res.error);
+      else if (res.ok) await afterSync(repo);
     } finally {
       setBusy(null);
     }

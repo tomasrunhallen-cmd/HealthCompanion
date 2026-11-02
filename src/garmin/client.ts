@@ -175,6 +175,8 @@ export function mergeDays(
       const after = bb.values.find((v) => v[0] >= sl.wakeGmtMs!);
       bodyBatteryWake = after ? after[1] : null;
     }
+    // The last reading of the day: how far the watch had synced to Garmin.
+    const last = bb?.values.length ? Math.max(...bb.values.map((v) => v[0])) : null;
     return {
       date,
       sleepHours: sl?.sleepHours ?? null,
@@ -185,9 +187,16 @@ export function mergeDays(
       stressAvg: st?.stressAvg ?? null,
       stressHighMinutes: st?.stressHighMinutes ?? null,
       bodyBatteryWake,
+      ...(last != null ? { dataUntil: clockOf(last) } : {}),
       fetchedAt,
     };
   });
+}
+
+/** "HH:MM" on the phone's clock for an epoch time in milliseconds. */
+function clockOf(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 // ---- HTTP ----

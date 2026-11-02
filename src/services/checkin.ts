@@ -115,6 +115,8 @@ export async function saveCheckin(
     stressAvg: g?.stressAvg ?? null,
     stressSource: stressSourceOf(g),
     ...(input.strainYesterday ? { strainYesterday: true } : {}),
+    // How far the watch had synced, so a day saved while it lagged can be updated later.
+    ...(g?.dataUntil ? { measuredUntil: g.dataUntil } : {}),
   };
   const base = {
     entry,
@@ -174,6 +176,7 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     sleepSource: sleepSourceOf(g),
     stressAvg: g?.stressAvg ?? null,
     stressSource: stressSourceOf(g),
+    ...(g?.dataUntil ? { measuredUntil: g.dataUntil } : {}),
   };
   const assessment = await assessEntry({
     entry,

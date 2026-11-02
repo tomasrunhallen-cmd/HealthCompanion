@@ -1,7 +1,9 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
 import { Platform, Text, useColorScheme, View } from 'react-native';
-import { eveningDateKey, formatDateSv } from '../../core/analysis/dates';
+import { eveningDateKey, formatDateSv, localClock } from '../../core/analysis/dates';
+import { minutesBehind, STALE_MINUTES } from '../../core/analysis/remeasure';
+import { syncGarmin } from '../../services/garmin';
 import { redFollowup, redStepAnswers } from '../../core/analysis/afterRed';
 import { setRedStep } from '../../services/afterRed';
 import { parseSleepHours } from '../../core/analysis/sleep';
@@ -72,6 +74,18 @@ export function CheckinScreen() {
   const followup = redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), eveningDateKey(new Date()));
   const stepAnswers = followup ? redStepAnswers(repo.contextEntries('dagligt'), followup.date) : new Map<string, boolean>();
   const garminSleep = garmin?.sleepHours ?? null;
+  // How far the watch has synced to Garmin. Hours behind: the day's stress is not complete.
+  const connected = repo.garminStatus().connected;
+  const behind = minutesBehind(garmin?.dataUntil, localClock(new Date()));
+  const [fetching, setFetching] = useState(false);
+  const fetchAgain = async () => {
+    setFetching(true);
+    try {
+      await syncGarmin(repo, { days: 1 });
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -159,6 +173,26 @@ export function CheckinScreen() {
               garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg} ${FROM_SOURCE[stressSourceOf(garmin) ?? 'garmin']}` : null,
             ].filter(Boolean).join(', ') + '.'}
           </P>
+        ) : null}
+        {connected ? (
+          behind != null && behind >= STALE_MINUTES ? (
+            <View style={{ marginTop: space.s }}>
+              <Text style={[type.body, { fontWeight: '600' }]} accessibilityLiveRegion="polite">
+                Klockan har inte synkat sedan {garmin!.dataUntil}.
+              </Text>
+              <P muted style={{ marginTop: 2 }}>
+                Öppna Garmin Connect så att klockan synkar, och tryck Hämta igen. Annars uppdateras dagen när värdena kommer.
+              </P>
+              <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
+            </View>
+          ) : garmin?.dataUntil ? (
+            <Text style={[type.small, { marginTop: 2 }]}>Klockans värden fram till {garmin.dataUntil}.</Text>
+          ) : !garmin ? (
+            <View style={{ marginTop: space.s }}>
+              <P muted>Inga värden från klockan än i dag.</P>
+              <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
+            </View>
+          ) : null
         ) : null}
         <P muted style={{ marginTop: space.xs }}>
           {garmin && (garminSleep != null || garmin.stressAvg != null) ? 'Stämmer det inte, ange själv. Det du anger gäller.' : 'Ange själv om du vill.'}

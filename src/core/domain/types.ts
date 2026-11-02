@@ -212,6 +212,8 @@ export interface Entry {
   stressAvg: number | null;
   /** "Alkohol, sjuk eller hård träning i går?" Yes: the sleep and stress rules give 0 points that day. */
   strainYesterday?: boolean | null;
+  /** "HH:MM" of the watch's last reading when the check-in was saved. Far before the check-in: the watch had not synced. */
+  measuredUntil?: string | null;
   /** Days brought in from another diary: which import, and the day's original values. */
   imported?: ImportedFrom;
 }
@@ -249,6 +251,8 @@ export interface MeasuredDay {
   stressHighMinutes: number | null;
   /** Body Battery at the first reading after waking. */
   bodyBatteryWake: number | null;
+  /** "HH:MM" of the day's last reading from the watch (Garmin's Body Battery). Shows how far the watch has synced. */
+  dataUntil?: string | null;
   fetchedAt: string;
 }
 
@@ -339,6 +343,8 @@ export interface Assessment {
   inputs?: AssessmentInputs;
   /** Set when the level was computed again with newer rules: what it was before. */
   recomputed?: { at: string; fromRulesVersion: string | null; level: Level; points: number } | null;
+  /** Set when the day was computed again with values the watch synced later: what it was before. */
+  remeasured?: { at: string; level: Level; points: number; changes: string[] } | null;
 }
 
 /**

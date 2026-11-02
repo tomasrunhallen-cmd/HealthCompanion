@@ -137,12 +137,21 @@ Du behöver en Personal API-nyckel från Garmin Connect på webben, under Instä
 5. Med språkmodell kopplad finns texten som skickades kvar på telefonen. Den innehåller avsnittet *Mätvärden* med dagens värden och veckan dag för dag.
 6. Prova en felaktig nyckel. Appen ska säga att Garmin inte godtog den, och inget ska sparas.
 
+**När klockan synkar sent.** Appen sparar hur långt klockan hade synkat när du gjorde avstämningen. Det är tiden för dagens sista Body Battery-värde.
+- **I avstämningen** står *Klockans värden fram till 18:50*. Ligger tiden mer än två timmar bakåt står i stället *Klockan har inte synkat sedan 12:40*, med knappen *Hämta igen*.
+- **När värdena kommer senare** räknar appen om de senaste sju dagarna som sparades medan klockan låg efter eller utan värden. Det du skrev räknas som förut, utan ny fråga till språkmodellen. Bara sömn, insomningstid och stress byts.
+  - Blir nivå och poäng desamma uppdateras dagen direkt.
+  - Ändras de visar *Hem* kortet *Nya värden från klockan för måndag 2 november* med vad som ändrats och vad dagen blir. Du väljer *Uppdatera dagen* eller *Behåll som det var*.
+- **På en äldre bedömning** finns *Synkade klockan sent? Hämta värdena igen*, för dagar sparade innan appen började spara synktiden.
+- **Det du själv angett** byts aldrig.
+- Under *Så räknade appen* står att dagen uppdaterades och vad den var innan. Koden finns i `src/core/analysis/remeasure.ts` och `src/services/remeasure.ts`.
+
 Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect. Fältnamnen i Garmins svar är inte officiellt dokumenterade, så det är det viktigaste att kontrollera. I webbversionen går Garmin via funktionen på Netlify. Med `npm run web` lokalt når appen inte Garmin.
 
 ### Automatiska tester
 
 ```bash
-npm test          # 471 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 4 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 480 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 4 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 

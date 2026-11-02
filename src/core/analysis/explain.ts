@@ -6,6 +6,7 @@ import type { Assessment, Entry, GarminDay, LevelReason } from '../domain/types'
 import { FROM_SOURCE } from './sources';
 import { formatTime } from './dates';
 import { RULES } from './rules';
+import { wasStale } from './remeasure';
 
 export interface Explanation {
   data: string[];
@@ -88,6 +89,7 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   }
   if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');
   if (garmin?.bodyBatteryWake != null) data.push(`Body Battery ${garmin.bodyBatteryWake} vid uppvaknandet`);
+  if (wasStale(entry)) data.push(`Klockan hade synkat fram till ${entry.measuredUntil}, så dagens värden var inte kompletta`);
   if (entry.kind === 'checkin') data.push(`Inlägget gjordes ${formatTime(entry.createdAt)}`);
   if (entry.kind === 'imported') data.push('Importerad från din tidigare dagbok. Klockslag saknas, så regeln om inlägg mitt i natten användes inte');
 

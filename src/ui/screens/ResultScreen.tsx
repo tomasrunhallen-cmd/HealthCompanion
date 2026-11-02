@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { actionsForLevel, displaySentence, firstStep, SERIOUS_INTRO, seriousActions } from '../../core/analysis/assess';
-import { formatDateSv, formatDateSvYear, formatTime } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv, formatDateSvYear, formatTime } from '../../core/analysis/dates';
 import { explainAssessment } from '../../core/analysis/explain';
 import { CrisisCard } from '../CrisisCard';
 import { correctionFor } from '../../services/corrections';
@@ -11,7 +11,11 @@ import { greenDayLine, routineSummary, routinesToday as routinesTodayList } from
 import { SOURCE_TEXT } from '../../core/analysis/sources';
 import { Button, Card, Disclosure, LevelLight, P, Screen, Section } from '../components';
 import { useNav } from '../nav';
-import { useRepo } from '../state';
+import { useDialog, useRepo } from '../state';
+import { RemeasureCard } from '../RemeasureCard';
+import { wasStale } from '../../core/analysis/remeasure';
+import { forgetKept, isKept, remeasureEntry } from '../../services/remeasure';
+import { SYNC_DAYS, syncGarmin } from '../../services/garmin';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
 
 const METHOD_TEXT = {
@@ -25,8 +29,12 @@ const METHOD_TEXT = {
 export function ResultScreen({ entryId }: { entryId: string }) {
   // When the screen opened: an assessment still waiting for the model after two minutes will not get an answer.
   const [openedAt] = useState(() => Date.now());
+  // The person asked for the watch's values again on this screen.
+  const [asked, setAsked] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const repo = useRepo();
   const nav = useNav();
+  const dialog = useDialog();
   const entry = repo.entries().find((e) => e.id === entryId);
   const a = entry ? repo.assessmentFor(entry.id) : null;
 
@@ -61,6 +69,28 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   // A serious sign shows the plan's red steps, also when the level is yellow.
   const serious = seriousActions(a, plan, dir);
   const answered = correctionFor(repo, a.id).length > 0;
+  // Values the watch synced after the check-in: shown when it lagged, when values were missing, or when asked.
+  const remeasured = entry.kind === 'imported' ? null : remeasureEntry(repo, entry.id);
+  const lagged = wasStale(entry) || entry.stressAvg == null || entry.sleepHours == null || entry.sleepSource === 'transcript';
+  const showRemeasure = remeasured && !isKept(repo, remeasured) && (asked || lagged);
+  const recent = entry.date >= addDays(eveningDateKey(new Date()), -SYNC_DAYS);
+  const canFetch = repo.garminStatus().connected && recent && entry.kind !== 'imported' && !showRemeasure;
+  const fetchAgain = async () => {
+    setFetching(true);
+    try {
+      const res = await syncGarmin(repo);
+      if (!res.ok) {
+        await dialog.info('Hämtningen misslyckades', res.error ?? 'Försök igen senare.');
+        return;
+      }
+      const r = remeasureEntry(repo, entry.id);
+      if (!r) await dialog.info('Samma värden', 'Garmin har samma värden som bedömningen använde.');
+      else if (isKept(repo, r)) await forgetKept(repo, entry.id);
+      setAsked(true);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   return (
     <Screen
@@ -97,6 +127,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         <P style={{ textAlign: 'center', marginTop: space.m }}>{displaySentence(a)}</P>
         {direction && a.level !== 'green' ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{direction}</P> : null}
       </Card>
+
+      {showRemeasure ? <RemeasureCard r={remeasured!} onDone={() => setAsked(false)} /> : null}
 
       {greenLine ? (
         // Gröna dagar: what the person did, never that all is well.
@@ -175,6 +207,9 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             <P muted>Inga av tecknen i din plan syntes i dag.</P>
           )}
         </Card>
+        {canFetch ? (
+          <Button kind="ghost" title="Synkade klockan sent? Hämta värdena igen" hint="Hämtar Garmins värden och visar om dagen ändras" busy={fetching} onPress={fetchAgain} />
+        ) : null}
       </Section>
 
       {routinesToday ? (
@@ -245,6 +280,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             {a.method === 'llm' && a.model ? ` Modell ${a.model}, prompt ${a.promptId} ${a.promptVersion}.` : ''}
             {a.inputs ? ` Regler ${a.inputs.rulesVersion}.` : ''}
             {a.awaitingModel ? ' Språkmodellen hade inte svarat när bedömningen visades, så ordmatchningens resultat gäller.' : ''}
+            {a.remeasured ? ` Uppdaterad med klockans senare värden ${a.remeasured.at.slice(0, 10)}; tidigare ${LEVEL_TEXT[a.remeasured.level].toLowerCase()} med ${a.remeasured.points} poäng.` : ''}
             {a.recomputed ? ` Omräknad ${a.recomputed.at.slice(0, 10)}; tidigare ${LEVEL_TEXT[a.recomputed.level].toLowerCase()} med ${a.recomputed.points} poäng.` : ''}
           </P>
         </Card>
