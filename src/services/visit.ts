@@ -1,9 +1,10 @@
 // Inför återbesök: the summary from the database, the person's own list of things to bring up,
 // and the PDF the person saves and shares themselves.
 
+import { moodText } from '../core/analysis/mood';
 import { newId } from '../core/analysis/assess';
 import { eveningDateKey, formatDateSv } from '../core/analysis/dates';
-import { buildVisitSummary, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
+import { buildVisitSummary, LEVEL_DISCLAIMER, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
 import { levelCounts, levelMark, reportHtml, type ReportPart } from '../core/report/html';
 import { polarityWord } from '../core/plan/fields';
 import type { PlanSettings } from '../core/domain/types';
@@ -55,6 +56,7 @@ export function shareHtml(s: VisitSummary, choice: ShareChoice, ps: Pick<PlanSet
     parts.push(
       { kind: 'heading', text: 'Ampeln per dag' },
       { kind: 'text', text: levelCounts(s.counts) },
+      { kind: 'text', text: LEVEL_DISCLAIMER, muted: true },
     );
   }
   if (choice.levels || choice.sleepStress) {
@@ -79,9 +81,17 @@ export function visitHtml(s: VisitSummary, ps: Pick<PlanSettings, 'polarityWords
   const parts: ReportPart[] = [
     { kind: 'heading', text: 'Saker jag vill ta upp' },
     { kind: 'list', items: s.topics.map((t) => t.text) },
-    { kind: 'heading', text: 'Nivå per dag' },
+    { kind: 'heading', text: 'Dag för dag' },
     { kind: 'text', text: levelCounts(s.counts) },
-    { kind: 'table', head: ['Dag', 'Nivå', 'Sömn (h)', 'Stress'], rows: s.days.map((d) => [formatDateSv(d.date), levelMark(d.level), dec(d.sleepHours), dec(d.stressAvg)]) },
+    { kind: 'text', text: LEVEL_DISCLAIMER, muted: true },
+    {
+      kind: 'table',
+      head: ['Dag', 'Nivå', 'Stämning', 'Sömn (h)', 'Stress', 'Riktning', 'Anmärkning'],
+      rows: s.days.map((d) => [
+        formatDateSv(d.date), levelMark(d.level), d.mood != null ? moodText(d.mood) : '–', dec(d.sleepHours), dec(d.stressAvg),
+        d.direction === 'both' ? 'båda' : d.direction ? word(d.direction) : '–', d.notes.join(', ') || '',
+      ]),
+    },
     { kind: 'text', text: `Snitt: sömn ${dec(s.sleepAvg)} h, stress ${dec(s.stressAvg)}.`, muted: true },
     { kind: 'heading', text: `Tecken som syntes, ${word('up')}` },
     { kind: 'list', items: sign(s.signs.up) },

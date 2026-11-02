@@ -4,6 +4,8 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { formatDateSv } from '../../core/analysis/dates';
+import { LEVEL_DISCLAIMER } from '../../core/analysis/visit';
+import { moodStep } from '../../core/analysis/mood';
 import { polarityWord } from '../../core/plan/fields';
 import { sharePdf } from '../../platform/pdf';
 import { levelCounts } from '../../core/report/html';
@@ -11,7 +13,7 @@ import { addVisitTopic, removeVisitTopic, visitHtml, visitSummary } from '../../
 import { Button, Card, Dot, Field, P, Row, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
-import { LEVEL_TEXT, space, type } from '../theme';
+import { colors, LEVEL_TEXT, space, type } from '../theme';
 
 const dec = (n: number | null) => (n == null ? '–' : String(n).replace('.', ','));
 
@@ -62,17 +64,31 @@ export function VisitScreen() {
         </Card>
       </Section>
 
-      <Section title="Nivå per dag">
+      <Section title="Dag för dag">
         <Card>
           <P>{levelCounts(s.counts)}</P>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.s }}>
-            {s.days.map((d) => (
-              <View key={d.date} accessible accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`} style={{ alignItems: 'center', minWidth: 34 }}>
+          <P muted style={{ marginTop: space.xs }}>{LEVEL_DISCLAIMER}</P>
+          {s.days.map((d) => {
+            const dir = d.direction === 'both' ? 'båda hållen' : d.direction ? polarityWord(d.direction, ps) : null;
+            const parts = [
+              d.mood != null ? moodStep(d.mood).label : null,
+              d.sleepHours != null ? `sömn ${dec(d.sleepHours)} h` : 'sömn saknas',
+              dir ? `åt ${dir}` : null,
+              ...d.notes,
+            ].filter(Boolean);
+            return (
+              <View
+                key={d.date}
+                accessible
+                accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}. ${parts.join(', ')}`}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, paddingVertical: space.xs, borderTopWidth: 1, borderColor: colors.border, marginTop: space.xs }}
+              >
+                <Text style={[type.small, { width: 52 }]}>{formatDateSv(d.date).slice(0, 7)}</Text>
                 <Dot level={d.level} size={18} />
-                <Text style={type.small}>{d.date.slice(8)}</Text>
+                <Text style={[type.small, { flex: 1, color: colors.text }]}>{d.level ? parts.join(' · ') : 'Ingen avstämning'}</Text>
               </View>
-            ))}
-          </View>
+            );
+          })}
         </Card>
       </Section>
 

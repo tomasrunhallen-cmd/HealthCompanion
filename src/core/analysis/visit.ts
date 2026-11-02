@@ -10,9 +10,18 @@ import { redStepsBetween } from './afterRed';
 export interface VisitDay {
   date: DateKey;
   level: Level | null;
+  /** Stämning −3…+3, as rated. */
+  mood: number | null;
   sleepHours: number | null;
   stressAvg: number | null;
+  /** Which way the day's signs and rating pointed. */
+  direction: Polarity | null;
+  /** What a reader should know about the day: imported, updated with later values, recomputed. */
+  notes: string[];
 }
+
+/** Said with every summary: the colour is the app's rule, not a clinical judgement. */
+export const LEVEL_DISCLAIMER = 'Färgen är appens regelutfall utifrån planen och mätvärdena, inte en klinisk bedömning.';
 
 export interface SignCount {
   text: string;
@@ -66,7 +75,28 @@ export function buildVisitSummary(input: {
     const e = entryOn.get(date);
     const a = e ? byEntry.get(e.id) : undefined;
     const m = input.measured[date];
-    days.push({ date, level: a?.level ?? null, sleepHours: m?.sleepHours ?? e?.sleepHours ?? null, stressAvg: m?.stressAvg ?? e?.stressAvg ?? null });
+    const dirs = new Set<'up' | 'down'>();
+    for (const s of a?.signals ?? []) {
+      if (s.points <= 0) continue;
+      const pol = s.kind === 'mood_rated' ? s.polarity : s.planItemId ? (polarityOf.get(s.planItemId) ?? a?.inputs?.signs.find((x) => x.id === s.planItemId)?.plan?.polarity) : undefined;
+      if (pol === 'up' || pol === 'down') dirs.add(pol);
+    }
+    const notes: string[] = [];
+    if (e?.kind === 'imported') notes.push('importerad');
+    if (e?.kind === 'heavy') notes.push('orkade bara trycka');
+    if (a?.remeasured) notes.push('uppdaterad med klockans senare värden');
+    if (a?.remeasureDeclined) notes.push('klockans senare värden användes inte');
+    if (a?.recomputed) notes.push('omräknad med nya regler');
+    if (a?.akut) notes.push('krisrutan visades');
+    days.push({
+      date,
+      level: a?.level ?? null,
+      mood: e?.mood ?? null,
+      sleepHours: m?.sleepHours ?? e?.sleepHours ?? null,
+      stressAvg: m?.stressAvg ?? e?.stressAvg ?? null,
+      direction: dirs.size === 2 ? 'both' : dirs.size ? [...dirs][0] : null,
+      notes,
+    });
     counts[a?.level ?? 'none']++;
     for (const s of a?.signals ?? []) {
       if ((s.kind !== 'early_sign' && s.kind !== 'serious_sign') || s.points <= 0) continue;
