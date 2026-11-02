@@ -3,7 +3,7 @@
 
 import { explainAssessment } from '../src/core/analysis/explain';
 import { computeBaseline } from '../src/core/analysis/scoring';
-import { MANUAL_STRESS, mergeSources, sleepSourceOf, stressSourceOf } from '../src/core/analysis/sources';
+import { MANUAL_STRESS, mergeSources, sleepSourceOf, stressSourceOf, stressWord } from '../src/core/analysis/sources';
 import type { Entry, MeasuredDay } from '../src/core/domain/types';
 import { saveCheckin } from '../src/services/checkin';
 import { memoryBackend } from '../src/storage/backend';
@@ -60,5 +60,14 @@ describe('stress baselines per source', () => {
     expect(computeBaseline('2026-11-04', history, 'garmin').stressAvg).toBe(30);
     expect(computeBaseline('2026-11-04', history, 'manual').stressAvg).toBe(50);
     expect(computeBaseline('2026-11-04', history, 'health').stressAvg).toBeNull();
+  });
+});
+
+describe('Stress i ord', () => {
+  it('names the watch value with the words of the manual steps, each step naming itself', () => {
+    expect(stressWord(MANUAL_STRESS.low)).toBe('låg');
+    expect(stressWord(MANUAL_STRESS.medium)).toBe('medel');
+    expect(stressWord(MANUAL_STRESS.high)).toBe('hög');
+    expect([0, 32, 37, 38, 62, 63, 100].map(stressWord)).toEqual(['låg', 'låg', 'låg', 'medel', 'medel', 'hög', 'hög']);
   });
 });

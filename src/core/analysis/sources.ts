@@ -24,6 +24,11 @@ export const FROM_SOURCE: Record<MeasureSource, string> = {
 /** Manual stress as three steps, on Garmin's 0–100 scale. */
 export const MANUAL_STRESS: Record<'low' | 'medium' | 'high', number> = { low: 25, medium: 50, high: 75 };
 
+/** A stress value in the same three words as the manual steps, split halfway between them. */
+export function stressWord(v: number): 'låg' | 'medel' | 'hög' {
+  return v < 38 ? 'låg' : v < 63 ? 'medel' : 'hög';
+}
+
 const SLEEP_FIELDS = ['sleepHours', 'deepMinutes', 'remMinutes', 'sleepStart', 'sleepEnd', 'bodyBatteryWake'] as const;
 
 function mergeDay(date: DateKey, days: Partial<Record<MeasureSource, MeasuredDay>>): MeasuredDay | null {

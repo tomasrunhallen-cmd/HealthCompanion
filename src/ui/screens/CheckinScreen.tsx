@@ -1,6 +1,6 @@
 import Slider from '@react-native-community/slider';
 import React, { useMemo, useState } from 'react';
-import { Platform, Text, useColorScheme, View } from 'react-native';
+import { Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { eveningDateKey, formatDateSv, localClock } from '../../core/analysis/dates';
 import { minutesBehind, STALE_MINUTES } from '../../core/analysis/remeasure';
 import { MOOD_MAX, MOOD_MIN, moodStep } from '../../core/analysis/mood';
@@ -14,7 +14,7 @@ import { RoutinesToday } from '../RoutinesToday';
 import { EventQuestion } from '../EventQuestion';
 import * as Haptics from 'expo-haptics';
 import { saveCheckin } from '../../services/checkin';
-import { FROM_SOURCE, MANUAL_STRESS, sleepSourceOf, stressSourceOf } from '../../core/analysis/sources';
+import { MANUAL_STRESS, SOURCE_TEXT, sleepSourceOf, stressSourceOf, stressWord } from '../../core/analysis/sources';
 import { Button, Card, Chip, Field, P, Row, Screen, Toggle } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -94,9 +94,31 @@ function Scale(props: {
   );
 }
 
+/** One measured value: name and source on the left, the value and Ändra on the right. */
+function MeasureRow(props: { label: string; value: string; spoken?: string; detail: string; action: string; actionLabel: string; onAction: () => void }) {
+  return (
+    <Row style={{ marginTop: space.s, justifyContent: 'space-between', alignItems: 'center' }}>
+      <View style={{ flexShrink: 1 }} accessible accessibilityLabel={`${props.label} ${props.spoken ?? props.value}, ${props.detail}`}>
+        <Text style={type.body}>{props.label}</Text>
+        <Text style={type.small}>{props.detail}</Text>
+      </View>
+      <Row style={{ alignItems: 'center', gap: space.s }}>
+        <Text style={[type.body, { fontWeight: '600' }]} importantForAccessibility="no" accessibilityElementsHidden>{props.value}</Text>
+        <Pressable
+          onPress={props.onAction}
+          accessibilityRole="button"
+          accessibilityLabel={props.actionLabel}
+          style={{ minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: 'center', alignItems: 'flex-end' }}
+        >
+          <Text style={{ color: colors.accent, fontSize: 17 }}>{props.action}</Text>
+        </Pressable>
+      </Row>
+    </Row>
+  );
+}
+
 const SKIP_KEY = 'redFollowupSkipped';
 
-const capitalize = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 const SLEEP_MAX = 14;
 /** Hours to the nearest half hour, within the slider. */
@@ -116,6 +138,7 @@ export function CheckinScreen() {
   const [strain, setStrain] = useState(false);
   const [manualSleep, setManualSleep] = useState<number | null>(null);
   const [manualStress, setManualStress] = useState<number | null>(null);
+  const [stressOpen, setStressOpen] = useState(false);
   const sleep = useMemo(() => parseSleepHours(text), [text]);
   // Checked on the phone while typing; the crisis numbers show before anything is saved or sent.
   const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
@@ -156,6 +179,7 @@ export function CheckinScreen() {
       setMedication(null);
       setStrain(false);
       setManualSleep(null);
+      setStressOpen(false);
       setManualStress(null);
       setStartedAt(null);
     } finally {
@@ -198,7 +222,6 @@ export function CheckinScreen() {
         multiline
         placeholder="Några meningar om dagen…"
         autoCorrect
-        hint={garminSleep == null && manualSleep == null && sleep != null ? `Sömn: ${String(sleep).replace('.', ',')} h, ur anteckningen` : undefined}
       />
       {akut ? <CrisisCard plan={repo.plan()} mild={akut === 'mild'} /> : null}
 
@@ -219,16 +242,49 @@ export function CheckinScreen() {
 
       <Card>
         <Text style={type.h2} accessibilityRole="header">Sömn och stress</Text>
-        {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
-          <P style={{ marginTop: space.xs }}>
-            {capitalize([
-              garminSleep != null
-                ? `Sömn i natt ${String(garminSleep).replace('.', ',')} h ${FROM_SOURCE[sleepSourceOf(garmin) ?? 'garmin']}${garmin.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`
-                : null,
-              garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg} ${FROM_SOURCE[stressSourceOf(garmin) ?? 'garmin']}` : null,
-            ].filter(Boolean).join(', ')) + '.'}
-          </P>
-        ) : null}
+        {/* The watch's values are used as they are; Ändra opens the person's own entry. */}
+        {manualSleep == null ? (
+          <MeasureRow
+            label="Sömn i natt"
+            value={garminSleep != null ? hoursText(garminSleep) : sleep != null ? hoursText(sleep) : '–'}
+            spoken={garminSleep != null ? hoursSpoken(garminSleep) : sleep != null ? hoursSpoken(sleep) : 'saknas'}
+            detail={garminSleep != null
+              ? `${SOURCE_TEXT[sleepSourceOf(garmin!) ?? 'garmin']}${garmin!.sleepStart ? `, somnade ${garmin!.sleepStart}` : ''}`
+              : sleep != null ? 'Ur anteckningen' : 'Inget från klockan'}
+            action={garminSleep != null || sleep != null ? 'Ändra' : 'Ange'}
+            actionLabel="Ange sömnen själv"
+            onAction={() => setManualSleep(halfHour(garminSleep ?? sleep ?? 7))}
+          />
+        ) : (
+          <View style={{ marginTop: space.m }}>
+            <Scale label="Sömn i natt" value={manualSleep} onChange={setManualSleep} min={0} max={SLEEP_MAX} step={0.5} show={hoursText} spoken={hoursSpoken} low="0 h" high={`${SLEEP_MAX} h`} />
+            <Button kind="ghost" title={garminSleep != null ? 'Använd klockans värde' : 'Ta bort min uppgift'} onPress={() => setManualSleep(null)} />
+          </View>
+        )}
+        {garmin?.stressAvg != null && !stressOpen && manualStress == null ? (
+          <MeasureRow
+            label="Stress i dag"
+            value={`${garmin.stressAvg}, ${stressWord(garmin.stressAvg)}`}
+            spoken={`${garmin.stressAvg} av 100, ${stressWord(garmin.stressAvg)}`}
+            detail={`${SOURCE_TEXT[stressSourceOf(garmin) ?? 'garmin']}, hittills i dag`}
+            action="Ändra"
+            actionLabel="Ange stressen själv"
+            onAction={() => setStressOpen(true)}
+          />
+        ) : (
+          <>
+            <Text style={[type.body, { marginTop: space.s }]}>Stress i dag</Text>
+            <Row style={{ marginTop: space.xs }}>
+              {(['low', 'medium', 'high'] as const).map((k) => (
+                <Chip key={k} label={{ low: 'Låg', medium: 'Medel', high: 'Hög' }[k]} selected={manualStress === MANUAL_STRESS[k]}
+                  onPress={() => setManualStress(manualStress === MANUAL_STRESS[k] ? null : MANUAL_STRESS[k])} />
+              ))}
+            </Row>
+            {garmin?.stressAvg != null ? (
+              <Button kind="ghost" title="Använd klockans värde" onPress={() => { setManualStress(null); setStressOpen(false); }} />
+            ) : null}
+          </>
+        )}
         {connected ? (
           behind != null && behind >= STALE_MINUTES ? (
             <View style={{ marginTop: space.s }}>
@@ -244,31 +300,6 @@ export function CheckinScreen() {
             </View>
           ) : null
         ) : null}
-        {/* Own sleep: a slider in half hours, starting where the watch or the note put it. */}
-        {manualSleep == null ? (
-          <Row style={{ marginTop: space.s, justifyContent: 'space-between' }}>
-            <Text style={[type.body, { flexShrink: 1 }]}>Sömn i natt</Text>
-            <Button
-              kind="secondary"
-              title="Ange själv"
-              label="Ange sömnen själv"
-              hint="Visar ett reglage för timmar"
-              onPress={() => setManualSleep(halfHour(garminSleep ?? sleep ?? 7))}
-            />
-          </Row>
-        ) : (
-          <View style={{ marginTop: space.m }}>
-            <Scale label="Sömn i natt" value={manualSleep} onChange={setManualSleep} min={0} max={SLEEP_MAX} step={0.5} show={hoursText} spoken={hoursSpoken} low="0 h" high={`${SLEEP_MAX} h`} />
-            <Button kind="ghost" title="Ta bort min uppgift" hint={garminSleep != null ? 'Klockans värde gäller igen' : undefined} onPress={() => setManualSleep(null)} />
-          </View>
-        )}
-        <Text style={[type.body, { marginTop: space.s }]}>Stress i dag</Text>
-        <Row style={{ marginTop: space.xs }}>
-          {(['low', 'medium', 'high'] as const).map((k) => (
-            <Chip key={k} label={{ low: 'Låg', medium: 'Medel', high: 'Hög' }[k]} selected={manualStress === MANUAL_STRESS[k]}
-              onPress={() => setManualStress(manualStress === MANUAL_STRESS[k] ? null : MANUAL_STRESS[k])} />
-          ))}
-        </Row>
         <View style={{ marginTop: space.m }}>
           <Toggle
             label="Alkohol, sjuk eller hård träning i går?"
