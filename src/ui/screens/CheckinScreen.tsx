@@ -21,25 +21,43 @@ import { colors, MIN_TOUCH, paletteHex, space, type } from '../theme';
 
 const QUESTIONS = 'Skriv några meningar, till exempel om hur du sovit, hur tempot i huvudet är i kväll och om något stack ut i dag.';
 
-function Scale(props: { label: string; value: number; onChange: (v: number) => void; low: string; high: string }) {
+/** A slider with its value above it (HIG: Sliders). Stämning and energi 1–10; sömn in half hours. */
+function Scale(props: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  low: string;
+  high: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  /** The value as shown, and as VoiceOver reads it. */
+  show?: (v: number) => string;
+  spoken?: (v: number) => string;
+}) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const min = props.min ?? 1;
+  const max = props.max ?? 10;
+  const step = props.step ?? 1;
+  const show = props.show ?? String;
+  const spoken = props.spoken ?? ((v: number) => `${v} av ${max}`);
   return (
     <View style={{ marginBottom: space.l }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Text style={type.label}>{props.label.toUpperCase()}</Text>
-        <Text style={[type.h2, { color: colors.accent }]} accessibilityLabel={`${props.label} ${props.value} av 10`}>
-          {props.value}
+        <Text style={[type.h2, { color: colors.accent }]} accessibilityLabel={`${props.label} ${spoken(props.value)}`}>
+          {show(props.value)}
         </Text>
       </Row>
       <Slider
         accessibilityLabel={props.label}
         accessibilityHint={`Från ${props.low} till ${props.high}`}
-        accessibilityValue={{ min: 1, max: 10, now: props.value, text: `${props.value} av 10` }}
-        minimumValue={1}
-        maximumValue={10}
-        step={1}
+        accessibilityValue={{ min, max, now: props.value, text: spoken(props.value) }}
+        minimumValue={min}
+        maximumValue={max}
+        step={step}
         value={props.value}
-        onValueChange={(v) => props.onChange(Math.round(v))}
+        onValueChange={(v) => props.onChange(Math.round(v / step) * step)}
         // The slider takes plain colour strings; pick the pair for the current appearance.
         minimumTrackTintColor={paletteHex('accent', scheme)}
         maximumTrackTintColor={paletteHex('border', scheme)}
@@ -53,6 +71,12 @@ function Scale(props: { label: string; value: number; onChange: (v: number) => v
     </View>
   );
 }
+
+const SLEEP_MAX = 14;
+/** Hours to the nearest half hour, within the slider. */
+const halfHour = (h: number) => Math.min(SLEEP_MAX, Math.max(0, Math.round(h * 2) / 2));
+const hoursText = (h: number) => `${String(h).replace('.', ',')} h`;
+const hoursSpoken = (h: number) => `${String(h).replace('.', ',')} timmar`;
 
 export function CheckinScreen() {
   const repo = useRepo();
@@ -197,14 +221,24 @@ export function CheckinScreen() {
         <P muted style={{ marginTop: space.xs }}>
           {garmin && (garminSleep != null || garmin.stressAvg != null) ? 'Stämmer det inte, ange själv. Det du anger gäller.' : 'Ange själv om du vill.'}
         </P>
-        <Row style={{ marginTop: space.s }}>
-          <Text style={[type.body, { flex: 1 }]}>Sömn i natt</Text>
-          <Button kind="secondary" title="−" label="Mindre sömn, en halvtimme" onPress={() => setManualSleep(Math.max(0, (manualSleep ?? garminSleep ?? sleep ?? 7) - 0.5))} />
-          <Text style={[manualSleep != null ? type.h2 : type.small, { minWidth: 72, textAlign: 'center' }]} accessibilityLiveRegion="polite" accessibilityLabel={manualSleep != null ? `Sömn ${manualSleep} timmar` : 'Sömn inte angiven'}>
-            {manualSleep != null ? `${String(manualSleep).replace('.', ',')} h` : 'Inte angiven'}
-          </Text>
-          <Button kind="secondary" title="+" label="Mer sömn, en halvtimme" onPress={() => setManualSleep(Math.min(16, (manualSleep ?? garminSleep ?? sleep ?? 7) + 0.5))} />
-        </Row>
+        {/* Own sleep: a slider in half hours, starting where the watch or the note put it. */}
+        {manualSleep == null ? (
+          <Row style={{ marginTop: space.s, justifyContent: 'space-between' }}>
+            <Text style={[type.body, { flexShrink: 1 }]}>Sömn i natt</Text>
+            <Button
+              kind="secondary"
+              title="Ange själv"
+              label="Ange sömnen själv"
+              hint="Visar ett reglage för timmar"
+              onPress={() => setManualSleep(halfHour(garminSleep ?? sleep ?? 7))}
+            />
+          </Row>
+        ) : (
+          <View style={{ marginTop: space.m }}>
+            <Scale label="Sömn i natt" value={manualSleep} onChange={setManualSleep} min={0} max={SLEEP_MAX} step={0.5} show={hoursText} spoken={hoursSpoken} low="0 h" high={`${SLEEP_MAX} h`} />
+            <Button kind="ghost" title="Ta bort min uppgift" hint={garminSleep != null ? 'Klockans värde gäller igen' : undefined} onPress={() => setManualSleep(null)} />
+          </View>
+        )}
         <Text style={[type.body, { marginTop: space.s }]}>Stress i dag</Text>
         <Row style={{ marginTop: space.xs }}>
           {(['low', 'medium', 'high'] as const).map((k) => (

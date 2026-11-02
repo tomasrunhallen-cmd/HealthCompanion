@@ -103,7 +103,7 @@ Alla par klarar 4,5:1 i båda lägena. HIG:s önskemål om 7:1 för små texter 
   - Veckoraden läses dag för dag, till exempel "måndag 26 oktober: Grönt".
   - Diagrammen i Trend har en sammanfattning, och samma siffror finns som lista.
 - **Reduce Motion.** Stackarna byter från glidning till toning när inställningen är på. Appen har inga andra animationer.
-- **Knappar med tecken som titel har en egen etikett.** Till exempel läses *−* vid sömnen som "Mindre sömn, en halvtimme", och *−15 min* som "15 minuter tidigare". Knappar vars titel inte säger vad som händer har en ledtråd, till exempel *Inte nu*: "Kortet visas igen i morgon".
+- **Knappar med tecken som titel har en egen etikett.** Till exempel läses *−15 min* som "15 minuter tidigare". Egen sömn anges med ett reglage i halvtimmar, som stämning och energi, och VoiceOver läser värdet som "6,5 timmar". Knappar vars titel inte säger vad som händer har en ledtråd, till exempel *Inte nu*: "Kortet visas igen i morgon".
 - **Ihopfällbara delar** (`Disclosure`) läses som en knapp med tillståndet expanderad eller hopfälld.
 
 ### Enkelhet: en sak i taget
