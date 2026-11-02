@@ -54,7 +54,7 @@ export function LlmSettingsScreen() {
 
   useEffect(() => {
     getKey(repo, LLM_KEY_NAME).then((k) => setSavedKey(!!k));
-  }, []);
+  }, [repo]);
 
   const info = PROVIDERS[provider];
   const sameProviderAsSaved = saved.provider === provider;
