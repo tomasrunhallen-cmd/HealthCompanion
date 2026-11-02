@@ -19,7 +19,6 @@ import { useNav } from '../nav';
 import { useRepo } from '../state';
 import { colors, MIN_TOUCH, paletteHex, space, type } from '../theme';
 
-const QUESTIONS = 'Skriv några meningar, till exempel om hur du sovit, hur tempot i huvudet är i kväll och om något stack ut i dag.';
 
 /** A slider with its value above it (HIG: Sliders). Stämning and energi 1–10; sömn in half hours. */
 function Scale(props: {
@@ -160,11 +159,9 @@ export function CheckinScreen() {
         </Card>
       ) : null}
 
-      <Text style={type.h2} accessibilityRole="header">Hur har dagen varit?</Text>
-      <Text style={[type.small, { marginTop: space.xs, marginBottom: space.s }]}>{QUESTIONS}</Text>
+      <Text style={[type.h2, { marginBottom: space.s }]} accessibilityRole="header">Hur har dagen varit?</Text>
       <Field
         accessibilityLabel="Din anteckning"
-        accessibilityHint={QUESTIONS}
         value={text}
         onChangeText={setText}
         multiline
