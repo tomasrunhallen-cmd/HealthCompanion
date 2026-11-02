@@ -1,15 +1,14 @@
-// Colours, spacing and type. Light and dark appearance (HIG: Color, Dark Mode).
+// Colours, spacing and type, from the Dagsljus visual identity (2 November 2026): calm green
+// tinted neutrals, one green accent, and the three levels. Light and dark appearance (HIG:
+// Color, Dark Mode).
 //
-// iOS: text, backgrounds and separators are the system's semantic colours (PlatformColor),
-// so they follow light and dark mode and Increase Contrast. The app's own colours (the
-// accent and the three levels) are dynamic pairs (DynamicColorIOS). Web: CSS variables that
-// follow prefers-color-scheme. Android: the pair for the appearance at start.
-//
-// Every level colour has at least 4.5:1 contrast against the backgrounds it is drawn on, in
-// both appearances (computed in DESIGN.md). The level is never shown by colour alone: each
-// level also has a word and its own symbol (LevelSymbol in components.tsx).
+// Every colour is a light and dark pair: DynamicColorIOS on iOS (with stronger variants for
+// Increase Contrast), CSS variables that follow prefers-color-scheme on the web, and the pair
+// for the appearance at start on Android. Every text colour has at least 4.5:1 contrast against
+// the backgrounds it is drawn on, in both appearances (computed in DESIGN.md). The level is
+// never shown by colour alone: each level also has a word and its own symbol (LevelSymbol).
 
-import { Appearance, DynamicColorIOS, Platform, PlatformColor, type ColorValue } from 'react-native';
+import { Appearance, DynamicColorIOS, Platform, type ColorValue } from 'react-native';
 import type { Level } from '../core/domain/types';
 
 interface Pair {
@@ -17,45 +16,41 @@ interface Pair {
   dark: string;
 }
 
-/** Light and dark values. On iOS the semantic ones are only the web and Android fallback. */
+/** Light and dark values. */
 export const PALETTE = {
-  bg: { light: '#F2F2F7', dark: '#000000' },
-  surface: { light: '#FFFFFF', dark: '#1C1C1E' },
-  surfaceAlt: { light: '#E9E9EE', dark: '#2C2C2E' },
-  border: { light: '#C6C6C8', dark: '#38383A' },
-  text: { light: '#000000', dark: '#FFFFFF' },
-  textMuted: { light: '#5F5F64', dark: '#AEAEB2' },
-  placeholder: { light: '#8E8E93', dark: '#8E8E93' },
-  accent: { light: '#9C500D', dark: '#F2A65A' },
-  onAccent: { light: '#FFFFFF', dark: '#1C1C1E' },
-  accentSoft: { light: '#F6E7D6', dark: '#3A2612' },
-  green: { light: '#2B7A4B', dark: '#5FD38A' },
-  greenSoft: { light: '#E3F1E7', dark: '#11301E' },
-  yellow: { light: '#8A5F00', dark: '#F2C14E' },
-  yellowSoft: { light: '#FBF0D2', dark: '#33290A' },
-  red: { light: '#B3261E', dark: '#FF8A80' },
-  redSoft: { light: '#F9E3E0', dark: '#3D1916' },
-  danger: { light: '#B3261E', dark: '#FF8A80' },
-  onDanger: { light: '#FFFFFF', dark: '#1C1C1E' },
+  bg: { light: '#F5F7F2', dark: '#101A16' },
+  surface: { light: '#FFFFFF', dark: '#1A2922' },
+  surfaceAlt: { light: '#E4EFE7', dark: '#263D30' },
+  border: { light: '#D7E1D8', dark: '#3C5145' },
+  text: { light: '#20372D', dark: '#EDF4EE' },
+  textMuted: { light: '#53675C', dark: '#B1C5B8' },
+  placeholder: { light: '#627569', dark: '#8EA396' },
+  accent: { light: '#176B50', dark: '#99D8B8' },
+  onAccent: { light: '#FFFFFF', dark: '#10271B' },
+  accentSoft: { light: '#E4EFE7', dark: '#263D30' },
+  green: { light: '#1F7A4A', dark: '#7FD9A4' },
+  greenSoft: { light: '#E1F0E5', dark: '#173525' },
+  yellow: { light: '#7E5700', dark: '#F2C14E' },
+  yellowSoft: { light: '#F8EDCF', dark: '#33290A' },
+  red: { light: '#963C35', dark: '#FFB4AA' },
+  redSoft: { light: '#F7E4E1', dark: '#3D1F1B' },
+  danger: { light: '#963C35', dark: '#FFB4AA' },
+  onDanger: { light: '#FFFFFF', dark: '#10271B' },
 } satisfies Record<string, Pair>;
+
+/** iOS Increase Contrast: darker grey text and lines in light mode, lighter in dark mode. */
+const HIGH_CONTRAST: Partial<Record<keyof typeof PALETTE, Pair>> = {
+  textMuted: { light: '#3A4D42', dark: '#D3E2D8' },
+  placeholder: { light: '#4B5E53', dark: '#B1C5B8' },
+  border: { light: '#9DB0A3', dark: '#6B8576' },
+};
 
 type Token = keyof typeof PALETTE;
 
-/** iOS system colours for text and backgrounds (HIG: "Prefer the system background colors"). */
-const IOS_SEMANTIC: Partial<Record<Token, string>> = {
-  bg: 'systemGroupedBackground',
-  surface: 'secondarySystemGroupedBackground',
-  surfaceAlt: 'tertiarySystemGroupedBackground',
-  border: 'separator',
-  text: 'label',
-  textMuted: 'secondaryLabel',
-  placeholder: 'placeholderText',
-};
-
 function token(name: Token): ColorValue {
   if (Platform.OS === 'ios') {
-    const semantic = IOS_SEMANTIC[name];
-    return semantic ? PlatformColor(semantic) : DynamicColorIOS(PALETTE[name]);
+    const hc = HIGH_CONTRAST[name];
+    return DynamicColorIOS({ ...PALETTE[name], ...(hc ? { highContrastLight: hc.light, highContrastDark: hc.dark } : {}) });
   }
   if (Platform.OS === 'web') return `var(--dl-${name})`;
   return PALETTE[name][Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'];
@@ -80,21 +75,23 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
 
 export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
 
-export const radius = { s: 8, m: 12, l: 20, pill: 999 };
+/** Tags 6, inputs and buttons 15, cards 20, the soft hero card 24. */
+export const radius = { xs: 6, s: 8, m: 15, l: 20, xl: 24, pill: 999 };
 
 /** HIG: the default text size is 17 pt and the minimum 11 pt. */
 export const MIN_TOUCH = 44;
 
 /**
- * Text styles on the system font (SF Pro on iOS), close to the iOS text styles: Large Title,
- * Title 3, Body, Subheadline and Footnote. React Native scales them with Dynamic Type.
+ * Text styles on the system font (SF Pro on iOS). Close to the iOS text styles: Large Title,
+ * Title 3, Body, Subheadline and Footnote, with the identity's tight headings and spaced
+ * capitals for small labels. React Native scales them with Dynamic Type.
  */
 export const type = {
-  title: { fontSize: 28, fontWeight: '700' as const, color: colors.text },
-  h2: { fontSize: 20, fontWeight: '600' as const, color: colors.text },
-  body: { fontSize: 17, lineHeight: 22, color: colors.text },
-  small: { fontSize: 15, lineHeight: 20, color: colors.textMuted },
-  label: { fontSize: 13, fontWeight: '600' as const, color: colors.textMuted, letterSpacing: 0.3 },
+  title: { fontSize: 30, lineHeight: 34, fontWeight: '700' as const, letterSpacing: -0.8, color: colors.text },
+  h2: { fontSize: 20, lineHeight: 25, fontWeight: '600' as const, letterSpacing: -0.3, color: colors.text },
+  body: { fontSize: 17, lineHeight: 24, color: colors.text },
+  small: { fontSize: 15, lineHeight: 21, color: colors.textMuted },
+  label: { fontSize: 12, lineHeight: 16, fontWeight: '600' as const, color: colors.textMuted, letterSpacing: 1.2 },
 };
 
 const REGULAR_WEIGHTS = Object.fromEntries(Object.entries(type).map(([k, v]) => [k, (v as { fontWeight?: string }).fontWeight]));

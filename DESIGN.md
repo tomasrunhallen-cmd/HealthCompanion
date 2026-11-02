@@ -27,7 +27,7 @@ Se *Krockar* om fliken Avstämning.
 > "Use the standard Back and Close buttons. … don't use a text label that says Back or Close."
 
 - Varje flik är en native stack (`@react-navigation/native-stack`, som bygger på UINavigationController genom `react-native-screens`).
-- **Stora rubriker** på varje fliks första skärm (`headerLargeTitleEnabled`). Innehållet scrollar med `contentInsetAdjustmentBehavior="automatic"`, så rubriken krymper som i systemets appar.
+- **Stora rubriker** på varje fliks första skärm (`headerLargeTitleEnabled`), utom Hem: där står namnet med en soluppgång till vänster i rubrikfältet, och sidan börjar med datumet och rubriken *En stund för dig.* Innehållet scrollar med `contentInsetAdjustmentBehavior="automatic"`, så rubriken krymper som i systemets appar.
 - **Rubriker under 15 tecken**, till exempel *Avstämning*, *Bedömning*, *Det appen vet* och *Integritet*.
 - **Systemets bakåtknapp.** Den egna knappen *‹ Tillbaka* är borttagen.
 - **Ark stängs med symbolen `xmark`**, med VoiceOver-etiketten *Stäng*.
@@ -49,7 +49,7 @@ Se *Krockar* om fliken Avstämning.
 > "System fonts automatically support Dynamic Type … and respond when people turn on accessibility features, such as Bold Text."
 
 - **Systemtypsnittet överallt**, alltså SF Pro på iOS. Inga egna typsnitt.
-- **Brödtext 17 pt**, rubriker i närheten av iOS textstilar: Large Title 28, Title 3 20, Body 17, Subheadline 15 och Footnote 13 (`src/ui/theme.ts`). Inga lätta vikter.
+- **Brödtext 17 pt**, rubriker i närheten av iOS textstilar: Large Title 30, Title 3 20, Body 17, Subheadline 15 och Footnote 12 (`src/ui/theme.ts`). Inga lätta vikter.
 - **Dynamic Type.** React Native skalar all text med systemets textstorlek. Ingen text har `numberOfLines` i scrollbara vyer, utom två rader i listan *Alla dagar*. Hela texten finns där en tryckning bort.
 - **Färre kolumner vid stor text.** Veckoraden på Hem går över flera rader när textstorleken är stor (`fontScale > 1.4`). Rader med två texter bredvid varandra får radbrytas (`flexWrap`, `flexShrink`).
 - **Fet text (Bold Text).** React Natives text med uttalad vikt blir inte fetare av sig själv. Appen läser inställningen (`AccessibilityInfo.isBoldTextEnabled`) och höjer varje textstil ett viktsteg, både vid start och när inställningen ändras.
@@ -61,23 +61,28 @@ Se *Krockar* om fliken Avstämning.
 > "At a minimum, make sure the contrast ratio between colors is no lower than 4.5:1."
 > "Avoid offering an app-specific appearance setting."
 
-- **Systemets semantiska färger på iOS** via `PlatformColor`: `label`, `secondaryLabel`, `placeholderText` och `separator`, samt bakgrunderna `systemGroupedBackground`, `secondarySystemGroupedBackground` och `tertiarySystemGroupedBackground`. De följer ljust och mörkt läge och Öka kontrast.
-- **Appens egna färger** har en ljus och en mörk variant (`DynamicColorIOS`): accentfärgen och de tre nivåerna. På webben används CSS-variabler som följer `prefers-color-scheme`.
+- **Dagsljus grafiska profil (2 november 2026).** Lugna, grönskiftande neutrala färger: bakgrund `#F5F7F2` / `#101A16`, kort `#FFFFFF` / `#1A2922`, text `#20372D` / `#EDF4EE`, dämpad text `#53675C` / `#B1C5B8`, linjer `#D7E1D8` / `#3C5145`. Alla färger står i `src/ui/theme.ts`.
+- **Avsteg från HIG:s "Prefer the system background colors".** Profilens tonade bakgrund och text ersätter systemets grå. Varje färg har i stället en ljus och en mörk variant (`DynamicColorIOS`), och dämpad text, platshållare och linjer har egna starkare varianter för *Öka kontrast*. På webben används CSS-variabler som följer `prefers-color-scheme`.
 - **Ingen egen inställning för utseende.** `userInterfaceStyle` är `automatic`.
-- **En accentfärg** (bärnsten) för knappar och valda element, som specen kräver.
+- **En accentfärg, grön** (`#176B50` / `#99D8B8`), för knappar, valda element och flikfältet. Det mjukgröna kortet (`#E4EFE7` / `#263D30`, hörnradie 24) används bara för det man kan göra nu, som kvällens avstämning. Övriga kort är vita (mörkgröna i mörkt läge), utan ram, med hörnradie 20. Knappar har hörnradie 15.
+- **Typografi.** Rubriker är täta (Large Title 30 pt, −0,8 i teckenavstånd). Små etiketter, som datumet överst, står i spärrade versaler (12 pt).
+- **Ursprungsetiketter.** Små grå etiketter säger var en text kommer ifrån: *Från din plan* på stegen vid rött, som också har en röd linje till vänster, och *Meningen är formulerad av AI* under modellens mening.
+- **Hjälp nu** står i textfärg och är understruken, inte röd, enligt profilen. Den står på samma plats som förut, i rubrikfältet på varje fliks första skärm.
 
 Kontrast, uträknad med WCAG:s formel:
 
-| Färg | Ljust: mot vitt / mot bakgrund / mot egen ton | Mörkt: mot yta / mot bakgrund / mot egen ton |
+| Färg | Ljust: mot kort / mot bakgrund / mot egen ton | Mörkt: mot kort / mot bakgrund / mot egen ton |
 | --- | --- | --- |
-| Grönt `#2B7A4B` / `#5FD38A` | 5,3 / 4,7 / 4,5 | 9,1 / 11,2 / 7,6 |
-| Gult `#8A5F00` / `#F2C14E` | 5,6 / 5,1 / 5,0 | 10,1 / 12,5 / 8,6 |
-| Rött `#B3261E` / `#FF8A80` | 6,5 / 5,9 / 5,3 | 7,5 / 9,2 / 6,8 |
-| Accent `#9C500D` / `#F2A65A` | 5,9 / 5,3 / 4,9 | 8,4 / 10,4 / 7,1 |
-| Text på accent: vit / `#1C1C1E` | 5,9 | 8,4 |
-| Text på Radera-knappen: vit / `#1C1C1E` | 6,5 | 7,5 |
+| Text `#20372D` / `#EDF4EE` | 12,8 / 11,8 / 10,8 (mjukgrönt) | 13,6 / 15,9 / 10,5 |
+| Dämpad text `#53675C` / `#B1C5B8` | 6,1 / 5,6 / 5,1 | 8,3 / 9,8 / 6,4 |
+| Grönt `#1F7A4A` / `#7FD9A4` | 5,3 / 4,9 / 4,5 | 8,9 / 10,5 / 7,9 |
+| Gult `#7E5700` / `#F2C14E` | 6,5 / 6,0 / 5,5 | 9,0 / 10,6 / 8,6 |
+| Rött `#963C35` / `#FFB4AA` | 7,0 / 6,5 / 5,7 | 8,9 / 10,5 / 8,8 |
+| Accent `#176B50` / `#99D8B8` | 6,5 / 6,0 / 5,5 | 9,3 / 10,9 / 7,2 |
+| Text på accent: vit / `#10271B` | 6,5 | 9,7 |
+| Text på Radera-knappen: vit / `#10271B` | 7,0 | 9,3 |
 
-Alla par klarar 4,5:1 i båda lägena. HIG:s önskemål om 7:1 för små texter nås i mörkt läge men inte i ljust, där nivåfärgerna ligger mellan 4,5 och 6,5. Nivåns text är alltid stor och fet (28 pt), där kravet är 3:1.
+Alla par klarar 4,5:1 i båda lägena. HIG:s önskemål om 7:1 för små texter nås i mörkt läge. I ljust läge ligger dämpad text, nivåfärgerna och accenten mellan 4,5 och 7. Nivåns text är alltid stor och fet (30 pt), där kravet är 3:1. Accentgrönt och nivån grönt ligger nära varandra, så en nivå visas aldrig bara som färg: den har alltid ord och symbol.
 
 ### Accessibility och VoiceOver
 
@@ -95,7 +100,7 @@ Alla par klarar 4,5:1 i båda lägena. HIG:s önskemål om 7:1 för små texter 
   | Rött | Rött | `exclamationmark.octagon.fill` (oktagon) |
 
   Samma symboler används i veckoraden, i Trend och i *Alla dagar*. VoiceOver läser ampeln som ett element: "Nivå: Gult".
-- **Tryckytor minst 44 × 44 punkter.** Knappar är minst 48 punkter höga, val (chips) och listrader minst 44, och reglagen 44. Stäng och Hjälp nu har minst 44 × 44.
+- **Tryckytor minst 44 × 44 punkter.** Knappar är minst 50 punkter höga, val (chips) och listrader minst 44, och reglagen 44. Stäng och Hjälp nu har minst 44 × 44.
 - **VoiceOver-etiketter:**
   - Knappar och val har etiketter och tillstånd (valt, avstängt, upptagen).
   - Reglagen för stämning och energi har etikett, värde ("5 av 10") och ledtråd.
@@ -149,7 +154,7 @@ Alla par klarar 4,5:1 i båda lägena. HIG:s önskemål om 7:1 för små texter 
 
 > "Design a launch screen that's nearly identical to the first screen of your app …" "Avoid including text on your launch screen …" "The launch screen isn't a branding opportunity."
 
-- **Startskärmen är bara bakgrundsfärgen från första skärmen**, `#F2F2F7` i ljust läge och `#000000` i mörkt (`expo-splash-screen`).
+- **Startskärmen är bara bakgrundsfärgen från första skärmen**, `#F5F7F2` i ljust läge och `#101A16` i mörkt (`expo-splash-screen`).
 - **Ingen bild, ingen logga, ingen text.**
 
 ## Krockar mellan riktlinjerna och specen

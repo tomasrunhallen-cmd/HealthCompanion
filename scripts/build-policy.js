@@ -60,11 +60,11 @@ function page(md) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)}</title>
 <style>
-:root { color-scheme: light dark; --bg: #F2F2F7; --fg: #000; --muted: #5F5F64; --card: #fff; }
-@media (prefers-color-scheme: dark) { :root { --bg: #000; --fg: #fff; --muted: #AEAEB2; --card: #1C1C1E; } }
+:root { color-scheme: light dark; --bg: #F5F7F2; --fg: #20372D; --muted: #53675C; --card: #fff; }
+@media (prefers-color-scheme: dark) { :root { --bg: #101A16; --fg: #EDF4EE; --muted: #B1C5B8; --card: #1A2922; } }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 -apple-system, system-ui, sans-serif; }
 main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 28px; line-height: 1.2; } h2 { font-size: 20px; margin-top: 32px; }
+h1 { font-size: 30px; line-height: 1.12; letter-spacing: -1px; } h2 { font-size: 20px; margin-top: 32px; }
 li { margin: 6px 0; }
 </style>
 </head>

@@ -12,7 +12,7 @@ import { DarkTheme, DefaultTheme, NavigationContainer, useRoute, type Theme } fr
 import { createNativeStackNavigator, type NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, Pressable, Text, useColorScheme } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { CrisisCard } from './CrisisCard';
 import { Screen } from './components';
 import { PUSHED, useNav, type RouteName } from './nav';
@@ -142,9 +142,9 @@ function HelpButton() {
       accessibilityHint="Visar krisnummer och din plan vid rött"
       onPress={() => nav.push({ name: 'crisis' })}
       hitSlop={8}
-      style={{ minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: 'center', paddingHorizontal: 4 }}
+      style={{ minHeight: MIN_TOUCH, minWidth: MIN_TOUCH, justifyContent: 'center', paddingLeft: 4, paddingRight: Platform.OS === 'web' ? 16 : 4 }}
     >
-      <Text style={{ fontSize: 17, fontWeight: '600', color: paletteHex('red', mode) }} maxFontSizeMultiplier={1.6}>Hjälp nu</Text>
+      <Text style={{ fontSize: 17, fontWeight: '600', color: paletteHex('text', mode), textDecorationLine: 'underline' }} maxFontSizeMultiplier={1.6}>Hjälp nu</Text>
     </Pressable>
   );
 }
@@ -165,24 +165,44 @@ function CloseButton() {
   );
 }
 
-function stackOptions(reduceMotion: boolean): NativeStackNavigationOptions {
+/** The app's name with a sunrise, at the top left of the home screen. */
+function Brand() {
+  const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: MIN_TOUCH, paddingLeft: Platform.OS === 'web' ? 16 : 0 }} accessible accessibilityRole="header" accessibilityLabel="Dagsljus">
+      <SymbolView name={{ ios: 'sunrise.fill', android: 'wb_twilight', web: 'wb_twilight' } as never} size={20} tintColor={paletteHex('accent', mode)} fallback={null} />
+      <Text style={{ fontSize: 18, fontWeight: '700', letterSpacing: -0.5, color: paletteHex('text', mode) }} maxFontSizeMultiplier={1.6}>Dagsljus</Text>
+    </View>
+  );
+}
+
+function stackOptions(reduceMotion: boolean, mode: 'light' | 'dark'): NativeStackNavigationOptions {
   return {
     animation: reduceMotion ? 'fade' : 'default',
     headerLargeTitleShadowVisible: false,
     headerShadowVisible: false,
     headerTransparent: false,
+    // The header sits on the page's own tinted background, as in the identity.
+    headerStyle: { backgroundColor: paletteHex('bg', mode) },
+    headerTintColor: paletteHex('accent', mode),
+    headerTitleStyle: { color: paletteHex('text', mode) },
+    headerLargeTitleStyle: { color: paletteHex('text', mode) },
   };
 }
 
 function makeTabStack(first: RouteName) {
   return function TabStack() {
     const reduceMotion = useReduceMotion();
+    const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
     return (
-      <Stack.Navigator initialRouteName={first} screenOptions={stackOptions(reduceMotion)}>
+      <Stack.Navigator initialRouteName={first} screenOptions={stackOptions(reduceMotion, mode)}>
         <Stack.Screen
           name={first}
           component={COMPONENT[first]}
-          options={{ title: TITLE[first], headerLargeTitleEnabled: true, headerRight: () => <HelpButton /> }}
+          options={first === 'home'
+            // Home: the name with its sunrise; the page itself opens with the date and a heading.
+            ? { title: TITLE[first], headerTitle: () => null, headerLeft: () => <Brand />, headerRight: () => <HelpButton /> }
+            : { title: TITLE[first], headerLargeTitleEnabled: true, headerRight: () => <HelpButton /> }}
         />
         {PUSHED.map((name) => (
           <Stack.Screen key={name} name={name} component={COMPONENT[name]} options={{ title: TITLE[name] }} />
@@ -195,8 +215,9 @@ function makeTabStack(first: RouteName) {
 function makeSheetStack(screens: RouteName[]) {
   return function SheetStack() {
     const reduceMotion = useReduceMotion();
+    const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
     return (
-      <Stack.Navigator screenOptions={stackOptions(reduceMotion)}>
+      <Stack.Navigator screenOptions={stackOptions(reduceMotion, mode)}>
         {screens.map((name, i) => (
           <Stack.Screen
             key={name}
@@ -231,8 +252,17 @@ function tabIcon(name: SymbolName, fallback: string) {
 function TabsNavigator() {
   // Lågt läge hides the tab bar: the home screen holds the check-in, the top bar Hjälp nu.
   const low = !!useRepo().settings().lowMode;
+  const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
   return (
-    <Tabs.Navigator screenOptions={{ headerShown: false, tabBarStyle: low ? { display: 'none' } : undefined }}>
+    <Tabs.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: low ? { display: 'none' } : { borderTopColor: paletteHex('border', mode), borderTopWidth: 1 },
+        tabBarActiveTintColor: paletteHex('accent', mode),
+        tabBarInactiveTintColor: paletteHex('textMuted', mode),
+        tabBarLabelStyle: { fontWeight: '600' },
+      }}
+    >
       <Tabs.Screen name="homeTab" component={HomeStack} options={{ title: 'Hem', tabBarIcon: tabIcon({ ios: 'house.fill', android: 'home', web: 'home' }, '⌂') }} />
       <Tabs.Screen name="checkinTab" component={CheckinStack} options={{ title: 'Avstämning', tabBarIcon: tabIcon({ ios: 'square.and.pencil', android: 'edit_note', web: 'edit_note' }, '✎') }} />
       <Tabs.Screen name="trendTab" component={TrendStack} options={{ title: 'Trend', tabBarIcon: tabIcon({ ios: 'chart.line.uptrend.xyaxis', android: 'monitoring', web: 'monitoring' }, '↗') }} />

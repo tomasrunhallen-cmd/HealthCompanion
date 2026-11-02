@@ -32,7 +32,7 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "name": "Dagsljus",
-      "backgroundColor": "#F2F2F7"
+      "backgroundColor": "#F5F7F2"
     },
     "scheme": "dagsljus",
     "plugins": [
@@ -56,9 +56,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F2F2F7",
+          "backgroundColor": "#F5F7F2",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#101A16"
           }
         }
       ],

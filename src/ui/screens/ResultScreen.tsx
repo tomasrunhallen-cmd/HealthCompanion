@@ -9,7 +9,7 @@ import { MEDICAL_REMINDER } from '../../legal';
 import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../core/plan/guidance';
 import { greenDayLine, routineSummary, routinesToday as routinesTodayList } from '../../core/plan/routines';
 import { SOURCE_TEXT } from '../../core/analysis/sources';
-import { Button, Card, Disclosure, LevelLight, P, Screen, Section } from '../components';
+import { Button, Card, Disclosure, LevelLight, P, Screen, Section, Step, Tag } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { RemeasureCard } from '../RemeasureCard';
@@ -103,7 +103,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       back
       footer={<Button title="Till startsidan" onPress={() => nav.reset()} />}
     >
-      <Text style={[type.small, { marginTop: -space.s, marginBottom: space.l }]}>
+      <Text style={[type.label, { textTransform: 'uppercase', marginTop: -space.s, marginBottom: space.l }]}>
         {entry.kind === 'imported' ? `${formatDateSvYear(a.date)}, importerad` : `${formatDateSv(a.date)}, inlägg ${formatTime(entry.createdAt)}`}
       </Text>
 
@@ -130,6 +130,10 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       <Card tone={a.level} style={{ alignItems: 'center', borderColor: levelColor(a.level) }}>
         <LevelLight level={a.level} />
         <P style={{ textAlign: 'center', marginTop: space.m }}>{displaySentence(a)}</P>
+        {/* The model's own sentence is marked as such; the level beside it is counted in the app. */}
+        {a.method === 'llm' && displaySentence(a) === a.sentence ? (
+          <View style={{ marginTop: space.s, alignItems: 'center' }}><Tag label="Meningen är formulerad av AI" /></View>
+        ) : null}
         {direction && a.level !== 'green' ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{direction}</P> : null}
         {thin ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{thin}</P> : null}
       </Card>
@@ -149,7 +153,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       ) : null}
 
       {serious && (
-        <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
+        <Step tag="Från din plan">
           <Text style={type.h2} accessibilityRole="header">Åtgärder vid rött</Text>
           <P style={{ marginTop: space.xs }}>{seriousIntro(a)}</P>
           {serious.length ? serious.map((p, i) => (
@@ -158,19 +162,17 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             <P style={{ marginTop: space.xs }}>Din plan har ingen åtgärd vid rött ännu. Lägg till en under Min krisplan.</P>
           )}
           <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen.</P>
-        </Card>
+        </Step>
       )}
 
       {a.level === 'red' && !a.akut && !serious && (
-        <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
-          <Text style={type.h2} accessibilityRole="header">Första steget</Text>
+        <Step tag="Från din plan">
+          <Text style={type.h2} accessibilityRole="header">Ditt nästa steg</Text>
           <P style={{ marginTop: space.xs }}>
-            {first
-              ? `Din plan säger att det första steget vid rött är: ${first.text}`
-              : 'Din plan har ingen åtgärd vid rött ännu. Lägg till en under Min krisplan.'}
+            {first ? first.text : 'Din plan har ingen åtgärd vid rött ännu. Lägg till en under Min krisplan.'}
           </P>
           <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen.</P>
-        </Card>
+        </Step>
       )}
 
       {entry.kind === 'heavy' && a.level !== 'red' && (
@@ -206,7 +208,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           {seen.length ? seen.map((s, i) => (
             <View key={s.kind + (s.planItemId ?? '') + i} style={{ paddingVertical: space.s, borderBottomWidth: i < seen.length - 1 ? 1 : 0, borderColor: colors.border }}>
               <Text style={[type.body, { fontWeight: '600' }]}>{s.label}</Text>
-              {s.quote ? <Text style={[type.small, { fontStyle: 'italic', marginTop: 2 }]}>”{s.quote}”</Text> : null}
+              {s.quote ? <Text style={[type.body, { marginTop: 2 }]} accessibilityLabel={`Ur din anteckning: ${s.quote}`}>”{s.quote}”</Text> : null}
             </View>
           )) : (
             <P muted>Inga av tecknen i din plan syntes i dag.</P>

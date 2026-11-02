@@ -48,9 +48,37 @@ export function Screen(props: {
   );
 }
 
+/**
+ * A card: white (dark green in dark mode) on the tinted background, without a border. The
+ * accent tone is the identity's soft green hero card, for what the person can do now.
+ */
 export function Card(props: { children: React.ReactNode; style?: StyleProp<ViewStyle>; tone?: Level | 'accent' }) {
   const bg = props.tone === 'accent' ? colors.accentSoft : props.tone ? levelSoft(props.tone) : colors.surface;
-  return <View style={[styles.card, { backgroundColor: bg }, props.style]}>{props.children}</View>;
+  return <View style={[styles.card, props.tone === 'accent' && styles.hero, { backgroundColor: bg }, props.style]}>{props.children}</View>;
+}
+
+/** Small spaced capitals above a heading: a date, a section, where something comes from. */
+export function Eyebrow(props: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <Text style={[type.label, { textTransform: 'uppercase', marginBottom: space.s }, props.style as object]}>{props.children}</Text>;
+}
+
+/** A small label for where a text comes from: "Från din plan", "Din anteckning", "Formulerat av AI". */
+export function Tag(props: { label: string }) {
+  return (
+    <View style={styles.tag}>
+      <Text style={styles.tagText}>{props.label}</Text>
+    </View>
+  );
+}
+
+/** A step from the person's plan, marked by a line on the left in the level's colour. */
+export function Step(props: { children: React.ReactNode; level?: Level; tag?: string; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[styles.step, { borderLeftColor: levelColor(props.level ?? 'red') }, props.style]}>
+      {props.tag ? <Tag label={props.tag} /> : null}
+      {props.children}
+    </View>
+  );
 }
 
 export function Button(props: {
@@ -68,7 +96,7 @@ export function Button(props: {
 }) {
   const kind = props.kind ?? 'primary';
   const bg =
-    kind === 'primary' ? colors.accent : kind === 'danger' ? colors.danger : kind === 'secondary' ? colors.surfaceAlt : 'transparent';
+    kind === 'primary' ? colors.accent : kind === 'danger' ? colors.danger : kind === 'secondary' ? colors.surface : 'transparent';
   const fg = kind === 'primary' ? colors.onAccent : kind === 'danger' ? colors.onDanger : kind === 'ghost' ? colors.accent : colors.text;
   return (
     <Pressable
@@ -87,7 +115,7 @@ export function Button(props: {
       ]}
     >
       {props.busy ? <ActivityIndicator color={fg} /> : (
-        <Text style={[styles.buttonText, props.big && { fontSize: 18 }, { color: fg }]}>{props.title}</Text>
+        <Text style={[styles.buttonText, { color: fg }]}>{props.title}</Text>
       )}
     </Pressable>
   );
@@ -298,13 +326,17 @@ const styles = StyleSheet.create({
   segment: { flex: 1, minHeight: MIN_TOUCH, borderRadius: radius.m - 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs },
   segmentOn: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   segmentText: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
-  card: { borderRadius: radius.l, padding: space.l, marginBottom: space.m, borderWidth: 1, borderColor: colors.border },
+  card: { borderRadius: radius.l, padding: 18, marginBottom: space.m },
+  hero: { borderRadius: radius.xl, paddingHorizontal: 20, paddingVertical: 22 },
+  tag: { alignSelf: 'flex-start', borderRadius: radius.xs, paddingHorizontal: space.s, paddingVertical: 3, backgroundColor: colors.surfaceAlt, marginBottom: space.s },
+  tagText: { fontSize: 12, lineHeight: 16, color: colors.textMuted },
+  step: { borderLeftWidth: 3, paddingLeft: 15, marginVertical: space.l },
   button: {
-    minHeight: 48, borderRadius: radius.m, paddingHorizontal: space.l, alignItems: 'center',
+    minHeight: 50, borderRadius: radius.m, paddingHorizontal: space.l, alignItems: 'center',
     justifyContent: 'center', marginVertical: space.xs,
   },
-  buttonBig: { minHeight: 60, borderRadius: radius.l },
-  buttonText: { fontSize: 17, fontWeight: '600', textAlign: 'center' },
+  buttonBig: { minHeight: 54 },
+  buttonText: { fontSize: 17, fontWeight: '600', textAlign: 'center', letterSpacing: -0.2 },
   chip: {
     borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: space.m,
     paddingVertical: space.s, minHeight: MIN_TOUCH, justifyContent: 'center', backgroundColor: colors.surface,

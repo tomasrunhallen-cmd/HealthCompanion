@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, Text, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
@@ -8,7 +8,9 @@ import { logHeavyDay } from '../../services/checkin';
 import { standardNudgeWeek } from '../../core/context/standard';
 import { startWithStandard, unconfirmedStandard } from '../../services/standard';
 import { dueNow, runProfileReview } from '../../services/profile';
-import { Button, Card, Dot, P, Row, Screen, Section } from '../components';
+import { Button, Card, Dot, Eyebrow, P, Row, Screen, Section } from '../components';
+import { SymbolView } from 'expo-symbols';
+import { SOURCE_TEXT, sleepSourceOf } from '../../core/analysis/sources';
 import { homeQueue, laterToday, putAside, type HomeCard, type HomeLater } from '../../core/analysis/homeCards';
 import type { Level } from '../../core/domain/types';
 import { MEDICAL_REMINDER } from '../../legal';
@@ -23,7 +25,7 @@ import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { remeasurePending } from '../../services/remeasure';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
-import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
+import { colors, LEVEL_TEXT, levelColor, paletteHex, space, type } from '../theme';
 
 const HOME_LATER_KEY = 'homeLater';
 
@@ -107,7 +109,7 @@ export function HomeScreen() {
   if (fw?.onlyCheckin && !settings.lowMode) {
     return (
       <Screen title="Dagsljus">
-        <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
+        <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
         <Card tone="accent">
           <Text style={type.h2} accessibilityRole="header">Välkommen</Text>
           <P style={{ marginTop: space.xs }}>
@@ -125,7 +127,7 @@ export function HomeScreen() {
   if (settings.lowMode) {
     return (
       <Screen title="Dagsljus">
-        <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
+        <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
         <Button big title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'} onPress={() => nav.push({ name: 'checkin' })} />
         <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
         <Button kind="ghost" title="Lämna lågt läge" onPress={() => repo.updateSettings({ lowMode: false })} />
@@ -170,7 +172,7 @@ export function HomeScreen() {
         );
       case 'start':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">Lägg in din krisplan</Text>
             <P style={{ marginTop: space.xs, marginBottom: space.m }}>
               Appen jämför din anteckning med tecknen i din plan.
@@ -183,7 +185,7 @@ export function HomeScreen() {
       case 'tomorrow': {
         const t = tomorrow.find((x) => `tomorrow_${x.date}_${x.event}` === c.id)!;
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">I morgon: {t.event}</Text>
             {t.trigger ? <P style={{ marginTop: space.xs }}>Din plan nämner det som en risksituation: ”{t.trigger}”.</P> : null}
             {t.routines.length ? (
@@ -202,7 +204,7 @@ export function HomeScreen() {
       }
       case 'sleepNotice':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">{sleepNote!.title}</Text>
             <P style={{ marginTop: space.xs }}>{sleepNote!.body}</P>
             <Button kind="ghost" title="Okej" onPress={() => repo.kvSet(NOTICE_KEY, { ...sleepNote, dismissed: true })} />
@@ -210,7 +212,7 @@ export function HomeScreen() {
         );
       case 'weekPicture':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">Din första vecka</Text>
             <WeekRow week={week} fontScale={fontScale} />
             <P style={{ marginTop: space.s }}>{GREEN_MEANS}</P>
@@ -220,7 +222,7 @@ export function HomeScreen() {
         );
       case 'sleepSource':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">Sömnen gör bedömningen bättre</Text>
             <P style={{ marginTop: space.xs }}>Koppla din Garmin, eller ange sömnen själv i kvällens avstämning. Du väljer.</P>
             <Button title="Koppla Garmin" onPress={() => nav.push({ name: 'garmin' })} />
@@ -229,7 +231,7 @@ export function HomeScreen() {
         );
       case 'suggestions':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">{pending === 1 ? 'Ett förslag väntar' : `${pending} förslag väntar`}</Text>
             <P style={{ marginTop: space.xs }}>Appen ändrar inget om dig förrän du godkänt det.</P>
             <Button title="Granska" onPress={() => nav.push({ name: 'suggestions' })} />
@@ -238,7 +240,7 @@ export function HomeScreen() {
         );
       case 'review':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">Dags att se över din profil</Text>
             <P style={{ marginTop: space.xs, marginBottom: space.m }}>
               {due!.reason === 'period'
@@ -252,7 +254,7 @@ export function HomeScreen() {
         );
       case 'standardNudge':
         return (
-          <Card tone="accent">
+          <Card>
             <Text style={type.h2} accessibilityRole="header">Din plan bygger på allmänna tecken</Text>
             <P style={{ marginTop: space.xs, marginBottom: space.m }}>
               Allmänna tecken kan bara ge gult. Lägg in din egen krisplan när du kan, eller bekräfta de rader som stämmer för dig
@@ -269,8 +271,7 @@ export function HomeScreen() {
 
   return (
     <Screen title="Dagsljus">
-      <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
-
+      <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
       {todayAssessment ? (
         <Pressable
           onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
@@ -290,16 +291,26 @@ export function HomeScreen() {
             <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Visa bedömningen ›</Text>
           </Card>
         </Pressable>
-      ) : null}
-
-      <Button
-        big
-        title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'}
-        kind={todayEntry ? 'secondary' : 'primary'}
-        onPress={() => nav.push({ name: 'checkin' })}
-      />
-      <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
-      <P muted style={{ textAlign: 'center', marginTop: space.xs }}>Loggar dagen som tung, utan frågor.</P>
+      ) : (
+        <>
+          <Text style={type.title} accessibilityRole="header">En stund för dig.</Text>
+          <P muted style={{ marginTop: space.xs }}>Samla dagen, i din takt.</P>
+        </>
+      )}
+      <Card tone="accent" style={{ marginTop: todayAssessment ? space.s : space.xl }}>
+        <Text style={type.h2} accessibilityRole="header">{todayEntry ? 'Har något ändrats?' : 'Hur har din dag varit?'}</Text>
+        <P muted style={{ marginTop: space.xs, marginBottom: space.m }}>
+          {todayEntry ? 'Du kan göra om kvällens avstämning.' : 'Skriv en rad och skatta hur du mår.'}
+        </P>
+        <Button
+          title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'}
+          kind={todayEntry ? 'secondary' : 'primary'}
+          onPress={() => nav.push({ name: 'checkin' })}
+        />
+        <Button kind="secondary" title="Orkar bara trycka" hint="Loggar dagen som tung, utan frågor" busy={busy} onPress={onHeavy} />
+        <P muted style={{ marginTop: space.s }}>Du behöver inte skriva något.</P>
+      </Card>
+      <LastNight />
 
       {card ? (
         <View style={{ marginTop: space.xl }}>
@@ -339,5 +350,42 @@ function WeekRow({ week, fontScale }: { week: { date: string; level: Level | nul
         </View>
       ))}
     </View>
+  );
+}
+
+/** "6 h 40 min" */
+function hoursMinutes(h: number): string {
+  const total = Math.round(h * 60);
+  const m = total % 60;
+  return m ? `${Math.floor(total / 60)} h ${m} min` : `${total / 60} h`;
+}
+
+/** Last night's sleep, with where it came from and when it was fetched. Hidden without a value. */
+function LastNight() {
+  const repo = useRepo();
+  const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const m = repo.measuredDay(eveningDateKey(new Date()));
+  if (m?.sleepHours == null) return null;
+  const raw = SOURCE_TEXT[sleepSourceOf(m) ?? 'garmin'];
+  const source = raw.charAt(0).toUpperCase() + raw.slice(1);
+  const at = m.fetchedAt && !Number.isNaN(Date.parse(m.fetchedAt))
+    ? new Date(m.fetchedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+    : null;
+  const spoken = hoursMinutes(m.sleepHours).replace(' h', ' timmar').replace(' min', ' minuter');
+  return (
+    <Card>
+      <View
+        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.m }}
+        accessible
+        accessibilityLabel={`Senaste nattens sömn: ${spoken}, ${source}${at ? `, uppdaterat ${at}` : ''}`}
+      >
+        <View style={{ flexShrink: 1 }}>
+          <Text style={type.small}>Senaste nattens sömn</Text>
+          <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '600', letterSpacing: -0.5, color: colors.text }}>{hoursMinutes(m.sleepHours)}</Text>
+        </View>
+        <SymbolView name={{ ios: 'moon.fill', android: 'bedtime', web: 'bedtime' } as never} size={22} tintColor={paletteHex('accent', mode)} fallback={null} />
+      </View>
+      <Text style={[type.small, { marginTop: space.s }]}>{source}{at ? ` · uppdaterat ${at}` : ''}</Text>
+    </Card>
   );
 }
