@@ -17,7 +17,7 @@ export function RemeasureCard({ r, onDone }: { r: Remeasured; onDone?: (updated:
   return (
     <Card tone="accent">
       <Text style={type.h2} accessibilityRole="header">Nya värden från klockan för {formatDateSv(r.entry.date)}</Text>
-      <P muted style={{ marginTop: space.xs }}>Klockan hade inte synkat allt när du gjorde avstämningen. Garmin har nu:</P>
+      <P muted style={{ marginTop: space.xs }}>Klockan har synkat efter avstämningen:</P>
       {r.changes.map((c) => <P key={c} style={{ marginTop: space.xs }}>{`• ${c}`}</P>)}
       <Row style={{ marginTop: space.s }}>
         <Dot level={r.after.level} size={18} />
@@ -27,7 +27,6 @@ export function RemeasureCard({ r, onDone }: { r: Remeasured; onDone?: (updated:
             : `Dagen är fortfarande ${LEVEL_TEXT[r.after.level].toLowerCase()}.`}
         </Text>
       </Row>
-      <P muted style={{ marginTop: space.xs }}>Det du skrev räknas som förut. Bara klockans värden byts.</P>
       <Button
         title="Uppdatera dagen"
         busy={busy}

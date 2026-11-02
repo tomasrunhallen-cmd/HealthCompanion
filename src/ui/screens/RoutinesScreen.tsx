@@ -59,7 +59,7 @@ function RoutineCard({ e, stat }: { e: ContextEntry; stat: { answered: number; d
       ) : null}
       {stat && stat.answered ? (
         <Text style={[type.small, { marginTop: space.xs, color: colors.green }]}>
-          Gjord {stat.done} av {stat.answered} {stat.answered === 1 ? 'dag' : 'dagar'} du bockat av rutiner de senaste 14 dagarna.
+          {stat.done} av {stat.answered} {stat.answered === 1 ? 'dag' : 'dagar'}, senaste 14 dagarna
         </Text>
       ) : null}
       <View style={{ marginTop: space.s }}>
@@ -105,13 +105,7 @@ export function RoutinesScreen() {
 
   return (
     <Screen title="Rutiner">
-      <P muted>
-        Rutinerna kommer från Livsstil och rutiner i din krisplan. Välj vilka du vill bocka av i kvällens avstämning och vilka
-        du vill bli påmind om. Det påverkar aldrig nivån, och rutinerna skickas aldrig till en språkmodell.
-        {reminderViaCalendar
-          ? ' I webbversionen påminner telefonens kalender dig. Bara klockslaget lämnar telefonen, inte rutinens ord.'
-          : ' Påminnelsen är en notis på telefonen, och rutinens ord syns på låsskärmen.'}
-      </P>
+      <P muted>{reminderViaCalendar ? 'Påminnelsen läggs i kalendern, utan rutinens ord.' : 'Rutinens ord syns på låsskärmen.'}</P>
       {list.length === 0 ? (
         <Card style={{ marginTop: space.m }}>
           <P>Inga rutiner än. Lägg in din krisplan, eller skriv en rutin nedan.</P>

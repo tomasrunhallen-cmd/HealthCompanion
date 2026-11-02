@@ -150,7 +150,6 @@ export function CheckinScreen() {
           <Text style={type.h2} accessibilityRole="header">
             {followup.yesterday ? 'I går var det rött.' : `Den ${formatDateSv(followup.date)} var det rött.`} Gjorde du något av stegen?
           </Text>
-          <P muted style={{ marginTop: space.xs }}>Svaren sparas till Inför återbesök. De ändrar inte nivån.</P>
           {followup.steps.map((step) => {
             const v = stepAnswers.get(step);
             return (
@@ -174,17 +173,8 @@ export function CheckinScreen() {
         multiline
         placeholder="Några meningar om dagen…"
         autoCorrect
-        hint={
-          garminSleep != null
-            ? undefined
-            : sleep != null
-              ? `Sömn: ${sleep} h (skattat ur anteckningen)`
-              : 'Tips: skriv till exempel ”sov sex timmar” så räknas sömnen med.'
-        }
+        hint={garminSleep == null && manualSleep == null && sleep != null ? `Sömn: ${String(sleep).replace('.', ',')} h, ur anteckningen` : undefined}
       />
-      <P muted style={{ marginTop: -space.s, marginBottom: space.l }}>
-        Du kan prata in med tangentbordets mikrofon. Då kan ljudet gå till Apple eller Google, beroende på telefonens inställningar.
-      </P>
       {akut ? <CrisisCard plan={repo.plan()} mild={akut === 'mild'} /> : null}
 
       <Scale
@@ -220,13 +210,8 @@ export function CheckinScreen() {
               <Text style={[type.body, { fontWeight: '600' }]} accessibilityLiveRegion="polite">
                 Klockan har inte synkat sedan {garmin!.dataUntil}.
               </Text>
-              <P muted style={{ marginTop: 2 }}>
-                Öppna Garmin Connect så att klockan synkar, och tryck Hämta igen. Annars uppdateras dagen när värdena kommer.
-              </P>
               <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
             </View>
-          ) : garmin?.dataUntil ? (
-            <Text style={[type.small, { marginTop: 2 }]}>Klockans värden fram till {garmin.dataUntil}.</Text>
           ) : !garmin ? (
             <View style={{ marginTop: space.s }}>
               <P muted>Inga värden från klockan än i dag.</P>
@@ -234,9 +219,6 @@ export function CheckinScreen() {
             </View>
           ) : null
         ) : null}
-        <P muted style={{ marginTop: space.xs }}>
-          {garmin && (garminSleep != null || garmin.stressAvg != null) ? 'Stämmer det inte, ange själv. Det du anger gäller.' : 'Ange själv om du vill.'}
-        </P>
         {/* Own sleep: a slider in half hours, starting where the watch or the note put it. */}
         {manualSleep == null ? (
           <Row style={{ marginTop: space.s, justifyContent: 'space-between' }}>
@@ -267,7 +249,7 @@ export function CheckinScreen() {
             label="Alkohol, sjuk eller hård träning i går?"
             value={strain}
             onChange={setStrain}
-            hint={strain ? 'Sömn och stress räknas inte i dag.' : 'Då räknas inte sömn och stress i dag.'}
+            hint="Då räknas inte sömn och stress i dag"
           />
         </View>
       </Card>

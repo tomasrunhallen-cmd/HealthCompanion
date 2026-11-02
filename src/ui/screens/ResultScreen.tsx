@@ -152,7 +152,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           )) : (
             <P style={{ marginTop: space.xs }}>Din plan har ingen åtgärd vid rött ännu. Lägg till en under Min krisplan.</P>
           )}
-          <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen. Det är du som bestämmer vad du gör.</P>
+          <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen.</P>
         </Card>
       )}
 
@@ -164,7 +164,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
               ? `Din plan säger att det första steget vid rött är: ${first.text}`
               : 'Din plan har ingen åtgärd vid rött ännu. Lägg till en under Min krisplan.'}
           </P>
-          <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen. Det är du som bestämmer vad du gör.</P>
+          <P muted style={{ marginTop: space.s }}>Appen kontaktar ingen.</P>
         </Card>
       )}
 
@@ -190,7 +190,6 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       {routines.length > 0 && (
         <Section title="Livsstil och rutiner">
           <Card>
-            <P muted style={{ marginBottom: space.xs }}>Från din plan.</P>
             {routines.map((e) => <P key={e.id} style={{ marginBottom: space.xs }}>{`• ${e.text}`}</P>)}
           </Card>
         </Section>
@@ -228,9 +227,6 @@ export function ResultScreen({ entryId }: { entryId: string }) {
 
       <Section title="Stämmer bedömningen?">
         <Card>
-          <P muted style={{ marginBottom: space.s }}>
-            {answered ? 'Du har redan svarat. Du kan ändra ditt svar.' : 'Ditt svar hjälper appen att lära sig vad som stämmer för dig.'}
-          </P>
           <Button kind="secondary" title={answered ? 'Ändra ditt svar' : 'Svara'} label={answered ? 'Ändra ditt svar om bedömningen' : 'Svara om bedömningen stämmer'} onPress={() => nav.push({ name: 'correction', assessmentId: a.id })} />
         </Card>
       </Section>
@@ -242,7 +238,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       ) : null}
 
       {/* For the curious and for review: data, points, rule and method. Closed by default. */}
-      <Disclosure title="Så räknade appen" detail="Underlag, poäng och regel">
+      <Disclosure title="Så räknade appen">
         <Card>
           <Text style={type.label}>UNDERLAG</Text>
           {why.data.map((line) => (

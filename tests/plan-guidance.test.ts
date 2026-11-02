@@ -42,7 +42,7 @@ describe('the direction of the day\'s signs', () => {
     expect(signDirection([sig(up), sig(down)], plan)).toBe('both');
     expect(signDirection([], plan)).toBeNull();
     const ps = repo.planSettings();
-    expect(directionSentence('up', ps)).toBe('Tecknen i dag pekar åt ”mani”. Åtgärderna nedan är de som gäller det, och de som gäller båda hållen.');
+    expect(directionSentence('up', ps)).toBe('Tecknen pekar åt ”mani”.');
     expect(directionSentence('both', ps)).toContain('”mani” och ”depression”');
     // No diagnosis words when the plan has none of its own.
     expect(directionSentence('down', { polarityWords: null })).toContain('”nedstämd”');

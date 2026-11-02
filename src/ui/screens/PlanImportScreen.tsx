@@ -78,7 +78,7 @@ function BlockReview({ b, onType }: { b: ImportedBlock; onType: (t: BlockType) =
       {lines.length > 12 ? <P muted style={{ marginTop: space.xs }}>och {lines.length - 12} rader till</P> : null}
       {akut ? (
         <Text style={[type.small, { color: colors.danger, marginTop: space.xs }]}>
-          {akut === 1 ? 'En rad' : `${akut} rader`} handlar om att inte vilja leva. De sparas också som dina egna akuta formuleringar och skickas aldrig till en språkmodell.
+          {akut === 1 ? 'En rad' : `${akut} rader`} handlar om att inte vilja leva. De blir också dina akuta formuleringar.
         </Text>
       ) : null}
       {choosing ? (
@@ -164,10 +164,7 @@ export function PlanImportScreen() {
       : [];
     return (
       <Screen title={hadPlan ? 'Uppdaterad plan' : 'Granska planen'} footer={<Button big title={hadPlan ? 'Spara den nya planen' : 'Spara planen'} onPress={save} />}>
-        <P muted>
-          Planen är uppdelad efter sina egna rubriker. Kontrollera att varje block läses rätt.
-          {unknown ? ` ${unknown === 1 ? 'Ett block' : `${unknown} block`} behöver att du väljer vad det är.` : ''} Du kan ändra texten efteråt under Min krisplan.
-        </P>
+        {unknown ? <P muted>{unknown === 1 ? 'Ett block' : `${unknown} block`} behöver att du väljer vad det är.</P> : null}
         {hadPlan ? (
           <Section title={changes.length ? 'Ändringar mot din nuvarande plan' : 'Inga ändringar mot din nuvarande plan'}>
             {changes.map((c) => (
@@ -178,14 +175,13 @@ export function PlanImportScreen() {
                 {c.removed.map((l) => <Text key={`-${l}`} style={[type.body, { marginTop: space.xs, color: colors.danger, textDecorationLine: 'line-through' }]} accessibilityLabel={`Borttagen rad: ${l}`}>{`− ${l}`}</Text>)}
               </Card>
             ))}
-            <P muted>Rader som står kvar ordagrant behåller sina påminnelser och sin historik.</P>
           </Section>
         ) : null}
 
         {read.removed.length ? (
           <Section title="Borttaget sidhuvud">
             <Card>
-              <P muted>Upprepas på varje sida, som namn, personnummer och sidnummer. Sparas inte.</P>
+              <P muted>Sparas inte.</P>
               {read.removed.map((r) => <Text key={r} style={[type.small, { marginTop: space.xs, textDecorationLine: 'line-through' }]}>{r}</Text>)}
             </Card>
           </Section>
@@ -210,14 +206,7 @@ export function PlanImportScreen() {
         </>
       }
     >
-      <P muted>
-        Klistra in din krisplan, eller välj den som PDF eller Word-fil. Appen läser den på telefonen, tar bort sidhuvuden med namn och
-        personnummer och delar upp planen efter rubrikerna. Inget skickas någonstans. Du kontrollerar blocken innan något sparas.
-      </P>
-      <P muted style={{ marginTop: space.s }}>
-        Rubriker som ”Tidiga varningstecken”, ”Livsstil och rutiner” och ”Det här gör jag vid tidiga tecken” känns igen. Under Min
-        krisplan kan du också skriva planen direkt under samma rubriker.
-      </P>
+      <P muted>Planen läses på telefonen. Inget skickas någonstans.</P>
       <Field value={text} onChangeText={setText} multiline placeholder="Klistra in planen här…" accessibilityLabel="Planens text" style={{ minHeight: 220, marginTop: space.m }} />
       <Button kind="ghost" title="Fyll i ett exempel" onPress={() => setText(EXAMPLE)} />
     </Screen>

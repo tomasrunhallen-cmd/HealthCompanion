@@ -37,10 +37,7 @@ export function RelativesScreen() {
         if (!res.ok) await dialog.info('PDF:en gick inte att skapa', res.message);
       }} />}
     >
-      <P muted>
-        Ett kort till dina närstående, ur din krisplan. Ta fram det när du mår bra. Det innehåller tecken som andra kan se, vad de gör,
-        stegen för att undvika tvångsåtgärder och kontakterna. Dina egna upplevelser, önskemål och det som står till vården följer inte med.
-      </P>
+      <P muted>Dina egna upplevelser och önskemål följer inte med.</P>
       <Section title="Tecken som andra kan se">
         <Card>
           {!signs ? (

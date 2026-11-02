@@ -26,13 +26,11 @@ export function signDirection(signals: Signal[], plan: PlanItem[]): Polarity | n
   return dirs.size ? [...dirs][0] : null;
 }
 
-/** "Tecknen i dag pekar åt ”mani”." in the plan's own words, or neutral words when it has none. */
+/** "Tecknen pekar åt ”mani”." in the plan's own words, or neutral words when it has none. */
 export function directionSentence(dir: Polarity | null, settings: Pick<PlanSettings, 'polarityWords'> | null): string | null {
   if (!dir) return null;
-  if (dir === 'both') {
-    return `Tecknen i dag pekar åt båda hållen: ”${polarityWord('up', settings)}” och ”${polarityWord('down', settings)}”. Därför visas åtgärderna för båda.`;
-  }
-  return `Tecknen i dag pekar åt ”${polarityWord(dir, settings)}”. Åtgärderna nedan är de som gäller det, och de som gäller båda hållen.`;
+  if (dir === 'both') return `Tecknen pekar åt båda hållen: ”${polarityWord('up', settings)}” och ”${polarityWord('down', settings)}”.`;
+  return `Tecknen pekar åt ”${polarityWord(dir, settings)}”.`;
 }
 
 function fits(polarity: Polarity | undefined, dir: Polarity | null): boolean {

@@ -62,7 +62,7 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
     <Card>
       <Text style={type.h2} accessibilityRole="header">Rutiner i dag</Text>
       <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
-        {all.length ? `${done} av ${all.length} gjorda. Bocka av under dagen eller i kväll.` : 'Inga dagliga rutiner i planen än.'}
+        {all.length ? `${done} av ${all.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
       </Text>
       {daily.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
 

@@ -16,7 +16,6 @@ import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, MIN_TOUCH, space, type } from '../theme';
 
-const PRIVATE: BlockType[] = ['contacts', 'wishes', 'care'];
 
 /** After a save: a sleep window in the routines is offered for the sleep rule, never applied without a yes. */
 export async function offerSleepWindow(
@@ -58,7 +57,6 @@ function BlockCard({ block, template }: { block: PlanBlock; template: boolean })
     <Card>
       <Text style={type.h2} accessibilityRole="header">{block.heading}</Text>
       {!template ? <Text style={type.small}>Läses som: {BLOCK_TEXT[block.type]}</Text> : null}
-      {PRIVATE.includes(block.type) ? <Text style={type.small}>Används aldrig i bedömningen och skickas aldrig till en språkmodell.</Text> : null}
       {editing ? (
         <View style={{ marginTop: space.s }}>
           {!template ? (
@@ -82,7 +80,7 @@ function BlockCard({ block, template }: { block: PlanBlock; template: boolean })
             placeholderTextColor={colors.textMuted}
             style={{ minHeight: 140, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: space.m, fontSize: 17, color: colors.text, backgroundColor: colors.surface, textAlignVertical: 'top' }}
           />
-          <Text style={[type.small, { marginTop: space.xs }]}>En sak per rad. Dina egna ord.</Text>
+          <Text style={[type.small, { marginTop: space.xs }]}>En sak per rad.</Text>
           <Row style={{ marginTop: space.s }}>
             <Button title="Spara" onPress={save} />
             <Button kind="ghost" title="Avbryt" onPress={() => { setText(block.text); setHeading(block.heading); setTypeOf(block.type); setEditing(false); }} />
@@ -161,10 +159,6 @@ export function PlanScreen() {
 
   return (
     <Screen title="Min krisplan" back>
-      <P muted>
-        Din krisplan i textform, med samma rubriker som i vårdens krisplaner. Skriv en sak per rad, med dina egna ord. Tecknen ger
-        poäng i bedömningen, rutinerna bockar du av under dagen och stegen visas i Hjälp nu.
-      </P>
       <Button title={hasText ? 'Planen har uppdaterats hos vården' : 'Klistra in eller läs in din plan'} kind="secondary" onPress={() => nav.push({ name: 'planImport' })} style={{ marginTop: space.m }} />
 
       {standard.length ? (
@@ -188,7 +182,7 @@ export function PlanScreen() {
 
       <Section title="Akuta formuleringar">
         <Card>
-          <P muted>Dina egna ord för att inte vilja leva eller skada dig. Står de i en anteckning visas krisnumren direkt. De skickas aldrig till en språkmodell.</P>
+          <P muted>Står de i en anteckning visas krisnumren direkt.</P>
           {repo.planOf('akut').map((p) => <AkutRow key={p.id} item={p} />)}
           <Field value={akut} onChangeText={setAkut} placeholder="Ny formulering" accessibilityLabel="Ny akut formulering" />
           <Button title="Lägg till" disabled={!akut.trim()} onPress={async () => { await repo.addPlanItems([{ id: newId('p'), kind: 'akut', text: akut }]); setAkut(''); }} />
@@ -202,7 +196,7 @@ export function PlanScreen() {
             <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]} accessibilityLabel={`Sömngräns ${threshold} timmar`}>{String(threshold).replace('.', ',')} h</Text>
             <Button kind="secondary" title="+" label="Höj gränsen en halvtimme" onPress={() => { const v = Math.min(10, threshold + 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
           </Row>
-          <P muted>Sömn under gränsen räknas som ett tidigt tecken. Standard är 5 timmar.</P>
+          <P muted>Kortare sömn räknas som ett tidigt tecken.</P>
           {ps.sleepWindow ? <P muted style={{ marginTop: space.s }}>Planens sömnfönster: {ps.sleepWindow.start}–{ps.sleepWindow.end}.</P> : null}
         </Card>
       </Section>
@@ -224,10 +218,6 @@ export function PlanScreen() {
           </Card>
         ) : null}
         <Card>
-          <P muted>
-            Tömmer alla delar av krisplanen på en gång. Dina dagar, bedömningar och avbockade rutiner finns kvar, liksom akuta
-            formuleringar du lagt till själv. En kopia av planen sparas, så att du kan ångra.
-          </P>
           <Button kind="danger" title="Rensa hela krisplanen" disabled={!hasText && !standard.length} onPress={async () => {
             const ok = await dialog.confirm({
               title: 'Rensa hela krisplanen?',

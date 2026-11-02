@@ -39,12 +39,12 @@ export function VisitScreen() {
         if (!res.ok) await dialog.info('PDF:en gick inte att skapa', res.message);
       }} />}
     >
-      <P muted>En sammanställning att ta med till vården. Anteckningarna följer aldrig med. Appen skickar inget, du väljer själv vem som får PDF:en.</P>
+      <P muted>Anteckningarna följer aldrig med.</P>
       <Segmented label="Period" value={days} onChange={setDays} options={[{ value: '14', label: '14 dagar' }, { value: '30', label: '30 dagar' }]} />
 
       {repo.pendingSuggestions().length && repo.settings().suggestionPace === 'visit' ? (
         <Card tone="accent">
-          <P>{repo.pendingSuggestions().length === 1 ? 'Ett förslag väntar' : `${repo.pendingSuggestions().length} förslag väntar`} från appen. Du har valt att se förslagen här.</P>
+          <P>{repo.pendingSuggestions().length === 1 ? 'Ett förslag väntar' : `${repo.pendingSuggestions().length} förslag väntar`}.</P>
           <Button kind="ghost" title="Granska förslagen" onPress={() => nav.push({ name: 'suggestions' })} />
         </Card>
       ) : null}
@@ -79,7 +79,6 @@ export function VisitScreen() {
       <Section title="Sömn och stress">
         <Card>
           <P>Snitt: sömn {dec(s.sleepAvg)} timmar, stress {dec(s.stressAvg)}.</P>
-          <P muted style={{ marginTop: space.xs }}>Varje dag finns med i PDF:en.</P>
         </Card>
       </Section>
 

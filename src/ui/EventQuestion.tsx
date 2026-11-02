@@ -24,7 +24,6 @@ export function EventQuestion() {
   return (
     <Card>
       <Text style={type.h2} accessibilityRole="header">Något stort på gång kommande veckan?</Text>
-      <P muted style={{ marginTop: space.xs }}>En resa, en fest, en deadline eller något som oroar. Dagen före visar appen vad din plan säger.</P>
       {added.map((a) => <P key={a} style={{ marginTop: space.xs }}>{`✓ ${a}`}</P>)}
       <Field value={text} onChangeText={setText} placeholder="Till exempel: resa till Berlin" accessibilityLabel="Händelse" style={{ marginTop: space.s }} />
       <Row style={{ gap: 6 }}>

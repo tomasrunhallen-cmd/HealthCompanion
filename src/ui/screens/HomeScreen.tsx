@@ -128,7 +128,6 @@ export function HomeScreen() {
         <Text style={[type.small, { marginBottom: space.l }]}>{formatDateSvTitle(today)}</Text>
         <Button big title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'} onPress={() => nav.push({ name: 'checkin' })} />
         <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
-        <P muted style={{ textAlign: 'center', marginTop: space.l }}>Lågt läge: bara avstämningen och Hjälp nu visas.</P>
         <Button kind="ghost" title="Lämna lågt läge" onPress={() => repo.updateSettings({ lowMode: false })} />
       </Screen>
     );
@@ -165,10 +164,7 @@ export function HomeScreen() {
               <Dot level="yellow" size={20} />
               <Text style={[type.h2, { color: colors.text, flexShrink: 1 }]} accessibilityRole="header">{silent} dagar utan avstämning</Text>
             </Row>
-            <P style={{ marginTop: space.xs }}>
-              Det räknas som ett tidigt tecken i nästa bedömning.
-              {firstYellow ? ` Första steget i din plan: ${firstYellow.text}` : ''}
-            </P>
+            {firstYellow ? <P style={{ marginTop: space.xs }}>Första steget i din plan: {firstYellow.text}</P> : null}
             {notNow(c.id)}
           </Card>
         );
@@ -177,8 +173,7 @@ export function HomeScreen() {
           <Card tone="accent">
             <Text style={type.h2} accessibilityRole="header">Lägg in din krisplan</Text>
             <P style={{ marginTop: space.xs, marginBottom: space.m }}>
-              Appen jämför din anteckning med tecknen i din krisplan. Har du ingen plan till hands kan du börja med allmänna
-              tecken och byta till din egen senare.
+              Appen jämför din anteckning med tecknen i din plan.
             </P>
             <Button title="Lägg in min krisplan" onPress={() => nav.push({ name: 'planImport' })} />
             <Button kind="secondary" title="Börja med allmänna tecken" onPress={chooseStandard} />
@@ -210,7 +205,6 @@ export function HomeScreen() {
           <Card tone="accent">
             <Text style={type.h2} accessibilityRole="header">{sleepNote!.title}</Text>
             <P style={{ marginTop: space.xs }}>{sleepNote!.body}</P>
-            <P muted style={{ marginTop: space.xs }}>En påminnelse om din egen plan. Den påverkar inte nivån.</P>
             <Button kind="ghost" title="Okej" onPress={() => repo.kvSet(NOTICE_KEY, { ...sleepNote, dismissed: true })} />
           </Card>
         );

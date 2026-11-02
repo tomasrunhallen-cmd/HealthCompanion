@@ -30,9 +30,7 @@ export function ShareScreen() {
         if (!res.ok) await dialog.info('PDF:en gick inte att skapa', res.message);
       }} />}
     >
-      <P muted>
-        Visa skärmen eller spara en PDF. Anteckningarna följer aldrig med. Du väljer period och innehåll, och appen skickar inget själv.
-      </P>
+      <P muted>Anteckningarna följer aldrig med.</P>
       <Segmented label="Period" value={days} onChange={setDays} options={[{ value: '7', label: '7 dagar' }, { value: '14', label: '14 dagar' }, { value: '30', label: '30 dagar' }]} />
       <Section title="Det här tas med">
         <Card>
