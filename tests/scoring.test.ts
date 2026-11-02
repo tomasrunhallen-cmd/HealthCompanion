@@ -91,7 +91,7 @@ describe('measured signals', () => {
       const date = addDays('2026-10-12', i);
       const [h, m] = t.split(':').map(Number);
       const at = new Date(2026, 9, 12 + i + (h < 5 ? 1 : 0), h, m);
-      return { entry: entry({ date, createdAt: at.toISOString() }), level: 'green' as const };
+      return { entry: entry({ date, createdAt: at.toISOString(), sleepHours: 7 }), level: 'green' as const };
     });
     expect(computeBaseline('2026-10-20', late).entryTime).toBe('23:30');
   });

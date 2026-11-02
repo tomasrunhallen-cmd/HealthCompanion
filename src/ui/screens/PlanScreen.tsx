@@ -9,7 +9,7 @@ import { blockLines, isSignBlock, TEMPLATE, BLOCK_TEXT, type BlockType, type Pla
 import { windowHours } from '../../core/plan/importPlan';
 import type { PlanItem } from '../../core/domain/types';
 import { clearBlock, clearPlan, dropPlanBackup, planBackup, planBlocks, removeBlock, restorePlan, saveBlock } from '../../services/planBlocks';
-import { formatDateSv } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv } from '../../core/analysis/dates';
 import { confirmStandard, unconfirmedStandard } from '../../services/standard';
 import { Button, Card, Chip, Field, P, Row, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
@@ -219,9 +219,16 @@ export function PlanScreen() {
         ) : null}
         <Card>
           <Button kind="danger" title="Rensa hela krisplanen" disabled={!hasText && !standard.length} onPress={async () => {
+            // Say exactly what goes, and say it plainly after a yellow or red week.
+            const items = repo.contextEntries('grund');
+            const n = (kinds: string[]) => items.filter((p) => kinds.includes(p.kind)).length;
+            const recent = repo.assessments().filter((x) => x.date >= addDays(eveningDateKey(new Date()), -7) && x.level !== 'green').length;
             const ok = await dialog.confirm({
               title: 'Rensa hela krisplanen?',
-              message: 'Alla rubriker töms, och tecknen, rutinerna och stegen tas bort ur appen. Bedömningen räknar sedan bara med mätvärden tills du lagt in en plan igen. Du kan återställa planen härifrån.',
+              message:
+                (recent ? `Den senaste veckan har ${recent === 1 ? 'en dag' : `${recent} dagar`} varit gula eller röda. ` : '') +
+                `Det här försvinner ur appen: ${n(['early', 'serious'])} tecken, ${n(['action_yellow', 'action_red'])} steg, ${n(['routine'])} rutiner och ${n(['contact'])} kontakter. ` +
+                'Bedömningen räknar sedan bara med mätvärden och stämning. Hjälp nu visar fortfarande krisnumren. Du kan återställa planen härifrån.',
               confirmLabel: 'Rensa hela krisplanen',
               danger: true,
             });

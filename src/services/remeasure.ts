@@ -61,8 +61,11 @@ export async function applyRemeasure(repo: Repository, r: Remeasured): Promise<v
   await repo.saveEntry(r.entry, r.assessment);
 }
 
-export async function keepAsItWas(repo: Repository, r: Remeasured): Promise<void> {
+export async function keepAsItWas(repo: Repository, r: Remeasured, now = new Date()): Promise<void> {
   await repo.kvSet(KEPT_KEY, { ...kept(repo), [r.entry.id]: measuredKey(r.changes) });
+  // The day keeps its level, but says what the later values would have given.
+  const a = repo.assessmentFor(r.entry.id);
+  if (a && r.matters) await repo.saveAssessments([{ ...a, remeasureDeclined: { at: now.toISOString(), level: r.after.level, points: r.after.points } }]);
 }
 
 /** The person asked for the values again: a day they kept as it was may be shown again. */

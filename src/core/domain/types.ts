@@ -357,6 +357,8 @@ export interface Assessment {
   recomputed?: { at: string; fromRulesVersion: string | null; level: Level; points: number } | null;
   /** Set when the day was computed again with values the watch synced later: what it was before. */
   remeasured?: { at: string; level: Level; points: number; changes: string[] } | null;
+  /** The person kept the day as it was although the watch's later values gave this. */
+  remeasureDeclined?: { at: string; level: Level; points: number } | null;
 }
 
 /**

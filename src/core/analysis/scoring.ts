@@ -70,8 +70,11 @@ function clock(minutesAfterNoonValue: number): string {
 export function computeBaseline(date: DateKey, history: HistoryDay[], stressSource: MeasureSource = 'garmin'): Baseline {
   const monday = weekStart(date);
   const from = addDays(monday, -RULES.baselineWindowDays);
+  // Only full green days: a day without sleep, or after alcohol, illness or hard training, says
+  // little about the person's usual state (granskning F02).
   const green = history.filter(
-    (h) => h.level === 'green' && h.entry.date >= from && h.entry.date < monday,
+    (h) => h.level === 'green' && h.entry.date >= from && h.entry.date < monday &&
+      h.entry.sleepHours != null && !h.entry.strainYesterday,
   );
   const enough = (v: number[]) => v.length >= RULES.baselineMinSamples;
   const wpm = green.map((h) => h.entry.wordsPerMinute).filter((v): v is number => v != null);

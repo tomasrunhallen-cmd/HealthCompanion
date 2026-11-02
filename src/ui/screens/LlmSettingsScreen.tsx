@@ -91,7 +91,8 @@ export function LlmSettingsScreen() {
         : {
             title: `Text skickas till ${provider === 'openai-compatible' ? normalizeBaseUrl(baseUrl) : info.label}`,
             message:
-              `Rensad text, utan namn, nummer och adresser, skickas med din egen nyckel. ` +
+              `Texten rensas från namnen i din lista och planen, nummer, personnummer, e-post och adresser, och skickas med din egen nyckel. ` +
+              `Den är rensad, inte anonym: smeknamn, arbetsplatser och ovanliga händelser kan finnas kvar. Under Så räknade appen ser du exakt vad som skickades. ` +
               `Leverantörens egna villkor för lagring och träning gäller. Appen kan inte se eller lova hur texten lagras där. ` +
               `${info.termsUrl ? 'Villkoren finns under länken på den här sidan. ' : ''}` +
               `Testet skickar bara appens påhittade testfall, ingen av dina anteckningar.`,

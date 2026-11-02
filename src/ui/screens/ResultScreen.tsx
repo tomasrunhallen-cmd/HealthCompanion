@@ -15,6 +15,7 @@ import { useDialog, useRepo } from '../state';
 import { RemeasureCard } from '../RemeasureCard';
 import { wasStale } from '../../core/analysis/remeasure';
 import { moodText } from '../../core/analysis/mood';
+import { thinLine } from '../../core/analysis/coverage';
 import { forgetKept, isKept, remeasureEntry } from '../../services/remeasure';
 import { SYNC_DAYS, syncGarmin } from '../../services/garmin';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -70,6 +71,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   // A serious sign shows the plan's red steps, also when the level is yellow.
   const serious = seriousActions(a, plan, dir);
   const answered = correctionFor(repo, a.id).length > 0;
+  // Next to the level: what is missing, so a green day without sleep does not look like a full one.
+  const thin = thinLine(entry, a);
   // Values the watch synced after the check-in: shown when it lagged, when values were missing, or when asked.
   const remeasured = entry.kind === 'imported' ? null : remeasureEntry(repo, entry.id);
   const lagged = wasStale(entry) || entry.stressAvg == null || entry.sleepHours == null || entry.sleepSource === 'transcript';
@@ -127,6 +130,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         <LevelLight level={a.level} />
         <P style={{ textAlign: 'center', marginTop: space.m }}>{displaySentence(a)}</P>
         {direction && a.level !== 'green' ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{direction}</P> : null}
+        {thin ? <P muted style={{ textAlign: 'center', marginTop: space.s }}>{thin}</P> : null}
       </Card>
 
       {showRemeasure ? <RemeasureCard r={remeasured!} onDone={() => setAsked(false)} /> : null}
@@ -271,6 +275,12 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             {a.baseline.stressAvg != null ? ` Vanlig stress ${a.baseline.stressAvg}.` : ''}
             {a.baseline.greenDays < 3 ? ' Baslinjen behöver minst tre gröna dagar.' : ''}
           </P>
+          {a.inputs?.sentText ? (
+            <>
+              <Text style={[type.label, { marginTop: space.s }]}>SKICKAT TILL MODELLEN, RENSAT</Text>
+              <Text selectable style={type.small}>{a.inputs.sentText}</Text>
+            </>
+          ) : null}
           <Text style={[type.label, { marginTop: space.s }]}>METOD</Text>
           <P muted>
             {METHOD_TEXT[a.method]} Poäng: {a.points}.

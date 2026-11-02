@@ -18,6 +18,7 @@ import { SignInScreen } from './screens/SignInScreen';
 import { VaultScreen } from './screens/VaultScreen';
 import type { Vault } from '../cloud/vault';
 import { DialogProvider, RepoProvider } from './state';
+import { EmergencyHelp, HelpOnError } from './EmergencyHelp';
 import { applyBoldText, colors, space, type } from './theme';
 
 /**
@@ -91,6 +92,7 @@ function LockGate(props: { repo: Repository; children: React.ReactNode }) {
   if (!locked) return <><GarminAutoSync repo={props.repo} />{props.children}</>;
   return (
     <Centered>
+      <EmergencyHelp />
       <Text style={[type.title, { marginBottom: space.m }]}>Dagsljus</Text>
       {usesPin && !checking ? (
         <View style={{ width: '100%', maxWidth: 320 }}>
@@ -213,10 +215,17 @@ export default function App() {
     );
   }
 
+  // Before the app's own tabs (and their Hjälp nu) are there: the crisis numbers in the corner.
+  const beforeTabs = !repo || !!error || (cloudConfigured && (user === null || (user && !vault)));
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />
-      {body}
+      <HelpOnError>
+        <View style={{ flex: 1 }}>
+          {body}
+          {beforeTabs ? <EmergencyHelp /> : null}
+        </View>
+      </HelpOnError>
     </SafeAreaProvider>
   );
 }
