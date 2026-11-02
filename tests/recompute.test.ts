@@ -19,14 +19,14 @@ const plan: PlanItem[] = [
 const ps = { normalState: '', sleepThresholdHours: 5 };
 const day = (date: string, transcript: string, over: Partial<Entry> = {}): Entry => ({
   id: `e_${date}`, date, createdAt: `${date}T21:00:00.000Z`, localTime: '21:00', kind: 'checkin', transcript,
-  mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+  mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 25, ...over,
 });
 
 describe('what an assessment saves', () => {
   it('keeps the scrubbed note as sent, the raw answer, the rules and prompt versions and the measured days', async () => {
     const raw = '{"matches":[{"sign_id":1,"quote":"orkade inte svara på sms"}],"sentence":"Liknar ditt tecken."}';
     const matcher = createLlmMatcher({ completer: createCompleter(fixedAdapter([raw])), model: 'm', names: () => ['Kim'] });
-    const garmin = { '2026-11-04': { date: '2026-11-04', sleepHours: 7.5, deepMinutes: null, remMinutes: null, sleepStart: '23:00', sleepEnd: '06:30', stressAvg: 30, stressHighMinutes: 5, bodyBatteryWake: null, fetchedAt: '' } };
+    const garmin = { '2026-11-04': { date: '2026-11-04', sleepHours: 7.5, deepMinutes: null, remMinutes: null, sleepStart: '23:00', sleepEnd: '06:30', stressAvg: 25, stressHighMinutes: 5, bodyBatteryWake: null, fetchedAt: '' } };
     const a = await assessEntry({ entry: day('2026-11-04', 'Kim ringde, jag orkade inte svara på sms.'), plan, planSettings: ps, history: [], matcher, garmin });
     expect(a.inputs).toMatchObject({
       rulesVersion: RULES_VERSION,

@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.7.0
+version: 2.8.0
 response: data
 ---
 # Testfall
@@ -79,7 +79,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -89,7 +89,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -99,7 +99,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -109,7 +109,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -119,7 +119,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -129,7 +129,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -139,7 +139,79 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
+        "level": "green"
+      }
+    ],
+    "hog_stress_tva_dagar": [
+      {
+        "daysAgo": 1,
+        "time": "21:00",
+        "mood": 0,
+        "energy": 5,
+        "wordsPerMinute": 120,
+        "sleepHours": 7.5,
+        "stressAvg": 32,
+        "level": "green"
+      },
+      {
+        "daysAgo": 2,
+        "time": "21:15",
+        "mood": 0,
+        "energy": 6,
+        "wordsPerMinute": 118,
+        "sleepHours": 7,
+        "stressAvg": 34,
+        "level": "green"
+      },
+      {
+        "daysAgo": 3,
+        "time": "20:45",
+        "mood": 0,
+        "energy": 5,
+        "wordsPerMinute": 125,
+        "sleepHours": 8,
+        "stressAvg": 25,
+        "level": "green"
+      },
+      {
+        "daysAgo": 4,
+        "time": "21:30",
+        "mood": 0,
+        "energy": 5,
+        "wordsPerMinute": 122,
+        "sleepHours": 7.5,
+        "stressAvg": 25,
+        "level": "green"
+      },
+      {
+        "daysAgo": 5,
+        "time": "21:05",
+        "mood": 1,
+        "energy": 6,
+        "wordsPerMinute": 119,
+        "sleepHours": 7,
+        "stressAvg": 25,
+        "level": "green"
+      },
+      {
+        "daysAgo": 6,
+        "time": "20:50",
+        "mood": 0,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 8,
+        "stressAvg": 25,
+        "level": "green"
+      },
+      {
+        "daysAgo": 7,
+        "time": "21:20",
+        "mood": 0,
+        "energy": 6,
+        "wordsPerMinute": 117,
+        "sleepHours": 7.5,
+        "stressAvg": 25,
         "level": "green"
       }
     ],
@@ -151,7 +223,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -161,7 +233,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -171,7 +243,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -181,7 +253,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -191,7 +263,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -201,7 +273,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -211,7 +283,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       }
     ],
@@ -223,7 +295,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 4.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "yellow"
       },
       {
@@ -233,7 +305,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -243,7 +315,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -253,7 +325,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -263,7 +335,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -273,7 +345,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -283,7 +355,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       }
     ],
@@ -295,7 +367,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "yellow"
       },
       {
@@ -305,7 +377,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "yellow"
       },
       {
@@ -315,7 +387,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "yellow"
       },
       {
@@ -325,7 +397,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -335,7 +407,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -345,7 +417,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -355,7 +427,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       }
     ],
@@ -367,7 +439,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -377,7 +449,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -387,7 +459,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -397,7 +469,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -407,7 +479,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -417,7 +489,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       }
     ],
@@ -429,7 +501,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 6.0,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -439,7 +511,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 6.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -449,7 +521,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -459,7 +531,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -469,7 +541,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -479,7 +551,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       },
       {
@@ -489,7 +561,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
-        "stressAvg": 30,
+        "stressAvg": 25,
         "level": "green"
       }
     ]
@@ -642,7 +714,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
     },
     {
       "id": "precis-under-gult",
-      "name": "Precis under gränserna (5 h sömn, 150 ord per minut, stress 39 mot 30) ger grönt",
+      "name": "Precis under gränserna (5 h sömn, 150 ord per minut, stress 39 bara i dag) ger grönt",
       "expected": "green",
       "history": "gron_vecka",
       "entry": {
@@ -694,8 +766,44 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       }
     },
     {
+      "id": "stress-tre-dagar",
+      "name": "Stress 30 eller mer tre dagar i rad (34, 32, 31) ger gult",
+      "expected": "yellow",
+      "history": "hog_stress_tva_dagar",
+      "entry": {
+        "time": "21:10",
+        "note": "Mycket på jobbet igen. Åt middag hemma och tittade på en film.",
+        "mood": 0,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 7.5,
+        "stressAvg": 31
+      },
+      "reference": {
+        "matches": []
+      }
+    },
+    {
+      "id": "stress-tva-dagar",
+      "name": "Stress 29 efter två dagar över 30 ger grönt",
+      "expected": "green",
+      "history": "hog_stress_tva_dagar",
+      "entry": {
+        "time": "21:10",
+        "note": "Mycket på jobbet igen. Åt middag hemma och tittade på en film.",
+        "mood": 0,
+        "energy": 5,
+        "wordsPerMinute": 121,
+        "sleepHours": 7.5,
+        "stressAvg": 29
+      },
+      "reference": {
+        "matches": []
+      }
+    },
+    {
       "id": "festkvall",
-      "name": "Festkväll med alkohol (insomning 03:00, 4 h sömn, stress 48 mot 30) ger gult",
+      "name": "Festkväll med alkohol (insomning 03:00, 4 h sömn, stress 48 en dag) ger gult",
       "expected": "yellow",
       "history": "gron_vecka_utan_igar",
       "entry": {

@@ -122,7 +122,7 @@ describe('Mina tidigare texter i tjänsterna', () => {
       jamforelse: { abstain: false, abstain_reason: '', observations: [{ pattern: 'M1', quote: 'startat fyra nya projekt', perspective: 'self_now', note: 'Som våren 2024', references: ['R1'] }], differences: [], uncertainties: [] },
     });
     const { assessment: a } = await saveCheckin(repo, { transcript: 'Pratar fortare. Har startat fyra nya projekt i dag.', mood: 0, energy: 5, wordsPerMinute: null }, NOW, { fetch: model.fetch });
-    expect(a.textPatterns).toMatchObject({ levelWithout: 'yellow', pointsWithout: 1, rulesVersion: '1.3.0', promptId: 'textjamforelse' });
+    expect(a.textPatterns).toMatchObject({ levelWithout: 'yellow', pointsWithout: 1, rulesVersion: RULES.version, promptId: 'textjamforelse' });
     expect([a.level, a.points]).toEqual(['yellow', 2]);
     expect(a.textPatterns?.observations[0]).toMatchObject({ counted: true, quote: 'startat fyra nya projekt' });
     expect(a.textPatterns?.referenceIds.length).toBeGreaterThan(0);

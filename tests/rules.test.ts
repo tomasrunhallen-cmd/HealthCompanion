@@ -27,8 +27,8 @@ describe('rules/rules.json', () => {
   it('is refused when it does not follow the schema', () => {
     expect(() => parseRules({ ...json, level: { ...json.level, redAt: 'fyra' } })).toThrow(/\$\.level\.redAt: ska vara ett tal/);
     expect(() => parseRules({ ...json, okand: 1 })).toThrow(/okänt fält/);
-    const { stressFactor: _s, ...missing } = json;
-    expect(() => parseRules(missing)).toThrow(/stressFactor: saknas/);
+    const { stressHighAt: _s, ...missing } = json;
+    expect(() => parseRules(missing)).toThrow(/stressHighAt: saknas/);
     expect(() => parseRules({ ...json, dayStartHour: 30 })).toThrow(/över 23/);
   });
 

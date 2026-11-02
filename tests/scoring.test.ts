@@ -68,7 +68,7 @@ describe('level rules', () => {
 
 describe('measured signals', () => {
   const greenWeek = Array.from({ length: 7 }, (_, i) => ({
-    entry: entry({ date: addDays('2026-10-20', -(i + 1)), wordsPerMinute: 120, stressAvg: 30, sleepHours: 7.5 }),
+    entry: entry({ date: addDays('2026-10-20', -(i + 1)), wordsPerMinute: 120, stressAvg: 25, sleepHours: 7.5 }),
     level: 'green' as const,
   }));
 
@@ -76,7 +76,7 @@ describe('measured signals', () => {
     const withYellow = [...greenWeek, { entry: entry({ date: '2026-10-12', wordsPerMinute: 300 }), level: 'yellow' as const }];
     // 2026-10-20 is a Tuesday: the week's baseline uses green days before Monday 2026-10-19.
     expect(computeBaseline('2026-10-20', withYellow)).toEqual({
-      wordsPerMinute: 120, stressAvg: 30, greenDays: 6, sleepHours: 7.5, entryTime: '21:00', weekOf: '2026-10-19',
+      wordsPerMinute: 120, stressAvg: 25, greenDays: 6, sleepHours: 7.5, entryTime: '21:00', weekOf: '2026-10-19',
     });
   });
 
@@ -108,8 +108,25 @@ describe('measured signals', () => {
     expect(at(151)).toBe(true);
   });
 
-  it('stress above 1.3 times baseline counts', () => {
-    const r = score({ entry: entry({ date: '2026-10-20', stressAvg: 40 }), matches: [], plan, planSettings: ps, history: greenWeek });
+  it('stress counts only at 30 or more three days in a row; one high day gives nothing', () => {
+    const run = (yesterdays: (number | null)[], today: number) => {
+      const hist = [...greenWeek.filter((h) => h.entry.date < '2026-10-18'),
+        ...yesterdays.map((v, i) => ({ entry: entry({ date: addDays('2026-10-20', i - yesterdays.length), stressAvg: v }), level: 'green' as const }))];
+      return score({ entry: entry({ date: '2026-10-20', stressAvg: today }), matches: [], plan, planSettings: ps, history: hist }).signals.find((s) => s.kind === 'stress_high');
+    };
+    expect(run([25, 25], 80)).toBeUndefined();
+    expect(run([30, 30], 30)).toMatchObject({ points: 1, label: 'Stress 30 eller mer tre dagar i rad (30, 30, 30)' });
+    expect(run([34, 32], 31)?.label).toBe('Stress 30 eller mer tre dagar i rad (34, 32, 31)');
+    expect(run([34, 32], 29)).toBeUndefined();
+    expect(run([29, 40], 40)).toBeUndefined();
+    // A day without a value breaks the run.
+    expect(run([40, null], 40)).toBeUndefined();
+  });
+
+  it('the stress run uses the watch for days without an entry', () => {
+    const garmin = { '2026-10-18': { date: '2026-10-18', stressAvg: 35 }, '2026-10-19': { date: '2026-10-19', stressAvg: 33 } } as never;
+    const hist = greenWeek.filter((h) => h.entry.date < '2026-10-18');
+    const r = score({ entry: entry({ date: '2026-10-20', stressAvg: 31 }), matches: [], plan, planSettings: ps, history: hist, garmin });
     expect(r.signals.map((s) => s.kind)).toContain('stress_high');
   });
 
@@ -210,7 +227,7 @@ describe('green text and trend lines', () => {
   const PS = { normalState: '', sleepThresholdHours: 5 };
   const day = (date: string, over: Partial<Entry> = {}): Entry => ({
     id: `t_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: 'Vanlig dag.',
-    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 25, ...over,
   });
   const calm = (last: string, n: number) => Array.from({ length: n }, (_, i) => ({ entry: day(addDays(last, -i)), level: 'green' as const }));
   const T = '2026-11-04';
@@ -238,11 +255,13 @@ describe('green text and trend lines', () => {
     expect(trendLines(day(T, { sleepHours: 5.5 }), base, {}, PS, bl)).toEqual([]);
   });
 
-  it('stress rising three days but within 1,3 times the usual gives the stress line', () => {
-    const bl = { wordsPerMinute: null, stressAvg: 30, greenDays: 10, sleepHours: 7.5, entryTime: null, weekOf: '2026-11-02' };
-    const history = [{ entry: day(addDays(T, -2), { stressAvg: 31 }), level: 'green' as const }, { entry: day(addDays(T, -1), { stressAvg: 34 }), level: 'green' as const }];
-    expect(trendLines(day(T, { stressAvg: 38 }), history, {}, PS, bl)).toEqual(['Din stress har ökat tre dagar i rad.']);
-    expect(trendLines(day(T, { stressAvg: 40 }), history, {}, PS, bl)).toEqual([]);
+  it('stress rising three days without being 30 or more every day gives the stress line', () => {
+    const bl = { wordsPerMinute: null, stressAvg: 25, greenDays: 10, sleepHours: 7.5, entryTime: null, weekOf: '2026-11-02' };
+    const h = (a: number, b: number) => [{ entry: day(addDays(T, -2), { stressAvg: a }), level: 'green' as const }, { entry: day(addDays(T, -1), { stressAvg: b }), level: 'green' as const }];
+    expect(trendLines(day(T, { stressAvg: 29 }), h(22, 26), {}, PS, bl)).toEqual(['Din stress har ökat tre dagar i rad.']);
+    expect(trendLines(day(T, { stressAvg: 45 }), h(25, 31), {}, PS, bl)).toEqual(['Din stress har ökat tre dagar i rad.']);
+    // 30 or more all three days is a sign instead.
+    expect(trendLines(day(T, { stressAvg: 38 }), h(31, 34), {}, PS, bl)).toEqual([]);
   });
 
   it('the trend line is kept off yellow and red days', async () => {

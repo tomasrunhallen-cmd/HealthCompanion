@@ -43,7 +43,7 @@ const base = { plan, planSettings: DEFAULT_PLAN_SETTINGS, history: [] as History
 
 describe('Personliga textmönster i reglerna (regler 1.3.0)', () => {
   it('is a separate, versioned rule category: 1 point each, at most 2, never red alone', () => {
-    expect(RULES.version).toBe('1.3.0');
+    expect(RULES.version.localeCompare('1.3.0', undefined, { numeric: true })).toBeGreaterThanOrEqual(0);
     expect(RULES.textPatterns).toEqual({ points: 1, capPerDay: 2, aloneCanGiveRed: false });
   });
 
@@ -184,7 +184,7 @@ describe('Hela bedömningen med en påhittad jämförelse', () => {
     const a = await run(comparer({ observations: [{ pattern: 'M1', quote: 'tre nya projekt', perspective: 'self_now', note: 'Som våren 2024', references: [] }] }));
     expect(a.level).toBe('yellow');
     expect(a.textPatterns).toMatchObject({
-      rulesVersion: '1.3.0', model: 'testmodell', promptId: 'textjamforelse', promptVersion: '1.0.0', referenceVersion: 'rabc', referenceIds: ['r1'],
+      rulesVersion: RULES.version, model: 'testmodell', promptId: 'textjamforelse', promptVersion: '1.0.0', referenceVersion: 'rabc', referenceIds: ['r1'],
       levelWithout: 'green', pointsWithout: 0, stableMissing: true, differences: ['Fler projekt än i stabila texter'],
     });
     expect(a.textPatterns?.observations[0]).toMatchObject({ patternId: 'm1', quote: 'tre nya projekt', counted: true, perspective: 'self_now' });

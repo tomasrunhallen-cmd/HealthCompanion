@@ -34,7 +34,7 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.7.0');
+    expect(suite.version).toBe('2.8.0');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [
@@ -100,14 +100,21 @@ describe('what each case shows', () => {
     expect(at.signals.map((s) => s.kind)).toEqual(['sleep_low']);
   });
 
-  it('the party night (asleep 03:00, 4 h, stress 1,6 times usual) is yellow; with yes to alcohol too, the values still show', async () => {
+  it('the party night (asleep 03:00, 4 h, stress 48 one day) is yellow; with yes to alcohol too, the values still show', async () => {
     const party = await run(byId('festkvall'));
     expect([party.level, party.points]).toEqual(['yellow', 2]);
-    expect(party.signals.map((s) => s.kind)).toEqual(['sleep_low', 'stress_high', 'late_sleep_no_entry']);
-    expect(party.signals.find((s) => s.kind === 'late_sleep_no_entry')?.capped).toBe(true);
+    // One day of high stress is not a sign.
+    expect(party.signals.map((s) => s.kind)).toEqual(['sleep_low', 'late_sleep_no_entry']);
     const marked = await run(byId('festkvall-markerad'));
     expect([marked.level, marked.points]).toEqual(['yellow', 2]);
-    expect(marked.signals.filter((s) => s.excused).map((s) => s.kind).sort()).toEqual(['late_sleep_no_entry', 'sleep_low', 'stress_high']);
+    expect(marked.signals.filter((s) => s.excused).map((s) => s.kind).sort()).toEqual(['late_sleep_no_entry', 'sleep_low']);
+  });
+
+  it('stress 30 or more three days in a row gives one point; a day under 30 breaks it', async () => {
+    const three = await run(byId('stress-tre-dagar'));
+    expect([three.level, three.points, three.signals.map((s) => s.label)]).toEqual(['yellow', 1, ['Stress 30 eller mer tre dagar i rad (34, 32, 31)']]);
+    const two = await run(byId('stress-tva-dagar'));
+    expect([two.level, two.points]).toEqual(['green', 0]);
   });
 
   it('two short nights in a row help make red; the same note after one short night is yellow', async () => {

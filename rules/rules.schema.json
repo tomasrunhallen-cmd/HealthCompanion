@@ -12,7 +12,8 @@
     "excusedMeasuredToRed",
     "textPatterns",
     "sleepThresholdHoursDefault",
-    "stressFactor",
+    "stressHighAt",
+    "stressHighDays",
     "speechFastFraction",
     "lateSleepHour",
     "lateSleepLatestHour",
@@ -140,9 +141,15 @@
       "type": "integer",
       "minimum": 0
     },
-    "stressFactor": {
-      "type": "number",
-      "minimum": 0
+    "stressHighAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "stressHighDays": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 14
     },
     "speechFastFraction": {
       "type": "number",

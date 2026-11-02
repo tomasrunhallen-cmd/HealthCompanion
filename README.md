@@ -118,7 +118,7 @@ Du behöver en Mistral-nyckel från console.mistral.ai. Steg 2 fungerar i Expo G
 1. Öppna *Inställningar* och tryck *Koppla en språkmodell*.
 2. Välj *Mistral*, klistra in nyckeln och låt modellen stå på *mistral-small-latest*.
 3. Tryck *Testa modellen*. Läs rutan om vart texten går och godkänn. Testet skickar bara appens påhittade testfall.
-4. Se hur många av de 23 testfallen som gav rätt nivå. *Spara* går bara att trycka när alla gjorde det. Annars står fallen som skilde sig först i listan.
+4. Se hur många av de 25 testfallen som gav rätt nivå. *Spara* går bara att trycka när alla gjorde det. Annars står fallen som skilde sig först i listan.
 5. Gör *Kvällens avstämning* med samma text som i steg 1. Bedömningen ska säga att din språkmodell tolkade tecknen, och visa modell och promptversion längst ner.
 6. Lägg in en krisplan. Har planen rubriker som appen inte känner igen visar appen exakt vad som skickas, rubrik för rubrik, innan du trycker *Skicka till Mistral*. Modellen svarar bara med vad varje rad är och skriver aldrig om texten.
 7. Fyll i priser under *Kostnad* för att se en månadsuppskattning.
@@ -194,7 +194,7 @@ Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bo
 
 ## Testfall och modellbyte
 
-`prompts/testfall.md` har 23 fall. Varje fall har en anteckning, mätvärden, en historik, den nivå appen ska ge och ett **referenssvar**: vilka av planens tecken en noggrann modell ska hitta, med ett ordagrant citat. Fallen täcker:
+`prompts/testfall.md` har 25 fall. Varje fall har en anteckning, mätvärden, en historik, den nivå appen ska ge och ett **referenssvar**: vilka av planens tecken en noggrann modell ska hitta, med ett ordagrant citat. Fallen täcker:
 
 | Fall | Nivå |
 | --- | --- |
@@ -205,10 +205,12 @@ Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bo
 | Känt falsklarm (storhandla inför fest) | grönt |
 | Ett allvarligt tecken ensamt | gult, med planens åtgärder vid rött |
 | Allvarligt tecken och ett tidigt tecken | rött |
-| Precis under gult: 5 h sömn, 150 ord per minut, stress 39 mot 30 | grönt |
+| Precis under gult: 5 h sömn, 150 ord per minut, stress 39 bara i dag | grönt |
 | Precis på gult: samma dag med 4,9 h sömn | gult |
 | Fyra timmars sömn, 180 ord per minut, inlägg 01:15 | gult |
-| Festkväll med alkohol: insomning 03:00, 4 h sömn, stress 48 mot 30 (1,6 gånger det vanliga) | gult |
+| Stress 34, 32 och 31 tre dagar i rad | gult |
+| Stress 29 efter två dagar över 30 | grönt |
+| Festkväll med alkohol: insomning 03:00, 4 h sömn, stress 48 en dag | gult |
 | Samma festkväll med ja på *Alkohol, sjuk eller hård träning i går?* | gult, värdena syns med "möjlig förklaring" |
 | En kort natt och två tidiga tecken | gult |
 | Samma dag efter två korta nätter i rad | rött |
@@ -230,7 +232,7 @@ Alla ursprungliga värden sparas på den importerade dagen. En import kan tas bo
   ```
 
   Nyckeln läggs i miljön, aldrig i en fil i repot. Skriptet skriver om `prompts/godkand.json` bara om alla fall gick igenom, och listar annars fallen som skilde sig.
-- **Prompten 1.2.0 står som utgångsläge, inte som godkänd.** Den är oförändrad i den här ändringen och har inte körts mot de 23 fallen med en riktig modell i repot. Kör *Testa modellen* med Mistral i appen för att se hur den klarar dem.
+- **Prompten 1.2.0 står som utgångsläge, inte som godkänd.** Den är oförändrad i den här ändringen och har inte körts mot de 25 fallen med en riktig modell i repot. Kör *Testa modellen* med Mistral i appen för att se hur den klarar dem.
 
 ## Kontextbanken: det appen vet om dig
 
@@ -471,7 +473,7 @@ DAGSLJUS_IMPORT_MODELS=mistral-small-latest,mistral-large-latest npm run plan:ch
 
 - **Grönt säger alltid "Inget av dina tecken syntes i dag."** Texten sätts i koden, aldrig av modellen, och appen skriver aldrig att allt ser bra ut. Har sömnen blivit kortare tre nätter i rad, eller stressen ökat tre dagar i rad, utan att passera gränsen, visas en neutral rad under ampeln, till exempel "Din sömn har blivit kortare tre nätter i rad." Den ger ingen poäng och ingen färg.
 - **Ett allvarligt tecken visar planens åtgärder vid rött, också när ampeln är gul.** Ampel och poäng ändras inte. Bedömningen säger "Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:" och listar stegen vid rött. *Testa modellen* kontrollerar också detta, så att en modell som tar ett allvarligt tecken för ett tidigt inte godkänns.
-- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress över baslinjen, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* räknas sömn under gränsen, stress över baslinjen och insomning efter 02:00 som vanligt och syns med "möjlig förklaring", men de kan bara ge gult, aldrig bidra till rött (regler 1.2.0, efter granskningen). En festkväll med insomning 03:00, 4 timmars sömn och stress 1,6 gånger det vanliga ger gult både med och utan ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Trösklarna och poängen står i `rules/rules.json` och förklaras i `rules/README.md`. Logiken står i `src/core/analysis/scoring.ts`. Båda bör stämmas av med din vårdkontakt.
+- **Mätta tecken räknas inte dubbelt.** Sömn under gränsen, stress 30 eller mer tre dagar i rad, sen insomning och ord per minut ger tillsammans högst 2 poäng per dag. De bidrar bara till rött om samma tecken fanns även dagen innan, annars blir dagen som mest gul. Regeln *tre mätta tecken samma dag ger rött* är borttagen. Därför ger specens testfall med fyra timmars sömn, 180 ord per minut och inlägg 01:15 numera gult första dagen. Svarar man ja på *Alkohol, sjuk eller hård träning i går?* räknas sömn under gränsen, hög stress och insomning efter 02:00 som vanligt och syns med "möjlig förklaring", men de kan bara ge gult, aldrig bidra till rött (regler 1.2.0, efter granskningen). En festkväll med insomning 03:00, 4 timmars sömn och stress 48 en dag ger gult både med och utan ja. Svarar man nej på medicinfrågan två kvällar i rad ger det 1 poäng. Trösklarna och poängen står i `rules/rules.json` och förklaras i `rules/README.md`. Logiken står i `src/core/analysis/scoring.ts`. Båda bör stämmas av med din vårdkontakt.
 - **Orkar bara trycka ger gult.** Specen säger att dagen loggas som tung och att första gula steget visas. Jag har gjort det till ett tecken värt en poäng, så att nivån fortfarande räknas i koden.
 - **Dygnet går 04:00–04:00 i lokal tid.** Ett inlägg 00:30 hör till dagen innan. Annars skulle ett inlägg 01:15 räknas som en ny dag och ge falsk tystnad. Varje inlägg sparar klockslaget där det gjordes, så en resa över tidszoner ändrar inte gamla dagar i efterhand. Regeln om inlägg mitt i natten gäller fortfarande 00:00–05:00, så ett inlägg 04:30 hör till den nya dagen men räknas som ett nattinlägg.
 - **Ett inlägg per kväll.** En ny avstämning samma kväll ersätter den förra, efter bekräftelse.

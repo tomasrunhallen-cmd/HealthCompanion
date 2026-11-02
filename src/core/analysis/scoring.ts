@@ -188,6 +188,23 @@ function rawLevel(
   return { level: 'green', points, reason: 'nothing' };
 }
 
+/**
+ * The stress of the `RULES.stressHighDays` days ending on `end`, oldest first, or null when a
+ * day lacks a value. The watch first, then the entry; `endValue` for the last day when given.
+ */
+function stressRun(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null): number[] | null {
+  const n = RULES.stressHighDays;
+  const vals = Array.from({ length: n }, (_, i) => {
+    const d = addDays(end, i - (n - 1));
+    if (i === n - 1 && endValue !== undefined) return endValue;
+    return garmin[d]?.stressAvg ?? history.find((h) => h.entry.date === d)?.entry.stressAvg ?? null;
+  });
+  return vals.every((v) => v != null) ? (vals as number[]) : null;
+}
+
+/** Stress at or above the limit every day of the run. */
+const stressHigh = (run: number[] | null): run is number[] => !!run && run.every((v) => v >= RULES.stressHighAt);
+
 /** Which capped measured signs were there the day before, from yesterday's entry and Garmin. */
 function yesterdaysMeasured(
   date: DateKey,
@@ -206,8 +223,7 @@ function yesterdaysMeasured(
     out.add('sleep_low');
     out.add('sleep_low_consecutive');
   }
-  const stress = yG?.stressAvg ?? yEntry?.stressAvg ?? null;
-  if (!excused && stress != null && baseline.stressAvg != null && stress > baseline.stressAvg * RULES.stressFactor) out.add('stress_high');
+  if (!excused && stressHigh(stressRun(yDate, history, garmin))) out.add('stress_high');
   if (yG?.sleepStart) {
     const h = Number(yG.sleepStart.slice(0, 2));
     if (h >= RULES.lateSleepHour && h < RULES.lateSleepLatestHour && !history.some((x) => x.entry.date === addDays(yDate, -1))) {
@@ -280,8 +296,7 @@ export function trendLines(
   const sleep = series((g, e) => g?.sleepHours ?? e?.sleepHours, entry.sleepHours);
   if (sleep && falling(sleep) && sleep[n - 1] >= planSettings.sleepThresholdHours) out.push(TREND_SLEEP);
   const stress = series((g, e) => g?.stressAvg ?? e?.stressAvg, entry.stressAvg);
-  const stressLimit = baseline.stressAvg != null ? baseline.stressAvg * RULES.stressFactor : Infinity;
-  if (stress && rising(stress) && stress[n - 1] <= stressLimit) out.push(TREND_STRESS);
+  if (stress && rising(stress) && !stressHigh(stressRun(entry.date, history, garmin, entry.stressAvg))) out.push(TREND_STRESS);
   return out;
 }
 
@@ -332,12 +347,13 @@ export function score(input: ScoreInput): ScoreResult {
 
   const baseline = computeBaseline(entry.date, history, entry.stressSource ?? 'garmin');
 
-  if (entry.stressAvg != null && baseline.stressAvg != null &&
-      entry.stressAvg > baseline.stressAvg * RULES.stressFactor) {
+  // Stress at or above the limit several days in a row; one high day is not a sign.
+  const stressDays = stressRun(entry.date, history, garmin, entry.stressAvg);
+  if (stressHigh(stressDays)) {
     signals.push({
       kind: 'stress_high',
       points: RULES.points.measured,
-      label: `Stress ${entry.stressAvg} mot ditt vanliga ${baseline.stressAvg}`,
+      label: `Stress ${RULES.stressHighAt} eller mer ${WORD[RULES.stressHighDays] ?? RULES.stressHighDays} dagar i rad (${stressDays.join(', ')})`,
       measured: true,
     });
   }

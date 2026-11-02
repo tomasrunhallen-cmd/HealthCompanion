@@ -49,7 +49,10 @@ export interface Rules {
   textPatterns: { points: number; capPerDay: number; aloneCanGiveRed: boolean };
   /** Sleep below this is a sign until the person sets an own limit. */
   sleepThresholdHoursDefault: number;
-  stressFactor: number;
+  /** Stress at or above this (Garmin's scale 0–100, which the manual steps follow) ... */
+  stressHighAt: number;
+  /** ... this many days in a row, today included, is a sign. */
+  stressHighDays: number;
   speechFastFraction: number;
   lateSleepHour: number;
   lateSleepLatestHour: number;

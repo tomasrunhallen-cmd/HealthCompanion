@@ -1,6 +1,6 @@
 {
   "$schema": "./rules.schema.json",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "points": {
     "earlySign": 1,
     "seriousSign": 2,
@@ -29,7 +29,8 @@
     "aloneCanGiveRed": false
   },
   "sleepThresholdHoursDefault": 5,
-  "stressFactor": 1.3,
+  "stressHighAt": 30,
+  "stressHighDays": 3,
   "speechFastFraction": 0.25,
   "lateSleepHour": 2,
   "lateSleepLatestHour": 12,

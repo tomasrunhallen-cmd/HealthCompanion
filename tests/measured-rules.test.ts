@@ -9,19 +9,19 @@ const TODAY = '2026-11-04'; // a Wednesday; the week's baseline uses green days 
 function entry(date: string, over: Partial<Entry> = {}): Entry {
   return {
     id: `e_${date}`, date, createdAt: new Date(`${date}T21:00:00`).toISOString(), kind: 'checkin', transcript: 'Vanlig dag.',
-    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 25, ...over,
   };
 }
 
 function g(date: string, over: Partial<GarminDay> = {}): GarminDay {
-  return { date, sleepHours: 7.5, deepMinutes: 80, remMinutes: 90, sleepStart: '23:00', sleepEnd: '06:30', stressAvg: 30, stressHighMinutes: 10, bodyBatteryWake: 70, fetchedAt: '', ...over };
+  return { date, sleepHours: 7.5, deepMinutes: 80, remMinutes: 90, sleepStart: '23:00', sleepEnd: '06:30', stressAvg: 25, stressHighMinutes: 10, bodyBatteryWake: 70, fetchedAt: '', ...over };
 }
 
-/** Calm green days up to Sunday 1 November (stress baseline 30), and a calm Monday. No entry on Tuesday. */
+/** Calm green days up to Sunday 1 November (stress 25), and a calm Monday. No entry on Tuesday. */
 const greenBefore = (last: string): HistoryDay[] => Array.from({ length: 12 }, (_, i) => ({ entry: entry(addDays(last, -i)), level: 'green' as Level }));
 const greenWeeks: HistoryDay[] = [...greenBefore('2026-11-01'), { entry: entry('2026-11-02'), level: 'green' }];
 
-// The party night: asleep at 03:00, 4 hours of sleep, stress 1.6 times the baseline.
+// The party night: asleep at 03:00, 4 hours of sleep, stress 48 for one day (not a sign on its own).
 const partyGarmin = g(TODAY, { sleepStart: '03:00', sleepEnd: '07:00', sleepHours: 4, stressAvg: 48 });
 const partyEntry = (over: Partial<Entry> = {}) => entry(TODAY, { sleepHours: 4, stressAvg: 48, ...over });
 
@@ -33,8 +33,7 @@ describe('measured signs are not counted twice', () => {
     expect(r.points).toBe(2);
     expect(r.signals.map((s) => [s.kind, s.points, !!s.excused])).toEqual([
       ['sleep_low', 1, true],
-      ['stress_high', 1, true],
-      ['late_sleep_no_entry', 0, true],
+      ['late_sleep_no_entry', 1, true],
     ]);
     expect(r.signals[0].label).toContain('möjlig förklaring: alkohol, sjuk eller hård träning i går');
     const why = explainAssessment(e, { ...r, id: 'a', entryId: e.id, date: TODAY, createdAt: '', sentence: '', method: 'wordmatch', model: null, promptId: null, promptVersion: null, levelReason: r.reason } as Assessment, partyGarmin);
@@ -53,7 +52,9 @@ describe('measured signs are not counted twice', () => {
   });
 
   it('the same party night without the excuse is still at most yellow: capped at 2 points, first day', () => {
-    const r = score({ entry: partyEntry(), matches: [], plan: [], planSettings: PS, history: greenWeeks, garmin: { [TODAY]: partyGarmin } });
+    // Two days of stress 30 or more before it: with the party night three in a row, a third measured sign.
+    const before = [...greenWeeks.filter((h) => h.entry.date < '2026-11-02'), { entry: entry('2026-11-02', { stressAvg: 33 }), level: 'green' as Level }];
+    const r = score({ entry: partyEntry(), matches: [], plan: [], planSettings: PS, history: before, garmin: { [TODAY]: partyGarmin, '2026-11-03': g('2026-11-03', { stressAvg: 35 }) } });
     expect(r.signals.map((s) => [s.kind, s.points, !!s.capped])).toEqual([
       ['sleep_low', 1, false],
       ['stress_high', 1, false],
@@ -88,6 +89,8 @@ describe('measured signs give red only from the second day', () => {
   it('the same day with a good night before stays yellow, and says why', () => {
     const history = [...base, ...badDays(3)];
     history.find((h) => h.entry.date === addDays(TODAY, -1))!.entry = entry(addDays(TODAY, -1), { sleepHours: 7.5, stressAvg: 30 });
+    // Stress was 30 or more three days in a row first today: before that, a calmer day.
+    history.find((h) => h.entry.date === addDays(TODAY, -3))!.entry = entry(addDays(TODAY, -3), { sleepHours: 4, stressAvg: 25 });
     const r = score({ entry: entry(TODAY, { sleepHours: 4, stressAvg: 48 }), matches: [], plan: [], planSettings: PS, history });
     expect(r.signals.some((s) => s.persistent)).toBe(false);
     expect(r).toMatchObject({ level: 'yellow', reason: 'measured_first_day', points: 2 });
