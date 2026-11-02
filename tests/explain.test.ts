@@ -4,7 +4,7 @@ import type { Assessment, Entry, Signal } from '../src/core/domain/types';
 
 const entry: Entry = {
   id: 'e1', date: '2026-10-31', createdAt: new Date(2026, 9, 31, 22, 5).toISOString(), kind: 'checkin',
-  transcript: 'Lugn kväll, men jag är trött.', mood: 5, energy: 6, wordsPerMinute: null,
+  transcript: 'Lugn kväll, men jag är trött.', mood: 0, energy: 6, wordsPerMinute: null,
   sleepHours: 4.5, sleepSource: 'garmin', stressAvg: 47,
 };
 
@@ -30,7 +30,7 @@ describe('explaining an assessment', () => {
     });
     expect(why.data).toEqual([
       'Din anteckning, 6 ord',
-      'Stämning 5 och energi 6, mot snittet för sju dagar',
+      'Stämning balanserad (0) och energi 6, mot snittet för sju dagar',
       'Sömn 4,5 h från Garmin, somnade 02:40',
       'Stress 47 i dag, ditt vanliga 31',
       'Body Battery 41 vid uppvaknandet',

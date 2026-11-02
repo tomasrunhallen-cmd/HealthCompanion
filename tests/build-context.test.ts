@@ -12,7 +12,7 @@ import { fixedAdapter } from '../src/core/llm/fake';
 
 const entry: Entry = {
   id: 'e', date: '2026-11-01', createdAt: new Date(2026, 10, 1, 21).toISOString(), kind: 'checkin',
-  transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
+  transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
 };
 
 let n = 0;

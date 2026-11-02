@@ -196,7 +196,7 @@ describe('connecting and syncing', () => {
 function entry(date: string, over: Partial<Entry> = {}): Entry {
   return {
     id: `e_${date}`, date, createdAt: new Date(`${date}T21:00:00`).toISOString(), kind: 'checkin',
-    transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, sleepHours: 7, sleepSource: 'garmin', stressAvg: null,
+    transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7, sleepSource: 'garmin', stressAvg: null,
     ...over,
   };
 }
@@ -287,7 +287,7 @@ describe('check-in with Garmin and a language model', () => {
     // A later sync during the check-in refreshes today's stress.
     const later = garminFetch({ sleep: [WEEK_SLEEP[0]], stress: [{ calendarDate: '2026-10-30', values: { overallStressLevel: 52, highStressDuration: 3600 } }] });
     const { entry: e, assessment } = await saveCheckin(
-      repo, { transcript: 'Lugn kväll. Kim ringde.', mood: 5, energy: 5, wordsPerMinute: null }, NOW, { fetch: llm }, { fetch: later },
+      repo, { transcript: 'Lugn kväll. Kim ringde.', mood: 0, energy: 5, wordsPerMinute: null }, NOW, { fetch: llm }, { fetch: later },
     );
     expect(later.calls.some((c) => c.url.includes('/stats/stress/daily/2026-10-29/2026-10-30'))).toBe(true);
     expect(e).toMatchObject({ sleepHours: 4.5, sleepSource: 'garmin', stressAvg: 52 });
@@ -307,7 +307,7 @@ describe('check-in with Garmin and a language model', () => {
     const repo = await Repository.create(memoryBackend());
     await connectGarmin(repo, 'gk', { fetch: garminFetch({ sleep: WEEK_SLEEP, stress: WEEK_STRESS }), now: NOW });
     const down: GarminFetch = async () => { throw new TypeError('offline'); };
-    const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Sov sju timmar.', mood: 5, energy: 5, wordsPerMinute: null }, NOW, {}, { fetch: down });
+    const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Sov sju timmar.', mood: 0, energy: 5, wordsPerMinute: null }, NOW, {}, { fetch: down });
     expect(e).toMatchObject({ sleepHours: 4.5, sleepSource: 'garmin', stressAvg: 48 });
     expect(assessment.method).toBe('wordmatch');
     expect(repo.garminStatus().lastError).toContain('Ingen kontakt med Garmin');

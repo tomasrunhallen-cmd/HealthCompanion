@@ -9,6 +9,8 @@ import {
 } from '../core/domain/types';
 import { addDays } from '../core/analysis/dates';
 import { fieldsFromKind } from '../core/plan/fields';
+import { moodFromTen } from '../core/analysis/mood';
+import { moodOf, type DiaryDay } from '../import/bipolarDagbok';
 import type { SentRequest, Usage } from '../core/llm/types';
 import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
 import type { Collection, DocBackend, Snapshot, StorageInfo } from './backend';
@@ -52,7 +54,7 @@ export interface ImportRecord {
 }
 
 /** Version 2: crisis plan and normal state moved into the context bank. Version 3: plan rows get their fields. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const LAYERS: ContextLayer[] = ['grund', 'profil', 'dagligt'];
 
@@ -146,6 +148,17 @@ export class Repository {
     if (settings.contextMode === 'unset' && this.contextEntries('grund').some((e) => e.origin !== 'standard')) {
       this.snap.kv.settings = { ...settings, contextMode: 'own' };
       await this.backend.put('kv', 'settings', this.snap.kv.settings);
+    }
+    // Version 4: stämning moves from 1–10 to −3…+3. The old value is kept on the entry.
+    // Imported days are read again from the diary's own words.
+    if (version < 4) {
+      for (const e of Object.values(this.snap.entries) as Entry[]) {
+        if (e.mood == null || e.moodTen != null) continue;
+        const fromDiary = e.imported ? moodOf({ date: e.date, values: e.imported.values } as DiaryDay) : null;
+        const next: Entry = { ...e, mood: fromDiary ?? moodFromTen(e.mood), moodTen: e.mood };
+        this.snap.entries[e.id] = next;
+        await this.backend.put('entries', e.id, next);
+      }
     }
     this.snap.kv.schemaVersion = SCHEMA_VERSION;
     await this.backend.put('kv', 'schemaVersion', SCHEMA_VERSION);

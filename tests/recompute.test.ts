@@ -19,7 +19,7 @@ const plan: PlanItem[] = [
 const ps = { normalState: '', sleepThresholdHours: 5 };
 const day = (date: string, transcript: string, over: Partial<Entry> = {}): Entry => ({
   id: `e_${date}`, date, createdAt: `${date}T21:00:00.000Z`, localTime: '21:00', kind: 'checkin', transcript,
-  mood: 5, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+  mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
 });
 
 describe('what an assessment saves', () => {

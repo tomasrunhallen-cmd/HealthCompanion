@@ -19,6 +19,10 @@ export interface Rules {
     lateSleepNoEntry: number;
     /** "Nej" to the medication question medicationMissedDays evenings in a row. */
     medicationMissed: number;
+    /** Stämning rated at ±2 (Depression, Uppvarvning). */
+    moodModerate: number;
+    /** Stämning rated at ±3 (Akut depression, Akut mani). */
+    moodSevere: number;
   };
   level: {
     yellowAt: number;
@@ -43,6 +47,8 @@ export interface Rules {
   silenceDays: number;
   medicationMissedDays: number;
   jumpThreshold: number;
+  /** The same for stämning, on its scale from −3 to +3. */
+  moodJumpThreshold: number;
   jumpWindowDays: number;
   jumpMinSamples: number;
   baselineWindowDays: number;

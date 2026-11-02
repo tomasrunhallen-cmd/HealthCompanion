@@ -8,7 +8,7 @@ import { Repository } from '../src/storage/repository';
 const PS = { normalState: '', sleepThresholdHours: 5 };
 const entry: Entry = {
   id: 'e', date: '2026-11-04', createdAt: new Date(2026, 10, 4, 21).toISOString(), kind: 'checkin', transcript: '',
-  mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
+  mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
 };
 const kinds = (medication: Record<string, boolean>) =>
   score({ entry, matches: [], plan: [], planSettings: PS, history: [], medication }).signals.filter((s) => s.kind === 'medication_missed');
@@ -31,8 +31,8 @@ describe('medication in the score', () => {
   it('works through the check-in and shows under the signs that scored', async () => {
     const repo = await Repository.create(memoryBackend());
     await repo.addContextEntry({ kind: 'medication', text: 'Litium 600 mg', origin: 'user' });
-    await saveCheckin(repo, { transcript: 'Glömde medicinen.', mood: 5, energy: 5, wordsPerMinute: null, medicationTaken: false }, new Date(2026, 10, 3, 21));
-    const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Glömde igen.', mood: 5, energy: 5, wordsPerMinute: null, medicationTaken: false }, new Date(2026, 10, 4, 21));
+    await saveCheckin(repo, { transcript: 'Glömde medicinen.', mood: 0, energy: 5, wordsPerMinute: null, medicationTaken: false }, new Date(2026, 10, 3, 21));
+    const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Glömde igen.', mood: 0, energy: 5, wordsPerMinute: null, medicationTaken: false }, new Date(2026, 10, 4, 21));
     expect(assessment.signals.filter((s) => s.kind === 'medication_missed')).toHaveLength(1);
     expect(assessment.points).toBe(1);
     expect(explainAssessment(e, assessment, null).signs).toContainEqual({ label: 'Medicin inte tagen i går och i dag', points: 1 });

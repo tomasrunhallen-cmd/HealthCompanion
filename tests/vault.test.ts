@@ -21,7 +21,7 @@ function plainRows() {
   const doc = (c: 'entries' | 'grund' | 'assessments' | 'kv', i: string, v: unknown): { id: string; data: StoredDoc } =>
     ({ id: docId(c, i), data: { c, i, j: JSON.stringify(v), u: at } });
   return [
-    doc('entries', 'e_2026-10-30', { id: 'e_2026-10-30', date: '2026-10-30', transcript: 'Orkade inte svara på sms i dag.', mood: 5 }),
+    doc('entries', 'e_2026-10-30', { id: 'e_2026-10-30', date: '2026-10-30', transcript: 'Orkade inte svara på sms i dag.', mood: 0 }),
     doc('grund', 'p1', { id: 'p1', kind: 'serious', text: 'Slutar äta', nested: [[1, 2], [3]] }),
     doc('assessments', 'a1', { id: 'a1', level: 'yellow', points: 1, sentence: 'Det tydligaste i dag liknar ditt tecken.' }),
     doc('kv', 'settings', { reminder: '21:00', scrubNames: ['Kim'] }),

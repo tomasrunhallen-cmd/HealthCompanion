@@ -37,7 +37,7 @@ describe('the check-in', () => {
   it('saves the own entry, uses it before Garmin, and the assessment names the source', async () => {
     const repo = await Repository.create(memoryBackend());
     await repo.saveGarminDays([day('2026-11-04', { sleepHours: 7.5, stressAvg: 30 })], '2026-11-04');
-    const { entry, assessment } = await saveCheckin(repo, { transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, manualSleepHours: 4.5, manualStress: null }, new Date(2026, 10, 4, 21));
+    const { entry, assessment } = await saveCheckin(repo, { transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null, manualSleepHours: 4.5, manualStress: null }, new Date(2026, 10, 4, 21));
     expect([entry.sleepHours, entry.sleepSource, entry.stressAvg, entry.stressSource]).toEqual([4.5, 'manual', 30, 'garmin']);
     expect(repo.manualDays()['2026-11-04']).toMatchObject({ sleepHours: 4.5, source: 'manual' });
     expect(assessment.signals.find((s) => s.kind === 'sleep_low')).toBeTruthy();
@@ -50,7 +50,7 @@ describe('the check-in', () => {
 describe('stress baselines per source', () => {
   it('compares stress only with stress from the same source', () => {
     const e = (date: string, stressAvg: number, stressSource?: 'manual' | 'garmin'): Entry => ({
-      id: date, date, createdAt: `${date}T21:00:00Z`, localTime: '21:00', kind: 'checkin', transcript: '', mood: 5, energy: 5,
+      id: date, date, createdAt: `${date}T21:00:00Z`, localTime: '21:00', kind: 'checkin', transcript: '', mood: 0, energy: 5,
       wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg, ...(stressSource ? { stressSource } : {}),
     });
     const history = [

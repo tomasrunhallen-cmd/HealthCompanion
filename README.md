@@ -182,7 +182,7 @@ Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsni
 | I dagboken | I Dagsljus |
 | --- | --- |
 | Anteckningar | Dagens text. "-" blir tom |
-| Högt Humör, Lågt Humör | Stämning 1–10: Balanserad 5, Glädje 7, Uppvarvning 9, de tre nivåerna av lågt humör 4, 3 och 2. Ett lågt värde går före ett högt samma dag |
+| Högt Humör, Lågt Humör | Stämning −3 till +3: Depression −3, Mild Depression −2, Nedstämdhet −1, Balanserad 0, Glädje +1, Uppvarvning +2. Ett lågt värde går före ett högt samma dag |
 | Medicin NEJ | Medicin inte tagen. Två kvällar i rad ger 1 poäng. JA sparas bara på dagen |
 | Alkohol JA | Ja på *Alkohol, sjuk eller hård träning i går?* dagen efter |
 | Raden "Sömn: … ca 7 h" | Sömn, om Garmin saknar natten. Värden under 3 timmar ur texten används inte |
@@ -294,6 +294,30 @@ Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poän
 10. **Första veckan:** dag 1 bara avstämningen, från dag 3 förslag på sömnkälla, dag 7 veckobilden med vad grönt betyder.
 
 PDF:erna görs på telefonen med `expo-print` och öppnas i delningsarket. I webbversionen öppnas utskriften, där personen väljer *Spara som PDF*. Appen skickar inget själv.
+
+### Stämningen
+
+Stämningen skattas på en bipolär skala med sju steg:
+
+| Steg | Namn | Vad det betyder |
+| --- | --- | --- |
+| −3 | Akut depression | Klarar inte vardagen |
+| −2 | Depression | Svårt att klara vardagen |
+| −1 | Nedstämdhet | Lägre än vanligt, klarar vardagen |
+| 0 | Balanserad | Som vanligt |
+| +1 | Glädje | Högre än vanligt, klarar vardagen |
+| +2 | Uppvarvning | Svårt att bromsa, vardagen påverkas |
+| +3 | Akut mani | Klarar inte vardagen |
+
+- **Skalan** är den som patienterna använde i de danska MONARCA-studierna, där stämningen skattades varje kväll från −3 (depressiv) till +3 (manisk).
+- **Hur svårt ett steg är** avgörs av hur mycket vardagen påverkas, som i NIMH:s Life Chart Method.
+- **Orden** är desamma som i Bipolär dagbok.
+
+**Poäng (regler 1.1.0):**
+- ±2 ger 1 poäng och ±3 ger 2 poäng, i den riktning skattningen pekar. Åtgärderna i planen väljs efter samma riktning.
+- Ett hopp på minst 2 steg mot snittet för de senaste sju dagarna ger 1 poäng, som förut.
+
+**Gamla värden:** värden på den gamla skalan 1–10 flyttades en gång till den nya. 1 blir −3, 5 och 6 blir 0, och 10 blir +3. Det gamla värdet sparas på dagen (`moodTen`). Importerade dagar läses om från dagbokens egna ord. *Räkna om historiken* visar vilka dagar som får en annan nivå med de nya reglerna.
 
 ### Enkelhet
 

@@ -7,6 +7,7 @@ import { FROM_SOURCE } from './sources';
 import { formatTime } from './dates';
 import { RULES } from './rules';
 import { wasStale } from './remeasure';
+import { moodText } from './mood';
 
 export interface Explanation {
   data: string[];
@@ -66,7 +67,7 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   else if (entry.transcript.trim()) data.push(`Din anteckning, ${words(entry.transcript)} ord`);
   else data.push('Ingen anteckning');
 
-  if (entry.mood != null && entry.energy != null) data.push(`Stämning ${entry.mood} och energi ${entry.energy}, mot snittet för sju dagar`);
+  if (entry.mood != null && entry.energy != null) data.push(`Stämning ${moodText(entry.mood).toLowerCase()} och energi ${entry.energy}, mot snittet för sju dagar`);
 
   if (entry.sleepHours != null) {
     data.push(

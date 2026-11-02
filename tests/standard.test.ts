@@ -12,7 +12,7 @@ const NOW = new Date(2026, 10, 1, 21, 0);
 
 function entry(transcript: string, over: Partial<Entry> = {}): Entry {
   return {
-    id: 'e', date: '2026-11-01', createdAt: NOW.toISOString(), kind: 'checkin', transcript, mood: 5, energy: 5,
+    id: 'e', date: '2026-11-01', createdAt: NOW.toISOString(), kind: 'checkin', transcript, mood: 0, energy: 5,
     wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null, ...over,
   };
 }

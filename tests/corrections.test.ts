@@ -91,7 +91,7 @@ describe('corrections', () => {
     await saveCorrection(repo, a, { verdict: 'agree', planItemIds: [], text: '' }, at('2026-10-30'));
     await saveCorrection(repo, a, { verdict: 'disagree', planItemIds: ['sms'], text: 'bara trött' }, at('2026-10-30'));
     expect(correctionFor(repo, 'a')).toEqual([expect.objectContaining({ text: 'bara trött', correction: { assessmentId: 'a', verdict: 'disagree', planItemId: 'sms' } })]);
-    const entry = { id: 'e', date: '2026-11-01', createdAt: at('2026-11-01').toISOString(), kind: 'checkin' as const, transcript: '', mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
+    const entry = { id: 'e', date: '2026-11-01', createdAt: at('2026-11-01').toISOString(), kind: 'checkin' as const, transcript: '', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
     expect(buildContext({ entries: repo.contextEntries(), entry, history: [] }).variables.rattelser).toContain('stämde inte om tecknet "Svarar inte på sms". "bara trött"');
   });
 });

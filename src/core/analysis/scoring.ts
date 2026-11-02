@@ -6,6 +6,7 @@ import type {
 } from '../domain/types';
 import { addDays, daysBetween, entryClock, weekStart } from './dates';
 import { RULES } from './rules';
+import { moodStep } from './mood';
 
 export interface HistoryDay {
   entry: Entry;
@@ -368,7 +369,8 @@ export function score(input: ScoreInput): ScoreResult {
     const vals = window.map((h) => h.entry[key]).filter((v): v is number => v != null);
     if (vals.length < RULES.jumpMinSamples) return null;
     const avg = mean(vals)!;
-    return Math.abs(today - avg) >= RULES.jumpThreshold ? round1(today - avg) : null;
+    const threshold = key === 'mood' ? RULES.moodJumpThreshold : RULES.jumpThreshold;
+    return Math.abs(today - avg) >= threshold ? round1(today - avg) : null;
   };
   const moodJump = jump('mood');
   const energyJump = jump('energy');
@@ -381,6 +383,18 @@ export function score(input: ScoreInput): ScoreResult {
       points: RULES.points.jump,
       label: `Stort hopp mot snittet för sju dagar: ${parts.join(', ')}`,
       measured: true,
+    });
+  }
+
+  // Stämning rated away from balance: ±2 and ±3 are a sign in the direction they point.
+  if (entry.mood != null && Math.abs(entry.mood) >= 2) {
+    const step = moodStep(entry.mood);
+    signals.push({
+      kind: 'mood_rated',
+      points: Math.abs(entry.mood) >= 3 ? RULES.points.moodSevere : RULES.points.moodModerate,
+      label: `Du skattade stämningen som ${step.label.toLowerCase()}`,
+      measured: false,
+      polarity: entry.mood > 0 ? 'up' : 'down',
     });
   }
 

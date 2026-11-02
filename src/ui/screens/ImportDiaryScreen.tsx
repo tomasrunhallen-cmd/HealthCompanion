@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Text } from 'react-native';
 import { formatDateSvYear as formatDateSv } from '../../core/analysis/dates';
 import { MOOD_BALANCED, MOOD_VALUES, SOURCE_NAME, type DiaryImport } from '../../import/bipolarDagbok';
+import { moodText } from '../../core/analysis/mood';
 import { signalCounts, suggestMapping, type BuildResult, type Mapping } from '../../import/transform';
 import { pickTextFiles } from '../../platform/files';
 import { backfillGarmin, backfillState } from '../../services/garminHistory';
@@ -13,9 +14,8 @@ import { space, type } from '../theme';
 
 type Step = 'start' | 'review' | 'running' | 'done';
 
-// The diary's low mood levels are named with diagnosis words; the app shows only the numbers.
-const LOW_VALUES = Object.entries(MOOD_VALUES).filter(([k]) => k.startsWith('Lågt')).map(([, v]) => v).sort((a, b) => b - a).join(', ');
-const HIGH_VALUES = Object.entries(MOOD_VALUES).filter(([k]) => k.startsWith('Högt')).map(([k, v]) => `${v} (${k.split(': ')[1]})`).join(' eller ');
+// The diary's mood words and where they land on the app's scale from −3 to +3.
+const MOOD_MAP = Object.entries(MOOD_VALUES).sort(([, a], [, b]) => a - b).map(([k, v]) => `${k.split(': ')[1]} blir ${moodText(v)}`).join(', ');
 
 /**
  * Import from another mood diary. The files are read on the device; nothing is sent to
@@ -167,7 +167,7 @@ export function ImportDiaryScreen() {
         <Section title="Så översätts dagarna">
           <Card>
             <P>• Anteckningen blir dagens text. Akutregeln körs på varje anteckning.</P>
-            <P>{`• Humöret blir stämning 1–10. Balanserad blir ${MOOD_BALANCED}. Lågt humör blir ${LOW_VALUES}, efter dagbokens tre nivåer. Högt humör blir ${HIGH_VALUES}. Ett lågt värde går före ett högt samma dag.`}</P>
+            <P>{`• Humöret blir stämning på skalan från Akut depression (−3) till Akut mani (+3). ${MOOD_MAP}, och Balanserad blir ${moodText(MOOD_BALANCED)}. Ett lågt värde går före ett högt samma dag.`}</P>
             <P>• Medicin NEJ räknas som medicin inte tagen. Två kvällar i rad ger en poäng, som vanligt.</P>
             <P>• Alkohol JA räknas som ja på frågan om alkohol i går, dagen efter.</P>
             <P>• Sömn tas från Garmin, annars från anteckningens rad som börjar med ”Sömn:”.</P>

@@ -31,7 +31,7 @@ async function repoWithModel(): Promise<Repository> {
   return repo;
 }
 
-const input = { transcript: 'Orkade inte svara på sms i dag.', mood: 5, energy: 5, wordsPerMinute: null };
+const input = { transcript: 'Orkade inte svara på sms i dag.', mood: 0, energy: 5, wordsPerMinute: null };
 const NOW = new Date(2026, 10, 4, 21);
 
 describe('the budget', () => {
@@ -80,7 +80,7 @@ describe('word matching is fast', () => {
     const history = Array.from({ length: 730 }, (_, i) => {
       const d = new Date(2024, 10, 4 + i);
       const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const entry: Entry = { id: `h${i}`, date, createdAt: `${date}T20:00:00.000Z`, localTime: '21:00', kind: 'checkin', transcript: 'Vanlig dag med jobb och middag.', mood: 5, energy: 5, wordsPerMinute: null, sleepHours: 7, sleepSource: 'garmin', stressAvg: 30 };
+      const entry: Entry = { id: `h${i}`, date, createdAt: `${date}T20:00:00.000Z`, localTime: '21:00', kind: 'checkin', transcript: 'Vanlig dag med jobb och middag.', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7, sleepSource: 'garmin', stressAvg: 30 };
       return { entry, level: 'green' as const };
     });
     const t0 = Date.now();

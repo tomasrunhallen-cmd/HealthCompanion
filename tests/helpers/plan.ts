@@ -25,4 +25,4 @@ export async function repoWithPlan(): Promise<Repository> {
 
 
 export const at = (day: string, time = '21:00') => new Date(`${day}T${time}:00`);
-export const note = (transcript: string) => ({ transcript, mood: 5, energy: 5, wordsPerMinute: null });
+export const note = (transcript: string) => ({ transcript, mood: 0, energy: 5, wordsPerMinute: null });

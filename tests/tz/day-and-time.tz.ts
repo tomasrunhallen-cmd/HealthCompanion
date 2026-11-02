@@ -9,7 +9,7 @@ import type { Entry } from '../../src/core/domain/types';
 const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const entry = (createdAt: string, localTime?: string): Entry => ({
   id: 'e', date: '2026-11-04', createdAt, localTime: localTime ?? null, kind: 'checkin', transcript: '',
-  mood: 5, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: null, stressAvg: null,
+  mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: null, stressAvg: null,
 });
 const nightSign = (e: Entry) =>
   score({ entry: e, matches: [], plan: [], planSettings: { normalState: '', sleepThresholdHours: 5 }, history: [] }).signals.some((s) => s.kind === 'night_entry');

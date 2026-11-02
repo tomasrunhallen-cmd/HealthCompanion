@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Platform, Text, useColorScheme, View } from 'react-native';
 import { eveningDateKey, formatDateSv, localClock } from '../../core/analysis/dates';
 import { minutesBehind, STALE_MINUTES } from '../../core/analysis/remeasure';
+import { MOOD_MAX, MOOD_MIN, moodStep } from '../../core/analysis/mood';
 import { syncGarmin } from '../../services/garmin';
 import { redFollowup, redStepAnswers } from '../../core/analysis/afterRed';
 import { setRedStep } from '../../services/afterRed';
@@ -33,6 +34,10 @@ function Scale(props: {
   /** The value as shown, and as VoiceOver reads it. */
   show?: (v: number) => string;
   spoken?: (v: number) => string;
+  /** A line under the value that says what it means. */
+  detail?: (v: number) => string;
+  /** Balance in the middle: no filled track, since more is not better. */
+  centred?: boolean;
 }) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const min = props.min ?? 1;
@@ -44,21 +49,23 @@ function Scale(props: {
     <View style={{ marginBottom: space.l }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Text style={type.label}>{props.label.toUpperCase()}</Text>
-        <Text style={[type.h2, { color: colors.accent }]} accessibilityLabel={`${props.label} ${spoken(props.value)}`}>
+        <Text style={[type.h2, { color: colors.accent, flexShrink: 1, textAlign: 'right' }]} accessibilityLabel={`${props.label} ${spoken(props.value)}`}>
           {show(props.value)}
         </Text>
       </Row>
+      {props.detail ? <Text style={[type.small, { textAlign: 'right' }]} accessibilityElementsHidden importantForAccessibility="no">{props.detail(props.value)}</Text> : null}
       <Slider
         accessibilityLabel={props.label}
         accessibilityHint={`Från ${props.low} till ${props.high}`}
         accessibilityValue={{ min, max, now: props.value, text: spoken(props.value) }}
-        minimumValue={min}
-        maximumValue={max}
+        // The slider counts from 0: the web slider puts the thumb wrong on a range below zero.
+        minimumValue={0}
+        maximumValue={max - min}
         step={step}
-        value={props.value}
-        onValueChange={(v) => props.onChange(Math.round(v / step) * step)}
+        value={props.value - min}
+        onValueChange={(v) => props.onChange(Math.round(v / step) * step + min)}
         // The slider takes plain colour strings; pick the pair for the current appearance.
-        minimumTrackTintColor={paletteHex('accent', scheme)}
+        minimumTrackTintColor={paletteHex(props.centred ? 'border' : 'accent', scheme)}
         maximumTrackTintColor={paletteHex('border', scheme)}
         thumbTintColor={paletteHex('accent', scheme)}
         style={{ height: MIN_TOUCH }}
@@ -81,7 +88,7 @@ export function CheckinScreen() {
   const repo = useRepo();
   const nav = useNav();
   const [text, setText] = useState('');
-  const [mood, setMood] = useState(5);
+  const [mood, setMood] = useState(0);
   const [energy, setEnergy] = useState(5);
   const [busy, setBusy] = useState(false);
   const hasMedication = repo.contextOf('medication').length > 0;
@@ -121,7 +128,7 @@ export function CheckinScreen() {
       nav.push({ name: 'result', entryId: entry.id, fresh: true });
       // The tab keeps this screen; start the next evening with an empty form.
       setText('');
-      setMood(5);
+      setMood(0);
       setEnergy(5);
       setMedication(null);
       setStrain(false);
@@ -180,7 +187,19 @@ export function CheckinScreen() {
       </P>
       {akut ? <CrisisCard plan={repo.plan()} mild={akut === 'mild'} /> : null}
 
-      <Scale label="Stämning" value={mood} onChange={setMood} low="1 Mycket låg" high="10 Mycket hög" />
+      <Scale
+        label="Stämning"
+        value={mood}
+        onChange={setMood}
+        min={MOOD_MIN}
+        max={MOOD_MAX}
+        show={(v) => moodStep(v).label}
+        spoken={(v) => `${moodStep(v).label}, ${moodStep(v).hint.toLowerCase()}`}
+        detail={(v) => moodStep(v).hint}
+        centred
+        low="Akut depression"
+        high="Akut mani"
+      />
       <Scale label="Energi" value={energy} onChange={setEnergy} low="1 Ingen" high="10 Väldigt mycket" />
 
       <Card>

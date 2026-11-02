@@ -53,7 +53,7 @@ describe('routines from the plan', () => {
     const repo = await examplePlan();
     const [med, food] = trackedRoutines(repo.contextEntries()).filter((e) => /medicin|frukost/.test(e.text));
     const now = new Date('2026-11-04T21:00:00');
-    const input = { transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null };
+    const input = { transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null };
     const plain = await saveCheckin(repo, input, now);
     const logged = await saveCheckin(repo, { ...input, routines: { [med.id]: true, [food.id]: false } }, now);
     expect([logged.assessment.level, logged.assessment.points]).toEqual([plain.assessment.level, plain.assessment.points]);
@@ -66,7 +66,7 @@ describe('routines from the plan', () => {
   it('says what was done, in positive words, and counts the last 14 evenings', async () => {
     const repo = await examplePlan();
     const med = trackedRoutines(repo.contextEntries()).find((e) => /medicin/.test(e.text))!;
-    const input = { transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null };
+    const input = { transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null };
     for (const [day, done] of [['2026-11-01', true], ['2026-11-02', false], ['2026-11-03', true]] as const) {
       await saveCheckin(repo, { ...input, routines: { [med.id]: done } }, new Date(`${day}T21:00:00`));
     }
@@ -80,7 +80,7 @@ describe('routines from the plan', () => {
   it('never sends routines or the evening\'s answers to a model', async () => {
     const repo = await examplePlan();
     const med = trackedRoutines(repo.contextEntries()).find((e) => /medicin/.test(e.text))!;
-    await saveCheckin(repo, { transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, routines: { [med.id]: true } }, new Date('2026-11-04T21:00:00'));
+    await saveCheckin(repo, { transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null, routines: { [med.id]: true } }, new Date('2026-11-04T21:00:00'));
     const entry = repo.entries()[0];
     const sent = Object.values(buildContext({ entries: repo.contextEntries(), entry, history: [] }).variables).join('\n');
     expect(sent).not.toContain('Tar min medicin klockan 21');

@@ -13,6 +13,11 @@ export function signDirection(signals: Signal[], plan: PlanItem[]): Polarity | n
   const byId = new Map(plan.map((p) => [p.id, p]));
   const dirs = new Set<'up' | 'down'>();
   for (const s of signals) {
+    // The person's own rating of stämning points the same way as a sign.
+    if (s.kind === 'mood_rated' && s.points > 0 && s.polarity) {
+      dirs.add(s.polarity);
+      continue;
+    }
     if ((s.kind !== 'early_sign' && s.kind !== 'serious_sign') || s.points <= 0 || !s.planItemId) continue;
     const p = byId.get(s.planItemId)?.plan?.polarity;
     if (p === 'up' || p === 'down') dirs.add(p);

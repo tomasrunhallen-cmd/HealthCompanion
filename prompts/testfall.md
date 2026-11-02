@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.4.1
+version: 2.5.0
 response: data
 ---
 # Testfall
@@ -75,7 +75,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 1,
         "time": "21:00",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5,
@@ -85,7 +85,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 2,
         "time": "21:15",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
@@ -95,7 +95,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 3,
         "time": "20:45",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
@@ -105,7 +105,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 4,
         "time": "21:30",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
@@ -115,7 +115,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 5,
         "time": "21:05",
-        "mood": 7,
+        "mood": 1,
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
@@ -125,7 +125,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 6,
         "time": "20:50",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
@@ -135,7 +135,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 7,
         "time": "21:20",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
@@ -147,7 +147,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 3,
         "time": "21:00",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5,
@@ -157,7 +157,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 4,
         "time": "21:15",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
@@ -167,7 +167,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 5,
         "time": "20:45",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
@@ -177,7 +177,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 6,
         "time": "21:30",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
@@ -187,7 +187,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 7,
         "time": "21:05",
-        "mood": 7,
+        "mood": 1,
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
@@ -197,7 +197,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 8,
         "time": "20:50",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
@@ -207,7 +207,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 9,
         "time": "21:20",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
@@ -219,7 +219,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 1,
         "time": "21:00",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 4.5,
@@ -229,7 +229,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 2,
         "time": "21:15",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
@@ -239,7 +239,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 3,
         "time": "20:45",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
@@ -249,7 +249,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 4,
         "time": "21:30",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
@@ -259,7 +259,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 5,
         "time": "21:05",
-        "mood": 7,
+        "mood": 1,
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
@@ -269,7 +269,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 6,
         "time": "20:50",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
@@ -279,7 +279,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 7,
         "time": "21:20",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
@@ -291,7 +291,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 1,
         "time": "21:00",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5,
@@ -301,7 +301,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 2,
         "time": "21:15",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
@@ -311,7 +311,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 3,
         "time": "20:45",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
@@ -321,7 +321,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 4,
         "time": "21:30",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
@@ -331,7 +331,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 5,
         "time": "21:05",
-        "mood": 7,
+        "mood": 1,
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
@@ -341,7 +341,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 6,
         "time": "20:50",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
@@ -351,7 +351,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 7,
         "time": "21:20",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
@@ -363,7 +363,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 2,
         "time": "21:15",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 7,
@@ -373,7 +373,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 3,
         "time": "20:45",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
@@ -383,7 +383,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 4,
         "time": "21:30",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
@@ -393,7 +393,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 5,
         "time": "21:05",
-        "mood": 7,
+        "mood": 1,
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
@@ -403,7 +403,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 6,
         "time": "20:50",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
@@ -413,7 +413,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 7,
         "time": "21:20",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
@@ -425,7 +425,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 1,
         "time": "21:00",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 6.0,
@@ -435,7 +435,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 2,
         "time": "21:15",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 118,
         "sleepHours": 6.5,
@@ -445,7 +445,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 3,
         "time": "20:45",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 125,
         "sleepHours": 8,
@@ -455,7 +455,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 4,
         "time": "21:30",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 122,
         "sleepHours": 7.5,
@@ -465,7 +465,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 5,
         "time": "21:05",
-        "mood": 7,
+        "mood": 1,
         "energy": 6,
         "wordsPerMinute": 119,
         "sleepHours": 7,
@@ -475,7 +475,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 6,
         "time": "20:50",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 8,
@@ -485,7 +485,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       {
         "daysAgo": 7,
         "time": "21:20",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 117,
         "sleepHours": 7.5,
@@ -503,7 +503,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:10",
         "note": "Lugn dag. Jobbade, lagade middag och gick en promenad med hunden. Känns som vanligt.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -520,7 +520,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Orkade inte svara på sms i dag.",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": null,
         "sleepHours": 7
@@ -542,7 +542,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:05",
         "note": "Telefonen har legat i en låda hela dagen. Har låtit alla meddelanden från vänner ligga olästa.",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -564,7 +564,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Jag har inte slutat svara på sms, skrev med flera vänner i kväll. Vanlig dag annars.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -581,7 +581,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:20",
         "note": "Storhandlade inför helgens fest, fyllde hela bilen med mat och dryck. Annars en lugn dag.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -599,7 +599,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Känner att alla på jobbet är emot mig. Satt mest för mig själv på lunchen.",
-        "mood": 5,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -622,7 +622,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:15",
         "note": "Har slutat äta ordentligt, hoppade över både lunch och middag. Köpte dessutom två dyra jackor som jag inte behöver.",
-        "mood": 5,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -648,7 +648,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "23:30",
         "note": "Lite trött och seg i dag. Jobbade och gick hem tidigt.",
-        "mood": 4,
+        "mood": -1,
         "energy": 3,
         "wordsPerMinute": 150,
         "sleepHours": 5,
@@ -666,7 +666,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "23:30",
         "note": "Lite trött och seg i dag. Jobbade och gick hem tidigt.",
-        "mood": 4,
+        "mood": -1,
         "energy": 3,
         "wordsPerMinute": 150,
         "sleepHours": 4.9,
@@ -684,7 +684,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "01:15",
         "note": "Kunde inte somna så jag pratar in det här nu. Det har varit en lång dag på jobbet.",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 180,
         "sleepHours": 4
@@ -701,7 +701,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:30",
         "note": "Festkväll i går med vänner, drack en del vin och kom hem sent. Seg och trött i dag.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 4,
@@ -720,7 +720,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:30",
         "note": "Festkväll i går med vänner, drack en del vin och kom hem sent. Seg och trött i dag.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 4,
@@ -740,7 +740,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Beställde en drönare och en ny kamera som jag inte behöver. Har dragit igång massor av nya projekt samtidigt.",
-        "mood": 7,
+        "mood": 1,
         "energy": 7,
         "wordsPerMinute": 121,
         "sleepHours": 4
@@ -766,7 +766,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Beställde en drönare och en ny kamera som jag inte behöver. Har dragit igång massor av nya projekt samtidigt.",
-        "mood": 7,
+        "mood": 1,
         "energy": 7,
         "wordsPerMinute": 121,
         "sleepHours": 4
@@ -795,7 +795,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:10",
         "note": "Vanlig dag på jobbet. Lagade middag och läste en stund.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 5.5
@@ -812,7 +812,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Vanlig dag på jobbet. Åt middag hemma.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5,
@@ -833,7 +833,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Vanlig dag på jobbet. Åt middag hemma.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5,
@@ -854,7 +854,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Vanlig dag. Jobbade och åt middag hemma.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 120,
         "sleepHours": 7.5
@@ -871,7 +871,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Har inte svarat på sms på hela dagen. Har dragit igång massor av nya projekt samtidigt igen.",
-        "mood": 6,
+        "mood": 0,
         "energy": 6,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -898,7 +898,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:40",
         "note": "Sover mindre än vanligt och har många nya idéer hela tiden. Pratar fortare än vanligt och drar mig undan från alla.",
-        "mood": 7,
+        "mood": 1,
         "energy": 7,
         "wordsPerMinute": 121,
         "sleepHours": 4
@@ -932,7 +932,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "22:00",
         "note": "Allt känns hopplöst. Jag vill inte leva längre.",
-        "mood": 2,
+        "mood": -2,
         "energy": 2,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -949,7 +949,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:30",
         "note": "Tänkte mycket på mitt självmordsförsök för tio år sedan i dag.",
-        "mood": 4,
+        "mood": -1,
         "energy": 4,
         "wordsPerMinute": 121,
         "sleepHours": 7.5
@@ -966,7 +966,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
       "entry": {
         "time": "21:00",
         "note": "Jag vill inte dö, jag är bara väldigt trött efter en lång vecka.",
-        "mood": 6,
+        "mood": 0,
         "energy": 5,
         "wordsPerMinute": 121,
         "sleepHours": 7.5

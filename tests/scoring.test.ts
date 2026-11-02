@@ -30,7 +30,7 @@ function entry(partial: Partial<Entry> & { date: string }): Entry {
     createdAt: `${partial.date}T21:00:00`,
     kind: 'checkin',
     transcript: '',
-    mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
+    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
     ...partial,
   };
 }
@@ -125,7 +125,7 @@ describe('measured signals', () => {
   });
 
   it('a jump of 2.5 in mood or energy gives one point', () => {
-    const r = score({ entry: entry({ date: '2026-10-20', mood: 9, energy: 9 }), matches: [], plan, planSettings: ps, history: greenWeek });
+    const r = score({ entry: entry({ date: '2026-10-20', mood: 2, energy: 9 }), matches: [], plan, planSettings: ps, history: greenWeek });
     const jumps = r.signals.filter((s) => s.kind === 'mood_jump' || s.kind === 'energy_jump');
     expect(jumps).toHaveLength(1);
     expect(jumps[0].points).toBe(1);
@@ -210,7 +210,7 @@ describe('green text and trend lines', () => {
   const PS = { normalState: '', sleepThresholdHours: 5 };
   const day = (date: string, over: Partial<Entry> = {}): Entry => ({
     id: `t_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: 'Vanlig dag.',
-    mood: 6, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
   });
   const calm = (last: string, n: number) => Array.from({ length: n }, (_, i) => ({ entry: day(addDays(last, -i)), level: 'green' as const }));
   const T = '2026-11-04';
@@ -256,7 +256,7 @@ describe('green text and trend lines', () => {
 describe('the Trend tab\'s days', () => {
   it('gives one row per day, oldest first, Garmin before the entry, and counts levels and missing days', () => {
     const e = (date: string, sleepHours: number | null, stressAvg: number | null): Entry => ({
-      id: `t_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: '', mood: 5, energy: 5,
+      id: `t_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: '', mood: 0, energy: 5,
       wordsPerMinute: null, sleepHours, sleepSource: 'transcript', stressAvg,
     });
     const entries = [e('2026-10-30', 6, null), e('2026-11-01', 7, 30)];

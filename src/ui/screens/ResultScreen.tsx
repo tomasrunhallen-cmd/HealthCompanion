@@ -14,6 +14,7 @@ import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { RemeasureCard } from '../RemeasureCard';
 import { wasStale } from '../../core/analysis/remeasure';
+import { moodText } from '../../core/analysis/mood';
 import { forgetKept, isKept, remeasureEntry } from '../../services/remeasure';
 import { SYNC_DAYS, syncGarmin } from '../../services/garmin';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -256,7 +257,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           <Text style={[type.label, { marginTop: space.m }]}>DAGENS VÄRDEN</Text>
           <P muted>
             {[
-              entry.mood != null ? `Stämning ${entry.mood}` : null,
+              entry.mood != null ? `Stämning ${moodText(entry.mood).toLowerCase()}` : null,
               entry.energy != null ? `energi ${entry.energy}` : null,
               entry.sleepHours != null
                 ? `sömn ${String(entry.sleepHours).replace('.', ',')} h${entry.sleepSource ? ` (${SOURCE_TEXT[entry.sleepSource]})` : ''}`

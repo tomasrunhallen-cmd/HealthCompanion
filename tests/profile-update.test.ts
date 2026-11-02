@@ -30,7 +30,7 @@ function a(date: string, level: Assessment['level'], signIds: string[] = [], ove
 }
 
 function e(date: string, transcript: string): Entry {
-  return { id: `e_${date}`, date, createdAt: `${date}T20:00:00.000Z`, kind: 'checkin', transcript, mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
+  return { id: `e_${date}`, date, createdAt: `${date}T20:00:00.000Z`, kind: 'checkin', transcript, mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
 }
 
 const PERIOD = [

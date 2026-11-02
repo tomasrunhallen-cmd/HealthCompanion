@@ -18,6 +18,7 @@
     "silenceDays",
     "medicationMissedDays",
     "jumpThreshold",
+    "moodJumpThreshold",
     "jumpWindowDays",
     "jumpMinSamples",
     "baselineWindowDays",
@@ -44,7 +45,9 @@
         "jump",
         "heavyDay",
         "lateSleepNoEntry",
-        "medicationMissed"
+        "medicationMissed",
+        "moodModerate",
+        "moodSevere"
       ],
       "properties": {
         "earlySign": {
@@ -76,6 +79,14 @@
           "minimum": 0
         },
         "medicationMissed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "moodModerate": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "moodSevere": {
           "type": "integer",
           "minimum": 0
         }
@@ -187,6 +198,10 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 23
+    },
+    "moodJumpThreshold": {
+      "type": "number",
+      "minimum": 0
     }
   }
 }

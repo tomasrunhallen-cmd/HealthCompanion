@@ -26,7 +26,7 @@ async function examplePlan(): Promise<Repository> {
 
 const day = (transcript: string): Entry => ({
   id: 'e1', date: '2026-11-04', createdAt: '2026-11-04T21:00:00', kind: 'checkin', transcript,
-  mood: 5, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: null, stressAvg: null,
+  mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: null, stressAvg: null,
 });
 
 const sig = (item: PlanItem): Signal => ({ kind: item.kind === 'serious' ? 'serious_sign' : 'early_sign', points: 1, label: item.text, planItemId: item.id, measured: false });

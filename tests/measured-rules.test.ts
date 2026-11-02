@@ -9,7 +9,7 @@ const TODAY = '2026-11-04'; // a Wednesday; the week's baseline uses green days 
 function entry(date: string, over: Partial<Entry> = {}): Entry {
   return {
     id: `e_${date}`, date, createdAt: new Date(`${date}T21:00:00`).toISOString(), kind: 'checkin', transcript: 'Vanlig dag.',
-    mood: 5, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
+    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: 7.5, sleepSource: 'garmin', stressAvg: 30, ...over,
   };
 }
 
@@ -106,7 +106,7 @@ describe('the question in the check-in', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { memoryBackend } = require('../src/storage/backend');
     const repo = await Repository.create(memoryBackend());
-    const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Sov fyra timmar efter festen.', mood: 5, energy: 5, wordsPerMinute: null, strainYesterday: true }, new Date(2026, 10, 4, 21));
+    const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Sov fyra timmar efter festen.', mood: 0, energy: 5, wordsPerMinute: null, strainYesterday: true }, new Date(2026, 10, 4, 21));
     expect(e.strainYesterday).toBe(true);
     expect(assessment.signals).toEqual([expect.objectContaining({ kind: 'sleep_low', points: 0, excused: true })]);
     expect(assessment.level).toBe('green');

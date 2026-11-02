@@ -199,7 +199,11 @@ export interface Entry {
   kind: EntryKind;
   /** Corrected transcript or typed text. Empty for "Orkar bara trycka". */
   transcript: string;
+  /** Stämning from −3 (Akut depression) to +3 (Akut mani); see analysis/mood.ts. */
   mood: number | null;
+  /** Stämning on the old 1–10 scale, kept on entries saved before the scale changed (schema 4). */
+  moodTen?: number | null;
+  /** Energy 1–10. */
   energy: number | null;
   /** Words per minute, only when speech was recorded and timed. */
   wordsPerMinute: number | null;
@@ -269,6 +273,7 @@ export type SignalKind =
   | 'night_entry'
   | 'silence'
   | 'mood_jump'
+  | 'mood_rated'
   | 'energy_jump'
   | 'heavy_day'
   | 'late_sleep_no_entry'
@@ -290,6 +295,8 @@ export interface Signal {
   unconfirmedStandard?: boolean;
   /** A measured sign that was also there the day before; only then can it count towards red. */
   persistent?: boolean;
+  /** Which way a rating points (stämning): up towards mania, down towards depression. */
+  polarity?: 'up' | 'down';
   /** Counted as 0: alcohol, illness or hard training the day before. */
   excused?: boolean;
   /** Reduced by the daily cap on measured signs. */

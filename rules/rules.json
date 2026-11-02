@@ -1,6 +1,6 @@
 {
   "$schema": "./rules.schema.json",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "points": {
     "earlySign": 1,
     "seriousSign": 2,
@@ -9,7 +9,9 @@
     "jump": 1,
     "heavyDay": 1,
     "lateSleepNoEntry": 1,
-    "medicationMissed": 1
+    "medicationMissed": 1,
+    "moodModerate": 1,
+    "moodSevere": 2
   },
   "level": {
     "yellowAt": 1,
@@ -29,6 +31,7 @@
   "silenceDays": 2,
   "medicationMissedDays": 2,
   "jumpThreshold": 2.5,
+  "moodJumpThreshold": 2,
   "jumpWindowDays": 7,
   "jumpMinSamples": 3,
   "baselineWindowDays": 28,

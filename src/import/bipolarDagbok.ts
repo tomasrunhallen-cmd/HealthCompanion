@@ -164,17 +164,18 @@ export function signalsOf(day: DiaryDay): string[] {
 }
 
 /**
- * The diary's mood fields as Dagsljus's 1-10 mood. A low value wins over a high one on
- * days with both, since the low side is what the plan most often acts on.
+ * The diary's mood fields on Dagsljus's scale from −3 to +3 (analysis/mood.ts). The diary has
+ * three steps down and two up; its words are the scale's own. A low value wins over a high one
+ * on days with both, since the low side is what the plan most often acts on.
  */
 export const MOOD_VALUES: Record<string, number> = {
-  [`${COL_LOW}: Depression`]: 2,
-  [`${COL_LOW}: Mild Depression`]: 3,
-  [`${COL_LOW}: Nedstämdhet`]: 4,
-  [`${COL_HIGH}: Glädje`]: 7,
-  [`${COL_HIGH}: Uppvarvning`]: 9,
+  [`${COL_LOW}: Depression`]: -3,
+  [`${COL_LOW}: Mild Depression`]: -2,
+  [`${COL_LOW}: Nedstämdhet`]: -1,
+  [`${COL_HIGH}: Glädje`]: 1,
+  [`${COL_HIGH}: Uppvarvning`]: 2,
 };
-export const MOOD_BALANCED = 5;
+export const MOOD_BALANCED = 0;
 
 export function moodOf(day: DiaryDay): number | null {
   const low = day.values[COL_LOW];

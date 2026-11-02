@@ -36,7 +36,7 @@ describe('backup encryption', () => {
 function entry(id: string, date: string): Entry {
   return {
     id, date, createdAt: `${date}T21:00:00.000Z`, kind: 'checkin', transcript: 'x',
-    mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
+    mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null,
   };
 }
 function assessment(id: string, e: Entry): Assessment {

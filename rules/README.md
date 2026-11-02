@@ -4,7 +4,7 @@ Den här mappen innehåller alla trösklar och poäng som avgör om en dag blir 
 
 Filen har ett versionsnummer. Varje bedömning sparar vilken version den räknades med. Ändras en regel ska versionen höjas, och *Räkna om historiken med nya regler* visar vilka dagar som skulle få en annan nivå innan något sparas. `rules.schema.json` beskriver vilka fält som får finnas och vilka värden de får ha. Appen vägrar starta med en regelfil som inte följer schemat.
 
-Version: **1.0.0**. Reglerna har inte granskats av en människa med klinisk kunskap.
+Version: **1.1.0**. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
 
 ## Dygnet
 
@@ -21,7 +21,9 @@ Version: **1.0.0**. Reglerna har inte granskats av en människa med klinisk kuns
 | `points.measured` | 1 | Ett mätt tecken: sömn under gränsen, två nätter i rad med kort sömn, stress över baslinjen, inlägg mitt i natten eller tal som är fortare än vanligt. |
 | `points.lateSleepNoEntry` | 1 | Klockan visar insomning efter `lateSleepHour` och det finns inget inlägg kvällen innan. |
 | `points.silence` | 1 | Inga inlägg på `silenceDays` dagar före dagens inlägg. |
-| `points.jump` | 1 | Stämning eller energi skiljer sig med minst `jumpThreshold` steg från snittet de senaste `jumpWindowDays` dagarna. Kräver minst `jumpMinSamples` tidigare dagar. |
+| `points.jump` | 1 | Energin skiljer sig med minst `jumpThreshold` steg, eller stämningen med minst `moodJumpThreshold` steg (2), från snittet de senaste `jumpWindowDays` dagarna. Kräver minst `jumpMinSamples` tidigare dagar. |
+| `points.moodModerate` | 1 | Personen skattade stämningen som *Depression* (−2) eller *Uppvarvning* (+2). |
+| `points.moodSevere` | 2 | Personen skattade stämningen som *Akut depression* (−3) eller *Akut mani* (+3). |
 | `points.heavyDay` | 1 | Personen tryckte *Orkar bara trycka*. |
 | `points.medicationMissed` | 1 | Personen svarade nej på medicinfrågan `medicationMissedDays` kvällar i rad. |
 

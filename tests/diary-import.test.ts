@@ -101,9 +101,9 @@ describe('the day\'s values', () => {
     expect(signalCounts(days).map((c) => c.signal)).toContain('Handlat Mer Än Vanligt');
   });
 
-  it('mood: Balanserad is 5, the low side wins on a day with both', () => {
-    expect(moodOf(days[0])).toBe(5);
-    expect(moodOf(days[1])).toBe(4);
+  it('mood: Balanserad is 0, the low side wins on a day with both', () => {
+    expect(moodOf(days[0])).toBe(0);
+    expect(moodOf(days[1])).toBe(-1);
     expect(medicationOf(days[2])).toBe(false);
     expect(medicationOf(days[0])).toBe(true);
   });
@@ -139,7 +139,7 @@ describe('building the imported days', () => {
   it('makes one imported day per filled-in date, with the note, mood and the original values', async () => {
     const r = await build();
     const e = r.entries.find((x) => x.date === '2024-03-03')!;
-    expect(e).toMatchObject({ kind: 'imported', transcript: 'Orolig hela dagen, sa "nej" till allt.', mood: 4, energy: null, wordsPerMinute: null });
+    expect(e).toMatchObject({ kind: 'imported', transcript: 'Orolig hela dagen, sa "nej" till allt.', mood: -1, energy: null, wordsPerMinute: null });
     expect(new Date(e.createdAt).getHours()).toBe(21);
     expect(e.imported).toEqual({ importId: 'imp1', source: 'bipolar-dagbok', values: { 'Högt Humör': 'Glädje', 'Lågt Humör': 'Nedstämdhet', Medicin: 'JA', Ångest: 'JA' } });
   });
@@ -190,7 +190,7 @@ describe('building the imported days', () => {
   });
 
   it('never replaces a day written in Dagsljus', async () => {
-    const own: Entry = { id: 'own', date: '2024-03-03', createdAt: '2024-03-03T20:00:00', kind: 'checkin', transcript: 'Min egen.', mood: 6, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
+    const own: Entry = { id: 'own', date: '2024-03-03', createdAt: '2024-03-03T20:00:00', kind: 'checkin', transcript: 'Min egen.', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
     const r = await build({ entries: [own] });
     expect(r.skipped).toEqual(['2024-03-03']);
     expect(r.entries.some((x) => x.date === '2024-03-03')).toBe(false);
@@ -209,7 +209,7 @@ describe('saving and removing an import', () => {
   it('saves days, assessments and medication answers, and removes exactly those again', async () => {
     const repo = await Repository.create(memoryBackend());
     await repo.addPlanItems(PLAN.map((p) => ({ id: p.id, kind: p.kind, text: p.text })));
-    const own: Entry = { id: 'own', date: '2024-03-03', createdAt: '2024-03-03T20:00:00', kind: 'checkin', transcript: 'Min egen.', mood: 6, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
+    const own: Entry = { id: 'own', date: '2024-03-03', createdAt: '2024-03-03T20:00:00', kind: 'checkin', transcript: 'Min egen.', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
     const ownA = (await buildImport({ importId: 'x', days: [], mapping: {}, plan: PLAN, planSettings: PS, entries: [], assessments: [], context: [], garmin: {}, now: new Date() })).assessments[0];
     expect(ownA).toBeUndefined();
     await repo.saveEntry(own, { id: 'ownA', entryId: 'own', date: '2024-03-03', createdAt: '', level: 'green', points: 0, signals: [], sentence: '', method: 'wordmatch', model: null, promptId: null, promptVersion: null, baseline: { wordsPerMinute: null, stressAvg: null, greenDays: 0 } });

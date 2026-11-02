@@ -198,7 +198,7 @@ describe('Testa modellen', () => {
   it('approves a model that gives the reference answer in every case', async () => {
     const suite = loadTestSuite();
     const report = await runModelTest(createCompleter(referenceAdapter(suite.cases)), 'referenssvar');
-    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.4.1' });
+    expect(report).toMatchObject({ passed: suite.cases.length, total: suite.cases.length, approved: true, suiteVersion: '2.5.0' });
     expect(report.cases.every((c) => c.ok && c.error == null)).toBe(true);
     expect(differingCases(report)).toEqual([]);
   });
@@ -276,7 +276,7 @@ describe('the app uses the model only after consent', () => {
       usage: { prompt_tokens: 300, completion_tokens: 50 },
     } }]);
     const now = new Date(2026, 9, 30, 21, 0);
-    const { assessment } = await saveCheckin(repo, { transcript: 'Kim ringde. Jag orkade inte svara på sms.', mood: 5, energy: 5, wordsPerMinute: null }, now, { fetch: f });
+    const { assessment } = await saveCheckin(repo, { transcript: 'Kim ringde. Jag orkade inte svara på sms.', mood: 0, energy: 5, wordsPerMinute: null }, now, { fetch: f });
     expect(f.calls[0].body.messages[1].content).toContain('[NAMN] ringde');
     expect(f.calls[0].body.messages[1].content).not.toContain('Kim');
     expect(assessment).toMatchObject({ method: 'llm', level: 'yellow', model: 'mistral-small-latest', promptId: 'analys' });
@@ -290,7 +290,7 @@ describe('the app uses the model only after consent', () => {
     await repo.updateLlmConfig({ provider: 'mistral', model: 'm', consentFor: destinationKey('mistral', '') });
     await setSecret(LLM_KEY_NAME, 'mk');
     const f = fakeFetch([{ status: 500, body: {} }]);
-    const { assessment } = await saveCheckin(repo, { transcript: 'Svarar inte på sms.', mood: 5, energy: 5, wordsPerMinute: null }, new Date(2026, 9, 30, 21), { fetch: f });
+    const { assessment } = await saveCheckin(repo, { transcript: 'Svarar inte på sms.', mood: 0, energy: 5, wordsPerMinute: null }, new Date(2026, 9, 30, 21), { fetch: f });
     expect(assessment).toMatchObject({ method: 'llm_fallback', level: 'yellow' });
   });
 });

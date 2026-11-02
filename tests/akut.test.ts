@@ -172,7 +172,7 @@ describe('the emergency rule in a check-in', () => {
     const repo = await connectedRepo();
     const offline = counting();
     const { entry, assessment } = await saveCheckin(
-      repo, { transcript: 'Orkar inte mer. Jag vill inte leva.', mood: 2, energy: 2, wordsPerMinute: null }, NOW,
+      repo, { transcript: 'Orkar inte mer. Jag vill inte leva.', mood: -2, energy: 2, wordsPerMinute: null }, NOW,
       { fetch: offline }, { fetch: offline },
     );
     expect(offline.calls).toBe(0);
@@ -191,7 +191,7 @@ describe('the emergency rule in a check-in', () => {
     const repo = await connectedRepo();
     await repo.addPlanItems([{ id: 'a1', kind: 'akut', text: 'vill sova för evigt' }]);
     const online = jest.fn<ReturnType<FetchLike>, Parameters<FetchLike>>();
-    const { assessment } = await saveCheckin(repo, { transcript: 'Jag vill sova för evigt.', mood: 3, energy: 3, wordsPerMinute: null }, NOW, { fetch: online as unknown as FetchLike }, { fetch: online as unknown as GarminFetch });
+    const { assessment } = await saveCheckin(repo, { transcript: 'Jag vill sova för evigt.', mood: -2, energy: 3, wordsPerMinute: null }, NOW, { fetch: online as unknown as FetchLike }, { fetch: online as unknown as GarminFetch });
     expect(online).not.toHaveBeenCalled();
     expect(assessment.level).toBe('red');
   });
@@ -200,7 +200,7 @@ describe('the emergency rule in a check-in', () => {
     const repo = await connectedRepo();
     const llm = jest.fn<ReturnType<FetchLike>, Parameters<FetchLike>>();
     const garmin = counting();
-    const { entry, assessment } = await saveCheckin(repo, { transcript: 'Jag vill inte dö, jag är bara trött.', mood: 4, energy: 3, wordsPerMinute: null }, NOW, { fetch: llm as unknown as FetchLike }, { fetch: garmin });
+    const { entry, assessment } = await saveCheckin(repo, { transcript: 'Jag vill inte dö, jag är bara trött.', mood: -1, energy: 3, wordsPerMinute: null }, NOW, { fetch: llm as unknown as FetchLike }, { fetch: garmin });
     expect(llm).not.toHaveBeenCalled();
     expect(assessment).toMatchObject({ akutMild: true, method: 'wordmatch', model: null });
     expect(assessment.akut).toBeUndefined();
@@ -213,7 +213,7 @@ describe('the emergency rule in a check-in', () => {
   it('"Jag vill inte leva" gives a red day and the full card without network', async () => {
     const repo = await connectedRepo();
     const offline = counting();
-    const { assessment } = await saveCheckin(repo, { transcript: 'Jag vill inte leva.', mood: 2, energy: 2, wordsPerMinute: null }, NOW, { fetch: offline }, { fetch: offline });
+    const { assessment } = await saveCheckin(repo, { transcript: 'Jag vill inte leva.', mood: -2, energy: 2, wordsPerMinute: null }, NOW, { fetch: offline }, { fetch: offline });
     expect(offline.calls).toBe(0);
     expect(assessment).toMatchObject({ akut: true, level: 'red', levelReason: 'akut' });
     expect(assessment.akutMild).toBeUndefined();
@@ -222,7 +222,7 @@ describe('the emergency rule in a check-in', () => {
   it('the user\'s emergency phrases never go into the prompt variables', async () => {
     const repo = await connectedRepo();
     await repo.addPlanItems([{ id: 'a1', kind: 'akut', text: 'vill sova för evigt' }]);
-    const entry = { id: 'e', date: '2026-11-01', createdAt: NOW.toISOString(), kind: 'checkin' as const, transcript: 'Vanlig dag.', mood: 5, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
+    const entry = { id: 'e', date: '2026-11-01', createdAt: NOW.toISOString(), kind: 'checkin' as const, transcript: 'Vanlig dag.', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
     const ctx = buildContext({ entries: repo.contextEntries(), entry, history: [] });
     expect(JSON.stringify(ctx.variables)).not.toContain('evigt');
     expect(ctx.signs.map((s) => s.text)).toEqual(['Svarar inte på sms']);
@@ -232,14 +232,14 @@ describe('the emergency rule in a check-in', () => {
   it('gives red also in standard mode, where standard rows alone never do', async () => {
     const repo = await Repository.create(memoryBackend());
     await startWithStandard(repo, NOW);
-    const { assessment } = await saveCheckin(repo, { transcript: 'Har självmordstankar.', mood: 2, energy: 2, wordsPerMinute: null }, NOW);
+    const { assessment } = await saveCheckin(repo, { transcript: 'Har självmordstankar.', mood: -2, energy: 2, wordsPerMinute: null }, NOW);
     expect(assessment).toMatchObject({ akut: true, level: 'red' });
     expect(crisisInfo(repo.plan()).steps).toContain('Kontakta din vårdkontakt i dag');
   });
 
   it('an ordinary note is not affected', async () => {
     const repo = await Repository.create(memoryBackend());
-    const { assessment } = await saveCheckin(repo, { transcript: 'Lugn dag.', mood: 5, energy: 5, wordsPerMinute: null }, NOW);
+    const { assessment } = await saveCheckin(repo, { transcript: 'Lugn dag.', mood: 0, energy: 5, wordsPerMinute: null }, NOW);
     expect(assessment.akut).toBeUndefined();
     expect(assessment.level).toBe('green');
   });
