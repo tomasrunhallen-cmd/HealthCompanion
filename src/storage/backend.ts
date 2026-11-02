@@ -17,6 +17,12 @@ export interface DocBackend {
   load(): Promise<Snapshot>;
   put(collection: Collection, id: string, doc: unknown): Promise<void>;
   remove(collection: Collection, id: string): Promise<void>;
+  /**
+   * Reads one document afresh from where it is stored, when that can differ from what was loaded
+   * (another device). `stored` is undefined when there is none. 'pending' means this device's own
+   * write has not arrived yet, so its copy in memory is the newest.
+   */
+  fetch?(collection: Collection, id: string): Promise<{ stored: unknown } | 'pending'>;
   /** Replaces everything (used by import). */
   replaceAll(snapshot: Snapshot): Promise<void>;
   /** Deletes all data and keys. */
@@ -39,6 +45,9 @@ export function memoryBackend(initial?: Snapshot): DocBackend {
     },
     async remove(c, id) {
       delete data[c][id];
+    },
+    async fetch(c, id) {
+      return { stored: data[c][id] === undefined ? undefined : JSON.parse(JSON.stringify(data[c][id])) };
     },
     async replaceAll(s) {
       data = JSON.parse(JSON.stringify(s));

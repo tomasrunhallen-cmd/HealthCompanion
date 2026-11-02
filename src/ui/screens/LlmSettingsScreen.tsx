@@ -120,7 +120,19 @@ export function LlmSettingsScreen() {
         (done, total) => setProgress(done < total ? `Kör testfall ${done + 1} av ${total}…` : null),
         repo.contextEntries(),
       );
-      setReport({ sig, r });
+      // A key the model answered to is kept at once for the provider already in use: a working
+      // test must not leave the evening assessment and Mönster without the key. (The first time,
+      // Spara keeps the provider and the key together.)
+      const typed = keyInput.trim();
+      if (!usingSavedKey && typed && info.keyRequired && r.cases.some((c) => c.got != null) && sameProviderAsSaved) {
+        await setKey(repo, LLM_KEY_NAME, typed);
+        setSavedKey(true);
+        setReplaceKey(false);
+        setKeyInput('');
+        setReport({ sig: `${dest}|${model.trim()}|saved`, r });
+      } else {
+        setReport({ sig, r });
+      }
     } finally {
       setBusy(false);
       setProgress(null);
@@ -198,7 +210,7 @@ export function LlmSettingsScreen() {
           <Text style={type.h2} accessibilityRole="header">Nyckeln saknas på den här enheten</Text>
           <P style={{ marginTop: space.xs }}>
             {keysSync(repo)
-              ? 'Skriv in nyckeln nedan och spara. Den sparas då krypterad med ditt konto och finns i alla dina webbläsare. Till dess används ordmatchning.'
+              ? 'Skriv in nyckeln nedan och testa. När modellen svarar sparas nyckeln krypterad med ditt konto och finns i alla dina webbläsare. Till dess används ordmatchning.'
               : 'På telefonen sparas nycklar bara där de skrevs in. Skriv in nyckeln nedan och spara. Till dess används ordmatchning.'}
           </P>
         </Card>
@@ -241,7 +253,7 @@ export function LlmSettingsScreen() {
 
         {usingSavedKey ? (
           <Card>
-            <P>Nyckeln är sparad i telefonens nyckelring. Den visas inte igen.</P>
+            <P>{keysSync(repo) ? 'Nyckeln är sparad, krypterad med ditt konto. Den visas inte igen.' : 'Nyckeln är sparad i telefonens nyckelring. Den visas inte igen.'}</P>
             <Button kind="secondary" title="Byt nyckel" onPress={() => setReplaceKey(true)} />
           </Card>
         ) : (
@@ -253,7 +265,7 @@ export function LlmSettingsScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="Klistra in nyckeln"
-            hint={info.keyHelp + (secretsPersist ? '' : ' I webbförhandsvisningen sparas nyckeln bara tills sidan laddas om.')}
+            hint={info.keyHelp + (secretsPersist || keysSync(repo) ? '' : ' I webbförhandsvisningen sparas nyckeln bara tills sidan laddas om.')}
           />
         )}
 

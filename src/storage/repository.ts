@@ -56,8 +56,14 @@ export interface ImportRecord {
 /** Version 2: crisis plan and normal state moved into the context bank. Version 3: plan rows get their fields. */
 export const SCHEMA_VERSION = 5;
 
-/** kv document with the keys that follow the account in the web version. Never exported. */
+/** kv document with the keys that follow the account in the web version (before 2 November 2026: one map). Never exported. */
 export const SYNCED_KEYS = 'syncedKeys';
+/** Each key that follows the account has its own kv document, so two devices never overwrite each other's key. */
+export const SYNCED_KEY_PREFIX = 'syncedKey:';
+
+export function isSyncedKeyDoc(kvId: string): boolean {
+  return kvId === SYNCED_KEYS || kvId.startsWith(SYNCED_KEY_PREFIX);
+}
 
 const LAYERS: ContextLayer[] = ['grund', 'profil', 'dagligt'];
 
@@ -440,6 +446,26 @@ export class Repository {
     this.changed();
   }
 
+  async kvRemove(key: string): Promise<void> {
+    delete this.snap.kv[key];
+    await this.backend.remove('kv', key);
+    this.changed();
+  }
+
+  /** Reads a kv document afresh where the storage can have changed since loading (another device), else from memory. */
+  async kvFetch(key: string): Promise<unknown> {
+    if (!this.backend.fetch) return this.snap.kv[key];
+    try {
+      const r = await this.backend.fetch('kv', key);
+      if (r === 'pending') return this.snap.kv[key];
+      if (r.stored === undefined) delete this.snap.kv[key];
+      else this.snap.kv[key] = r.stored;
+      return r.stored;
+    } catch {
+      return this.snap.kv[key];
+    }
+  }
+
   // ---- suggestions: proposals waiting for the user, never part of the bank itself ----
   suggestions(): Suggestion[] {
     return (this.snap.kv.suggestions as Suggestion[] | undefined) ?? [];
@@ -651,7 +677,7 @@ export class Repository {
       data: (() => {
         const copy = JSON.parse(JSON.stringify(this.snap));
         // Keys to the model and Garmin never leave in a file.
-        delete copy.kv[SYNCED_KEYS];
+        for (const k of Object.keys(copy.kv)) if (isSyncedKeyDoc(k)) delete copy.kv[k];
         return copy;
       })(),
     };
@@ -661,10 +687,10 @@ export class Repository {
     if (data.format !== EXPORT_FORMAT || typeof data.data !== 'object') throw new Error('Filen är inte en Dagsljus-export');
     if (data.version > EXPORT_VERSION) throw new Error('Exporten kommer från en nyare version av appen');
     // An import never brings keys, and never takes away the ones this account has.
-    const keys = this.snap.kv[SYNCED_KEYS];
+    const keys = Object.fromEntries(Object.entries(this.snap.kv).filter(([k]) => isSyncedKeyDoc(k)));
     const incoming = JSON.parse(JSON.stringify(data.data));
-    if (incoming.kv) delete incoming.kv[SYNCED_KEYS];
-    if (keys) incoming.kv = { ...(incoming.kv ?? {}), [SYNCED_KEYS]: keys };
+    for (const k of Object.keys(incoming.kv ?? {})) if (isSyncedKeyDoc(k)) delete incoming.kv[k];
+    incoming.kv = { ...(incoming.kv ?? {}), ...keys };
     await this.backend.replaceAll(incoming);
     this.snap = await this.backend.load();
     await this.migrate();

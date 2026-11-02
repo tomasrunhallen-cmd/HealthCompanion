@@ -117,6 +117,21 @@ export function cloudBackend(
   const item = (c: Collection, id: string, value: unknown) => (vault ? sealItem(vault, c, id, value) : Promise.resolve(plain(c, id, value)));
   const target = async (c: Collection, id: string) => (vault ? vault.docIdFor(docId(c, id)) : docId(c, id));
 
+  // Writes made here that Firebase has not confirmed, per document.
+  const unsent = new Map<string, number>();
+  const sending = (c: Collection, id: string) => {
+    const k = docId(c, id);
+    unsent.set(k, (unsent.get(k) ?? 0) + 1);
+    let once = false;
+    return () => {
+      if (once) return;
+      once = true;
+      const n = (unsent.get(k) ?? 1) - 1;
+      if (n > 0) unsent.set(k, n);
+      else unsent.delete(k);
+    };
+  };
+
   // Encryption is asynchronous; a queue keeps the writes in the order the app made them.
   let queue: Promise<void> = Promise.resolve();
   const enqueue = (job: () => Promise<void>) => {
@@ -141,14 +156,36 @@ export function cloudBackend(
       return vault ? openSnapshot(rows, vault) : snapshotFrom(rows);
     },
     async put(c, id, value) {
+      const done = sending(c, id);
       enqueue(async () => {
-        const it = await item(c, id, value);
-        docs.set(it.id, it.data).catch(fail);
+        try {
+          const it = await item(c, id, value);
+          docs.set(it.id, it.data).catch(fail).finally(done);
+        } catch (e) {
+          done();
+          throw e;
+        }
       });
     },
+    async fetch(c, id) {
+      // Asks Firebase, since another device may have written since loading; unless this browser's
+      // own write is still on its way (or waiting for the network), which is then the newest.
+      if (unsent.get(docId(c, id))) return 'pending';
+      const at = await target(c, id);
+      const d = await docs.get(at);
+      if (!d) return { stored: undefined };
+      if (vault) return { stored: isSealedDoc(d) ? (JSON.parse(await vault.open(at, d)) as Inner).v : undefined };
+      return { stored: isPlainDoc(d) ? JSON.parse(d.j) : undefined };
+    },
     async remove(c, id) {
+      const done = sending(c, id);
       enqueue(async () => {
-        docs.remove(await target(c, id)).catch(fail);
+        try {
+          docs.remove(await target(c, id)).catch(fail).finally(done);
+        } catch (e) {
+          done();
+          throw e;
+        }
       });
     },
     async replaceAll(snapshot) {

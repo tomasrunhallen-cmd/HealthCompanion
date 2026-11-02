@@ -4,7 +4,10 @@
 
 import { memoryBackend, type DocBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
-import { deleteKey, getKey, keysSync, setKey, SYNCED_KEYS } from '../src/services/keys';
+import { deleteKey, getKey, keysSync, setKey, syncedKeyDoc, SYNCED_KEYS } from '../src/services/keys';
+import { cloudBackend, memoryCloudDocs } from '../src/storage/cloudBackend';
+import { createVault } from '../src/cloud/vault';
+import { webcrypto } from 'crypto';
 import { getSecret, setSecret } from '../src/platform/secrets';
 import { LLM_KEY_NAME, llmStatus } from '../src/services/llm';
 import { GARMIN_KEY_NAME } from '../src/services/garmin';
@@ -19,6 +22,8 @@ jest.mock('../src/platform/secrets', () => {
 function cloud(shared: DocBackend): DocBackend {
   return { ...shared, info: () => ({ kind: 'cloud', encrypted: true, detail: 'test' }) };
 }
+
+const settle = () => new Promise((r) => setTimeout(r, 50));
 
 describe('Nycklarna', () => {
   it('stay on the device when the storage is not the encrypted cloud', async () => {
@@ -51,8 +56,60 @@ describe('Nycklarna', () => {
     await setSecret(LLM_KEY_NAME, 'mk-old');
     const repo = await Repository.create(cloud(memoryBackend()));
     expect(await getKey(repo, LLM_KEY_NAME)).toBe('mk-old');
-    expect(repo.kvGet(SYNCED_KEYS)).toEqual({ [LLM_KEY_NAME]: 'mk-old' });
+    expect(repo.kvGet(syncedKeyDoc(LLM_KEY_NAME))).toBe('mk-old');
     expect(await getSecret(LLM_KEY_NAME)).toBeNull();
+  });
+
+  it('moves a key from the earlier shared map into its own document', async () => {
+    const shared = memoryBackend();
+    await shared.put('kv', SYNCED_KEYS, { [LLM_KEY_NAME]: 'mk-map' });
+    const repo = await Repository.create(cloud(shared));
+    expect(await getKey(repo, LLM_KEY_NAME)).toBe('mk-map');
+    expect(repo.kvGet(syncedKeyDoc(LLM_KEY_NAME))).toBe('mk-map');
+    await deleteKey(repo, LLM_KEY_NAME);
+    expect(await getKey(await Repository.create(cloud(shared)), LLM_KEY_NAME)).toBeNull();
+  });
+
+  it('a tab opened earlier sees a key saved on another device since, and does not overwrite it', async () => {
+    const shared = memoryBackend();
+    // The laptop tab is opened first and stays open.
+    const laptop = await Repository.create(cloud(shared));
+    const phone = await Repository.create(cloud(shared));
+    await setKey(phone, LLM_KEY_NAME, 'mk-phone');
+    // The old tab saves its Garmin key: before, this wrote the whole map from its stale copy.
+    await setKey(laptop, GARMIN_KEY_NAME, 'gk-laptop');
+    expect(await getKey(laptop, LLM_KEY_NAME)).toBe('mk-phone');
+    const third = await Repository.create(cloud(shared));
+    expect(await getKey(third, LLM_KEY_NAME)).toBe('mk-phone');
+    expect(await getKey(third, GARMIN_KEY_NAME)).toBe('gk-laptop');
+    await phone.updateLlmConfig({ provider: 'mistral', model: 'mistral-small-latest', consentFor: destinationKey('mistral', '') });
+    const again = await Repository.create(cloud(shared));
+    expect((await llmStatus(again)).ready).toBe(true);
+  });
+
+  it('works through the real encrypted Firebase store, between two browsers', async () => {
+    const docs = memoryCloudDocs();
+    const crypto = webcrypto as unknown as Crypto;
+    const { vault } = await createVault('ett långt lösenord', { crypto: crypto as never, iterations: 1000 });
+    const open = () => Repository.create(cloudBackend(docs, { account: 'test', vault }));
+    const first = await open();
+    const second = await open();
+    expect(keysSync(first)).toBe(true);
+    await setKey(first, LLM_KEY_NAME, 'mk-sealed');
+    // On its way to Firebase, the browser's own copy counts.
+    expect(await getKey(first, LLM_KEY_NAME)).toBe('mk-sealed');
+    // The write is encrypted and sent in the background, as in the browser.
+    await settle();
+    // Nothing readable reaches Firebase.
+    expect(JSON.stringify([...docs.store.values()])).not.toContain('mk-sealed');
+    expect(await getKey(second, LLM_KEY_NAME)).toBe('mk-sealed');
+    // A new key on the second browser reaches the first, which saved the old one itself.
+    await setKey(second, LLM_KEY_NAME, 'mk-new');
+    await settle();
+    expect(await getKey(first, LLM_KEY_NAME)).toBe('mk-new');
+    await deleteKey(second, LLM_KEY_NAME);
+    await settle();
+    expect(await getKey(await open(), LLM_KEY_NAME)).toBeNull();
   });
 
   it('never leave in an export, and an import does not remove them', async () => {
@@ -60,7 +117,7 @@ describe('Nycklarna', () => {
     await setKey(repo, LLM_KEY_NAME, 'mk-x');
     const file = repo.exportData();
     expect(JSON.stringify(file)).not.toContain('mk-x');
-    await repo.importData({ ...file, data: { ...file.data, kv: { ...file.data.kv, [SYNCED_KEYS]: { [LLM_KEY_NAME]: 'injected' } } } });
+    await repo.importData({ ...file, data: { ...file.data, kv: { ...file.data.kv, [SYNCED_KEYS]: { [LLM_KEY_NAME]: 'injected' }, [syncedKeyDoc(LLM_KEY_NAME)]: 'injected' } } });
     expect(await getKey(repo, LLM_KEY_NAME)).toBe('mk-x');
   });
 });

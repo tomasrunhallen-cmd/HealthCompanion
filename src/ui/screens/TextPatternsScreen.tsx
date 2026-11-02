@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import type { ReferenceText, TextPattern } from '../../core/domain/types';
 import { DIRECTION_TEXT, PERIOD_TEXT, PHENOMENON_TEXT, periodsOf, usableReferences } from '../../core/references/references';
 import {
@@ -78,6 +79,7 @@ export function TextPatternsScreen() {
   const dialog = useDialog();
   const [busy, setBusy] = useState<string | null>(null);
   const [period, setPeriod] = useState<string | null>(null);
+  const [llm, setLlm] = useState<{ ready: boolean; message: string | null } | null>(null);
   const refs = referenceTexts(repo);
   const patterns = textPatterns(repo);
   const enabled = textPatternsEnabled(repo);
@@ -90,7 +92,14 @@ export function TextPatternsScreen() {
     try {
       await fn();
     } catch (e) {
-      await dialog.info('Det gick inte', (e as Error).message);
+      // When the model cannot be used, the way there is one press away.
+      const st = await llmStatus(repo).catch(() => null);
+      setLlm(st);
+      if (st && !st.ready) {
+        if (await dialog.confirm({ title: 'Det gick inte', message: (e as Error).message, confirmLabel: 'Öppna Språkmodell' })) nav.push({ name: 'llm' });
+      } else {
+        await dialog.info('Det gick inte', (e as Error).message);
+      }
     } finally {
       setBusy(null);
     }
@@ -98,12 +107,14 @@ export function TextPatternsScreen() {
 
   const order: TextPattern['status'][] = ['needs_review', 'proposed', 'approved', 'rejected'];
   // Proposing patterns needs a model on this device: say why it cannot, before the person tries.
-  const [llm, setLlm] = useState<{ ready: boolean; message: string | null } | null>(null);
+  // Checked again each time the screen is shown, so a key saved under Språkmodell counts at once.
+  const focused = useIsFocused();
   useEffect(() => {
+    if (!focused) return;
     let live = true;
     llmStatus(repo).then((st) => live && setLlm(st)).catch(() => undefined);
     return () => { live = false; };
-  }, [repo]);
+  }, [repo, focused]);
 
   return (
     <Screen title="Mönster">
