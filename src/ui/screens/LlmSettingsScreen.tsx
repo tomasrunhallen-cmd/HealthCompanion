@@ -177,10 +177,20 @@ export function LlmSettingsScreen() {
 
   const cost = estimateMonthlyCost(repo.usageLog(), eveningDateKey(new Date()), repo.llmConfig());
   const active = saved.provider && hasConsent(saved);
+  // The settings follow the account; the key stays on the device where it was typed.
+  const keyMissing = !!active && saved.provider !== 'openai-compatible' && !savedKey;
 
   return (
     <Screen title="Språkmodell" back>
-      <Card tone={active ? 'green' : undefined}>
+      {keyMissing ? (
+        <Card tone="yellow">
+          <Text style={type.h2} accessibilityRole="header">Nyckeln saknas på den här enheten</Text>
+          <P style={{ marginTop: space.xs }}>
+            Nycklar sparas bara där de skrevs in, i webbversionen i just den webbläsaren, och en app på hemskärmen har egen lagring. Skriv in nyckeln nedan och spara. Till dess används ordmatchning.
+          </P>
+        </Card>
+      ) : null}
+      <Card tone={active && !keyMissing ? 'green' : undefined}>
         <Text style={type.h2}>{active ? `${PROVIDERS[saved.provider!].label}: ${saved.model}` : 'Ingen språkmodell'}</Text>
         <P muted style={{ marginTop: space.xs }}>
           {active

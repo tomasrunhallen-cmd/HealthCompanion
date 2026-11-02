@@ -16,7 +16,7 @@ import { excerpt, excludedBecause, ownLinesOnly, patternsAfterSourceChange, refe
 import { holdOut, summarize, type HoldOutResult, type HoldOutSummary } from '../core/references/evaluate';
 import { scrub } from '../core/privacy/scrub';
 import type { Repository } from '../storage/repository';
-import { activeAdapter, namesToScrub, trackedCompleter, type AdapterOptions } from './llm';
+import { activeAdapter, llmStatus, namesToScrub, trackedCompleter, type AdapterOptions } from './llm';
 
 export const REFS_KEY = 'referenceTexts';
 export const PATTERNS_KEY = 'textPatterns';
@@ -126,7 +126,7 @@ function planSigns(repo: Repository): PlanItem[] {
 
 async function completer(repo: Repository, opts: AdapterOptions): Promise<{ completer: Completer; model: string }> {
   const adapter = await activeAdapter(repo, opts);
-  if (!adapter) throw new Error('Ingen språkmodell är kopplad. Koppla en under Inställningar, Språkmodell.');
+  if (!adapter) throw new Error((await llmStatus(repo)).message ?? 'Ingen språkmodell är kopplad.');
   return { completer: trackedCompleter(repo, adapter, opts.now), model: adapter.model };
 }
 

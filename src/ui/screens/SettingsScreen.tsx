@@ -8,6 +8,7 @@ import type { ExportData } from '../../storage/repository';
 import { toDateKey } from '../../core/analysis/dates';
 import { PROVIDERS } from '../../adapter/providers';
 import { hasConsent } from '../../llm/config';
+import { llmStatus, type LlmProblem } from '../../services/llm';
 import { deleteSecret } from '../../platform/secrets';
 import { LLM_KEY_NAME } from '../../services/llm';
 import { GARMIN_KEY_NAME } from '../../services/garmin';
@@ -34,6 +35,12 @@ export function SettingsScreen() {
   const dialog = useDialog();
   const s = repo.settings();
   const llm = repo.llmConfig();
+  const [llmProblem, setLlmProblem] = useState<LlmProblem | null>(null);
+  useEffect(() => {
+    let live = true;
+    llmStatus(repo).then((st) => live && setLlmProblem(st.problem)).catch(() => undefined);
+    return () => { live = false; };
+  }, [repo, llm.provider, llm.consentFor]);
   const garmin = repo.garminStatus();
   const [lock, setLock] = useState<LockSupport | null>(null);
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
@@ -239,9 +246,11 @@ export function SettingsScreen() {
       <Section title="Språkmodell">
         <Card>
           <P>
-            {llm.provider && hasConsent(llm)
-              ? `${PROVIDERS[llm.provider].label}, ${llm.model}. Rensad text skickas dit vid kvällens bedömning.`
-              : 'Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.'}
+            {llmProblem === 'key'
+              ? `${PROVIDERS[llm.provider!].label} är vald, men nyckeln finns inte på den här enheten. Till dess används ordmatchning.`
+              : llm.provider && hasConsent(llm)
+                ? `${PROVIDERS[llm.provider].label}, ${llm.model}. Rensad text skickas dit vid kvällens bedömning.`
+                : 'Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.'}
           </P>
           <Button kind="secondary" title={llm.provider ? 'Ändra språkmodell' : 'Koppla en språkmodell'} onPress={() => nav.push({ name: 'llm' })} />
         </Card>

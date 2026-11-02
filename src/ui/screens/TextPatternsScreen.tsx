@@ -2,7 +2,7 @@
 // proposes with their quotes and counterexamples, the person's approval, and a retrospective
 // evaluation with one period held out. Experimental: approval is not clinical validation.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import type { ReferenceText, TextPattern } from '../../core/domain/types';
 import { DIRECTION_TEXT, PERIOD_TEXT, PHENOMENON_TEXT, periodsOf, usableReferences } from '../../core/references/references';
@@ -12,6 +12,8 @@ import {
 } from '../../services/references';
 import { Button, Card, Chip, Disclosure, P, Row, Screen, Section, Toggle } from '../components';
 import { useDialog, useRepo } from '../state';
+import { useNav } from '../nav';
+import { llmStatus } from '../../services/llm';
 import { colors, space, type } from '../theme';
 
 const STATUS_TEXT: Record<TextPattern['status'], string> = {
@@ -72,6 +74,7 @@ function PatternCard({ p, refs }: { p: TextPattern; refs: ReferenceText[] }) {
 
 export function TextPatternsScreen() {
   const repo = useRepo();
+  const nav = useNav();
   const dialog = useDialog();
   const [busy, setBusy] = useState<string | null>(null);
   const [period, setPeriod] = useState<string | null>(null);
@@ -94,6 +97,13 @@ export function TextPatternsScreen() {
   };
 
   const order: TextPattern['status'][] = ['needs_review', 'proposed', 'approved', 'rejected'];
+  // Proposing patterns needs a model on this device: say why it cannot, before the person tries.
+  const [llm, setLlm] = useState<{ ready: boolean; message: string | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    llmStatus(repo).then((st) => live && setLlm(st)).catch(() => undefined);
+    return () => { live = false; };
+  }, [repo]);
 
   return (
     <Screen title="Mönster">
@@ -127,6 +137,13 @@ export function TextPatternsScreen() {
           )}
         </Card>
       </Section>
+
+      {llm && !llm.ready ? (
+        <Card tone="yellow" style={{ marginTop: space.m }}>
+          <P>{llm.message}</P>
+          <Button kind="secondary" title="Öppna Språkmodell" onPress={() => nav.push({ name: 'llm' })} />
+        </Card>
+      ) : null}
 
       <Section title="Mönster">
         <Button

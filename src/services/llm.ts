@@ -63,6 +63,27 @@ export function llmReady(c: LlmConfig): boolean {
   return !!c.provider && !!c.model.trim() && hasConsent(c) && (c.provider !== 'openai-compatible' || !!c.baseUrl.trim());
 }
 
+export type LlmProblem = 'none' | 'unfinished' | 'key';
+
+/**
+ * Whether a model can be called on this device, and if not, why, in plain words. The settings
+ * follow the account between devices; the key does not: it stays where it was typed, and in
+ * the web version in that browser (an app on the home screen has its own storage).
+ */
+export async function llmStatus(repo: Repository): Promise<{ ready: boolean; problem: LlmProblem | null; message: string | null }> {
+  const c = repo.llmConfig();
+  if (!c.provider) return { ready: false, problem: 'none', message: 'Ingen språkmodell är vald. Välj en under Inställningar, Språkmodell.' };
+  if (!llmReady(c)) return { ready: false, problem: 'unfinished', message: 'Språkmodellen är inte färdig. Öppna Inställningar, Språkmodell, och spara igen.' };
+  if (c.provider !== 'openai-compatible' && !(await getSecret(LLM_KEY_NAME))) {
+    return {
+      ready: false,
+      problem: 'key',
+      message: 'Nyckeln till språkmodellen finns inte på den här enheten. Nycklar sparas bara där de skrevs in, i webbversionen i just den webbläsaren, och en app på hemskärmen har egen lagring. Skriv in nyckeln igen under Inställningar, Språkmodell. Till dess används ordmatchning.',
+    };
+  }
+  return { ready: true, problem: null, message: null };
+}
+
 /** The configured model, or null when the app should use word matching. */
 export async function activeAdapter(repo: Repository, opts: AdapterOptions = {}): Promise<LlmAdapter | null> {
   const c = repo.llmConfig();

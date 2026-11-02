@@ -6,7 +6,7 @@ import type { FetchLike } from '../src/adapter/http';
 import { destinationKey } from '../src/llm/config';
 import { RULES } from '../src/core/analysis/rules';
 import { saveCheckin } from '../src/services/checkin';
-import { LLM_KEY_NAME } from '../src/services/llm';
+import { LLM_KEY_NAME, llmStatus } from '../src/services/llm';
 import {
   createTextComparer, decidePattern, evaluateHoldOut, importReferenceFiles, outgoingPreview, proposePatterns, referenceTexts,
   rejectObservation, removeReference, saveReference, setReferenceUse, setTextPatternsEnabled, textPatterns, type ReferenceDraft,
@@ -192,5 +192,18 @@ describe('Mina tidigare texter i tjänsterna', () => {
     // One-word quotes are not enough: no observation passes, so both count as missed.
     expect(e.summary.missed).toBe(2);
     expect(textPatterns(repo)).toEqual([]);
+  });
+
+  it('says exactly why no model can be used when the key is missing on this device', async () => {
+    const { repo } = await setup();
+    await setTextPatternsEnabled(repo, true, NOW);
+    const { deleteSecret } = jest.requireMock('../src/platform/secrets') as { deleteSecret: (n: string) => Promise<void> };
+    await deleteSecret(LLM_KEY_NAME);
+    expect(await llmStatus(repo)).toMatchObject({ ready: false, problem: 'key' });
+    await expect(proposePatterns(repo, { fetch: fakeModel({ monster: PROPOSAL }).fetch })).rejects.toThrow('Nyckeln till språkmodellen finns inte på den här enheten');
+    await setSecret(LLM_KEY_NAME, 'mk');
+    expect(await llmStatus(repo)).toMatchObject({ ready: true, problem: null });
+    await repo.updateLlmConfig({ provider: null, consentFor: null });
+    expect((await llmStatus(repo)).problem).toBe('none');
   });
 });
