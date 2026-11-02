@@ -342,6 +342,8 @@ export interface Assessment {
   akut?: boolean;
   /** A match with a negation ("vill inte dö"): a gentler crisis card, level unchanged, note not sent to a model. */
   akutMild?: boolean;
+  /** Why the match was mild: a negation ("vill inte dö"), or the past, someone else or a topic. */
+  akutMildBecause?: 'negation' | 'context';
   /** Neutral lines on a green day: sleep or stress moved the wrong way three days in a row, still within the limit. No points, no colour. */
   trend?: string[];
   /** B7: word matching's result, shown because the model had not answered within the budget. Cleared when its answer is saved. */

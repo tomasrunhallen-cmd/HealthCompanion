@@ -95,7 +95,11 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   if (entry.kind === 'imported') data.push('Importerad från din tidigare dagbok. Klockslag saknas, så regeln om inlägg mitt i natten användes inte');
 
   if (a.akut) data.push('Anteckningen jämfördes bara på telefonen. Den skickades inte till någon språkmodell');
-  else if (a.akutMild) data.push('Anteckningen nämnde tankar på att inte vilja leva, med en negation. Krisrutan visades, men dagen räknades som vanligt. Anteckningen skickades inte till någon språkmodell');
+  else if (a.akutMild) {
+    data.push(a.akutMildBecause === 'context'
+      ? 'Anteckningen nämnde självmord eller att inte vilja leva, men om något som hänt förut, om någon annan eller som ämne. Krisrutan visades, men dagen räknades som vanligt. Anteckningen skickades inte till någon språkmodell'
+      : 'Anteckningen nämnde tankar på att inte vilja leva, med en negation. Krisrutan visades, men dagen räknades som vanligt. Anteckningen skickades inte till någon språkmodell');
+  }
   else if (a.method === 'llm') data.push(`Tecknen tolkades av ${a.model ?? 'din språkmodell'}, med dagens och veckans mätvärden som bakgrund`);
   else if (a.method === 'llm_fallback') data.push('Språkmodellen svarade inte, så tecknen hittades med ordmatchning');
   else if (a.method === 'wordmatch') data.push('Tecknen hittades med ordmatchning på telefonen');

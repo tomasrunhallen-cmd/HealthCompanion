@@ -9,8 +9,11 @@ import { tokenize, wordsMatch } from '../analysis/wordmatch';
 import { actionsFor, ladderOf } from '../plan/guidance';
 
 const NEGATIONS = new Set(['inte', 'aldrig', 'ingen', 'inget', 'inga', 'ej']);
-/** Words allowed between the words of a phrase ("vill verkligen inte leva"). A negation there makes the hit mild. */
-const MAX_GAP = 2;
+/** Words allowed between the words of a phrase ("vill verkligen just nu dö"). A negation there makes the hit mild. */
+const MAX_GAP = 3;
+/** Someone else as the subject of a clause, when the person does not write about themselves in it. */
+const THIRD_PERSON = new Set(['han', 'hon', 'hen']);
+const FIRST_PERSON = new Set(['jag', 'mig', 'ja']);
 
 export interface AkutLists {
   /** Phrases matched word by word, tolerating inflections and up to two words between. */
@@ -19,13 +22,19 @@ export interface AkutLists {
   cores: string[];
   /** Known false hits. Their words may only match a phrase word that is spelled the same, never as an inflection. */
   exceptions: string[];
+  /**
+   * Words that place a hit in the past, with someone else or in a topic ("för tio år sedan",
+   * "min vän", "självmordsprevention", "av skratt"). In the same clause they make a full hit
+   * mild: the crisis card shows, but the day is not made red.
+   */
+  contexts?: string[];
 }
 
-const SECTION: Record<string, keyof AkutLists> = { fraser: 'phrases', 'kärnord': 'cores', undantag: 'exceptions' };
+const SECTION: Record<string, keyof AkutLists> = { fraser: 'phrases', 'kärnord': 'cores', undantag: 'exceptions', sammanhang: 'contexts' };
 
 export function parseAkutLists(source: string): AkutLists {
   const { body } = parseFrontmatter(source);
-  const out: AkutLists = { phrases: [], cores: [], exceptions: [] };
+  const out: AkutLists = { phrases: [], cores: [], exceptions: [], contexts: [] };
   let into: keyof AkutLists | null = null;
   for (const line of body.split(/\r?\n/)) {
     const h = line.match(/^##\s+(.+?)\s*$/);
@@ -34,7 +43,7 @@ export function parseAkutLists(source: string): AkutLists {
       continue;
     }
     const m = line.match(/^\s*[-*]\s+(.+?)\s*$/);
-    if (into && m) out[into].push(m[1]);
+    if (into && m) (out[into] ??= []).push(m[1]);
   }
   return out;
 }
@@ -60,12 +69,46 @@ export function akutPhrases(): string[] {
   return [...l.phrases, ...l.cores];
 }
 
+/** Repeated letters written once: "döö" is "dö", "viiill" is "vil". */
+function squeeze(word: string): string {
+  return word.replace(/(.)\1+/g, '$1');
+}
+
 function tokenEq(word: string, token: string, guarded: boolean): boolean {
   if (word === token) return true;
   // A word inside a known false hit ("skärper mig") is never taken as an inflection.
   if (guarded) return false;
+  // Letters held for emphasis ("döö", "viiill").
+  if (squeeze(word) === squeeze(token)) return true;
   // Short words must be equal; longer ones may be inflections ("skadar" / "skada").
   return Math.min(word.length, token.length) >= 4 && wordsMatch(word, token);
+}
+
+/** Edit distance with swaps, stopping early above 1. */
+function withinOneEdit(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length] <= 1;
+}
+
+/**
+ * A word that starts with a core word, also with one letter wrong, missing or swapped in a
+ * long core ("sjävmordstankar"). Short cores must be spelled right: "suicid" stays exact.
+ */
+function startsWithCore(word: string, core: string): boolean {
+  if (word.startsWith(core)) return true;
+  if (core.length < 8) return false;
+  for (const len of [core.length - 1, core.length, core.length + 1]) {
+    if (len <= word.length && withinOneEdit(word.slice(0, len), core)) return true;
+  }
+  return false;
 }
 
 /** Marks the words of a clause that are part of a known false hit. */
@@ -100,7 +143,7 @@ function phraseIn(
   const own = (w: string) => phrase.includes(w);
   let negatedHit = false;
   for (let start = 0; start < words.length; start++) {
-    const first = prefix ? !guarded[start] && words[start].startsWith(phrase[0]) : tokenEq(words[start], phrase[0], guarded[start]);
+    const first = prefix ? !guarded[start] && startsWithCore(words[start], phrase[0]) : tokenEq(words[start], phrase[0], guarded[start]);
     if (!first) continue;
     let pos = start;
     let ok = true;
@@ -131,12 +174,34 @@ function clauses(note: string): string[][] {
     .filter((c) => c.length > 0);
 }
 
+/** A context word in the clause: in the past, someone else, or a topic rather than the person's own state now. */
+function contextIn(words: string[], contexts: string[][], cores: string[]): boolean {
+  const own = words.some((w) => FIRST_PERSON.has(w));
+  if (!own && words.some((w) => THIRD_PERSON.has(w))) return true;
+  for (const c of contexts) {
+    if (!c.length) continue;
+    if (c.length === 1) {
+      const cue = c[0];
+      // "självmordsprevention", "självmordsstatistiken": the topic sits inside the hit word.
+      const inside = cue.length >= 5 && words.some((w) => cores.some((k) => startsWithCore(w, k)) && w.includes(cue));
+      if (inside || words.some((w) => tokenEq(w, cue, false))) return true;
+      continue;
+    }
+    for (let i = 0; i + c.length <= words.length; i++) {
+      if (c.every((t, k) => tokenEq(words[i + k], t, false))) return true;
+    }
+  }
+  return false;
+}
+
 export type AkutLevel = 'full' | 'mild';
 
 export interface AkutResult {
   /** full: crisis card, red day, nothing sent. mild: gentler card, level unchanged, nothing sent to the model. */
   level: AkutLevel | null;
   phrases: string[];
+  /** Why a hit is mild: a negation ("vill inte dö") or a context ("för tio år sedan", "min vän"). */
+  mildBecause?: 'negation' | 'context';
 }
 
 export function akutCheck(note: string, userPhrases: string[] = []): AkutResult {
@@ -153,19 +218,30 @@ export function akutCheckWith(note: string, lists: AkutLists, userPhrases: strin
     ...[...lists.phrases, ...userPhrases].filter((x) => x.trim()).map((text) => ({ text, tokens: tokenize(text), prefix: false })),
     ...lists.cores.filter((x) => x.trim()).map((text) => ({ text, tokens: tokenize(text), prefix: true })),
   ];
+  const contexts = (lists.contexts ?? []).map(tokenize);
+  const cores = lists.cores.map((c) => tokenize(c)[0]).filter(Boolean);
   const full: string[] = [];
   const mild: string[] = [];
+  let byContext = false;
   for (const c of candidates) {
-    let hit: { found: boolean; negated: boolean } = { found: false, negated: false };
+    let hit: { found: boolean; negated: boolean; context: boolean } = { found: false, negated: false, context: false };
     for (let i = 0; i < parts.length; i++) {
       const h = phraseIn(parts[i], masks[i], c.tokens, c.prefix);
-      if (h.found && !h.negated) { hit = h; break; }
-      if (h.found) hit = h;
+      if (!h.found) continue;
+      // The person's own phrases are always taken as written.
+      const context = !h.negated && !userPhrases.includes(c.text) && contextIn(parts[i], contexts, cores);
+      if (!h.negated && !context) { hit = { ...h, context: false }; break; }
+      hit = { found: true, negated: h.negated, context };
     }
-    if (hit.found) (hit.negated ? mild : full).push(c.text);
+    if (!hit.found) continue;
+    if (!hit.negated && !hit.context) full.push(c.text);
+    else {
+      mild.push(c.text);
+      if (hit.context) byContext = true;
+    }
   }
   if (full.length) return { level: 'full', phrases: full };
-  if (mild.length) return { level: 'mild', phrases: mild };
+  if (mild.length) return { level: 'mild', phrases: mild, mildBecause: byContext ? 'context' : 'negation' };
   return { level: null, phrases: [] };
 }
 

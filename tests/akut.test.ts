@@ -72,7 +72,7 @@ describe('emergency word list', () => {
 
   it('reads phrases, core words and exceptions as separate lists', () => {
     const src = '---\nid: a\nversion: 1\n---\n## Fraser\n- vill dö\n## Kärnord\n- självmord\n## Undantag\n- för mig själv';
-    expect(parseAkutLists(src)).toEqual({ phrases: ['vill dö'], cores: ['självmord'], exceptions: ['för mig själv'] });
+    expect(parseAkutLists(src)).toEqual({ phrases: ['vill dö'], cores: ['självmord'], exceptions: ['för mig själv'], contexts: [] });
   });
 });
 
@@ -91,8 +91,8 @@ describe('core words match as the start of a compound', () => {
     expect(akutLevel(note)).toBe('full');
   });
 
-  it('an old attempt still gives a full match: better a false alarm than a miss', () => {
-    expect(akutLevel('Tänkte på mitt självmordsförsök för tio år sedan.')).toBe('full');
+  it('an old attempt gives the gentler card: help shows, but the day is not booked as acute', () => {
+    expect(akutCheck('Tänkte på mitt självmordsförsök för tio år sedan.')).toMatchObject({ level: 'mild', mildBecause: 'context' });
   });
 
   it('a negation before a core word gives a mild match, as for phrases', () => {

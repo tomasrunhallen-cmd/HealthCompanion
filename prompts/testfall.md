@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.5.0
+version: 2.6.0
 response: data
 ---
 # Testfall
@@ -943,8 +943,8 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
     },
     {
       "id": "akut-sammansatt",
-      "name": "”Självmordsförsök för tio år sedan” ger rött: hellre ett falsklarm än en miss",
-      "expected": "red",
+      "name": "”Självmordsförsök för tio år sedan” ger den milda rutan: hjälpen visas, dagen räknas som vanligt",
+      "expected": "green",
       "history": "gron_vecka",
       "entry": {
         "time": "21:30",
@@ -955,7 +955,7 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
         "sleepHours": 7.5
       },
       "reference": {
-        "akut": "full"
+        "akut": "mild"
       }
     },
     {

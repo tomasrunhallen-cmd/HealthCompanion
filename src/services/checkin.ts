@@ -4,7 +4,7 @@ import { assessEntry, newId, wordMatcher } from '../core/analysis/assess';
 import { eveningDateKey, localClock } from '../core/analysis/dates';
 import { parseSleepHours } from '../core/analysis/sleep';
 import type { Assessment, Entry } from '../core/domain/types';
-import { akutLevel } from '../core/context/akut';
+import { akutCheck } from '../core/context/akut';
 import { setRoutineDone } from './routines';
 import { sleepSourceOf, stressSourceOf } from '../core/analysis/sources';
 import type { Repository } from '../storage/repository';
@@ -77,9 +77,11 @@ export async function saveCheckin(
   const date = eveningDateKey(now);
   // The emergency rule runs first, in code, before anything can leave the phone. On a
   // match nothing is fetched or sent: the crisis numbers must show at once, also offline.
-  const level = akutLevel(input.transcript, repo.contextOf('akut').map((e) => e.text));
+  const check = akutCheck(input.transcript, repo.contextOf('akut').map((e) => e.text));
+  const level = check.level;
   const akut = level === 'full';
-  // A negated match ("vill inte dö") shows a gentler card; the note still never goes to a model.
+  // A negated match ("vill inte dö"), or one about the past or someone else, shows a gentler
+  // card; the note still never goes to a model.
   const akutMild = level === 'mild';
   if (input.medicationTaken != null) await setMedicationTaken(repo, date, input.medicationTaken);
   for (const [id, done] of Object.entries(input.routines ?? {})) {
@@ -127,6 +129,7 @@ export async function saveCheckin(
     context: repo.contextEntries(),
     akut,
     akutMild,
+    akutMildBecause: check.mildBecause,
     now,
   };
   // The configured language model when there is one; word matching otherwise, and always

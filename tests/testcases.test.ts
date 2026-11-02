@@ -34,7 +34,7 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.5.0');
+    expect(suite.version).toBe('2.6.0');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [

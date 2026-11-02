@@ -109,6 +109,8 @@ export async function assessEntry(args: {
   akut?: boolean;
   /** A negated match: shown gently, the level is computed as usual. */
   akutMild?: boolean;
+  /** Why the match was mild: a negation, or the past, someone else or a topic. */
+  akutMildBecause?: 'negation' | 'context';
   now?: Date;
 }): Promise<Assessment> {
   const { entry, plan, planSettings, history, matcher, garmin } = args;
@@ -167,7 +169,7 @@ export async function assessEntry(args: {
     levelReason: scored.reason,
     recentNonGreenDays: scored.recentNonGreenDays,
     ...(args.akut ? { akut: true } : {}),
-    ...(args.akutMild && !args.akut ? { akutMild: true } : {}),
+    ...(args.akutMild && !args.akut ? { akutMild: true, ...(args.akutMildBecause ? { akutMildBecause: args.akutMildBecause } : {}) } : {}),
     ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : {}),
     inputs,
   };

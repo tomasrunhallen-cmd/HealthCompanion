@@ -1,6 +1,6 @@
 ---
 id: akut
-version: 0.3.0
+version: 0.4.0
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Akutordlista
@@ -9,11 +9,11 @@ Formuleringar om att inte vilja leva eller att skada sig. Matchas i appen, på t
 innan något skickas till en språkmodell och oberoende av den. Listan skickas aldrig till
 en modell. Användarens egna formuleringar läggs till från krisplanen.
 
-Fraserna matchas ord för ord. De tål böjningar ("skadar" och "skada") och upp till
-två ord emellan ("vill verkligen inte leva"). Kärnorden matchar som början på ett ord,
+Fraserna matchas ord för ord. De tål böjningar ("skadar" och "skada"), utdragna
+bokstäver ("döö") och upp till tre ord emellan ("vill verkligen just nu dö"). Kärnorden matchar som början på ett ord,
 hur många bokstäver som än följer: "självmord" ger träff på "självmordstankar",
-"självmordsplaner" och "självmordsförsök". Hellre ett falsklarm än en miss, så också
-"självmordsförsök för tio år sedan" ger träff. Undantagen är kända falska träffar, ord
+"självmordsplaner" och "självmordsförsök". Kärnord med minst åtta bokstäver tål en
+bokstav fel, borta eller omkastad ("sjävmordstankar"). Undantagen är kända falska träffar, ord
 eller fraser: deras ord räknas aldrig som en böjning av ett ord i en fras ("jag
 skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läses sats för sats.
 
@@ -22,6 +22,10 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
   ("vill inte dö", "tänker inte göra mig illa", "har aldrig haft självmordstankar"):
   en mildare krisruta med planens steg vid rött och numren. Dagen blir inte röd av
   detta, och anteckningen skickas inte till modellen.
+- Träff i samma sats som ett ord under Sammanhang ("för tio år sedan", "min vän",
+  "självmordsprevention", "av skratt"), eller om någon annan ("han", "hon", "hen") i en
+  sats där personen inte skriver om sig själv: samma mildare ruta. Hjälpen visas alltid,
+  men dagen bokförs inte som akut. Personens egna formuleringar räknas alltid fullt.
 
 ## Fraser
 
@@ -54,6 +58,8 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
 - skar mig
 - hoppa framför tåget
 - tabletter för att dö
+- vill inte finnas
+- pallar inte leva
 
 ## Kärnord
 
@@ -72,3 +78,36 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
 - skärpa
 - skärpte
 - skärpt
+
+## Sammanhang
+
+- år sedan
+- länge sedan
+- som barn
+- som tonåring
+- i tonåren
+- min vän
+- min kompis
+- min mamma
+- min pappa
+- min bror
+- min syster
+- min kollega
+- min partner
+- min sambo
+- prevention
+- statistik
+- forskning
+- utbildning
+- föreläsning
+- film
+- serie
+- bok
+- boken
+- artikel
+- dikt
+- nyhet
+- podd
+- ekonomisk
+- politisk
+- av skratt
