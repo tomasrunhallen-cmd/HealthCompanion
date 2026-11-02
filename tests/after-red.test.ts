@@ -35,4 +35,11 @@ describe('Dagen efter rött', () => {
     expect(redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), '2026-11-08')).toMatchObject({ date: '2026-11-05', yesterday: false });
     expect(redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), '2026-11-20')).toBeNull();
   });
+
+  it('"Vill inte svara" takes the question away for that red day only', async () => {
+    const repo = await repoWithPlan();
+    await saveCheckin(repo, note('Svarar inte på sms. Slutar äta.'), at('2026-11-03'));
+    expect(redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), '2026-11-04', '2026-11-03')).toBeNull();
+    expect(redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), '2026-11-04', '2026-10-20')).not.toBeNull();
+  });
 });

@@ -218,6 +218,8 @@ export interface Entry {
   strainYesterday?: boolean | null;
   /** "HH:MM" of the watch's last reading when the check-in was saved. Far before the check-in: the watch had not synced. */
   measuredUntil?: string | null;
+  /** Seconds the check-in took, from the first touch to saving. */
+  durationSec?: number | null;
   /** Days brought in from another diary: which import, and the day's original values. */
   imported?: ImportedFrom;
 }

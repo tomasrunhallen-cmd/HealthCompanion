@@ -2,7 +2,7 @@
 // follows them, ticked off during the day. Every tap is saved at once for today. Ticking off
 // never changes the level and is never sent to a model.
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { addDays, eveningDateKey, formatDateSv } from '../core/analysis/dates';
 import type { ContextEntry } from '../core/domain/types';
@@ -40,8 +40,12 @@ function recentDirection(repo: ReturnType<typeof useRepo>, today: string): 'up' 
   return dir === 'up' || dir === 'down' ? dir : null;
 }
 
+/** In the check-in at most this many daily routines show at first; the rest one tap away. */
+const COMPACT_MAX = 5;
+
 export function RoutinesToday({ compact = false }: { compact?: boolean }) {
   const repo = useRepo();
+  const [showAll, setShowAll] = useState(false);
   const today = eveningDateKey(new Date());
   const mode = repo.settings().planMode ?? null;
   const entries = repo.contextEntries();
@@ -64,7 +68,10 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
       <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
         {all.length ? `${done} av ${all.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
       </Text>
-      {daily.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+      {(compact && !showAll ? daily.slice(0, COMPACT_MAX) : daily).map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+      {compact && !showAll && daily.length > COMPACT_MAX ? (
+        <Button kind="ghost" title={`Visa ${daily.length - COMPACT_MAX} till`} onPress={() => setShowAll(true)} />
+      ) : null}
 
       {mode && extra.length ? (
         <View style={{ marginTop: space.l }}>

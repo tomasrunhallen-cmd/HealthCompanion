@@ -18,10 +18,12 @@ export interface RedFollowup {
  * The question to ask today: the latest assessed day before today was red, and its steps have
  * not been answered. Only up to a week back; after that the question has lost its point.
  */
-export function redFollowup(assessments: Assessment[], context: ContextEntry[], plan: PlanItem[], today: DateKey): RedFollowup | null {
+export function redFollowup(assessments: Assessment[], context: ContextEntry[], plan: PlanItem[], today: DateKey, skipped: DateKey | null = null): RedFollowup | null {
   const earlier = assessments.filter((a) => a.date < today).sort((a, b) => b.date.localeCompare(a.date));
   const last = earlier[0];
   if (!last || last.level !== 'red' || last.date < addDays(today, -7)) return null;
+  // "Vill inte svara": the question goes away for that red day.
+  if (skipped === last.date) return null;
   const steps = actionsFor('red', plan).map((p) => p.text);
   if (!steps.length) return null;
   return { date: last.date, yesterday: last.date === addDays(today, -1), steps };

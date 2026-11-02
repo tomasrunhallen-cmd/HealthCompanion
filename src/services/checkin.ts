@@ -26,6 +26,8 @@ export interface CheckinInput {
   manualStress?: number | null;
   /** Routines ticked off this evening, by routine id; null removes an earlier answer. Never part of the assessment. */
   routines?: Record<string, boolean | null>;
+  /** Seconds from the first touch in the check-in to saving, to see what a check-in costs. */
+  durationSec?: number | null;
 }
 
 /** One medication answer per evening; a new answer replaces the old. */
@@ -119,6 +121,7 @@ export async function saveCheckin(
     ...(input.strainYesterday ? { strainYesterday: true } : {}),
     // How far the watch had synced, so a day saved while it lagged can be updated later.
     ...(g?.dataUntil ? { measuredUntil: g.dataUntil } : {}),
+    ...(input.durationSec != null ? { durationSec: input.durationSec } : {}),
   };
   const base = {
     entry,

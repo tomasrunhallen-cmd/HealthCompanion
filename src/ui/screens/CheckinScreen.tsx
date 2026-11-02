@@ -54,6 +54,21 @@ function Scale(props: {
         </Text>
       </Row>
       {props.detail ? <Text style={[type.small, { textAlign: 'right' }]} accessibilityElementsHidden importantForAccessibility="no">{props.detail(props.value)}</Text> : null}
+      {/* Web: the arrow keys move the slider one step, Home and End to the ends (WCAG 2.1.1). */}
+      <View
+        {...(Platform.OS === 'web' ? ({
+          focusable: true,
+          accessibilityLabel: `${props.label}: ${spoken(props.value)}. Piltangenterna ändrar.`,
+          onKeyDown: (e: { key: string; preventDefault: () => void }) => {
+            const next = e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? props.value - step
+              : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? props.value + step
+                : e.key === 'Home' ? min : e.key === 'End' ? max : null;
+            if (next == null) return;
+            e.preventDefault();
+            props.onChange(Math.min(max, Math.max(min, next)));
+          },
+        } as object) : {})}
+      >
       <Slider
         accessibilityLabel={props.label}
         accessibilityHint={`Från ${props.low} till ${props.high}`}
@@ -70,6 +85,7 @@ function Scale(props: {
         thumbTintColor={paletteHex('accent', scheme)}
         style={{ height: MIN_TOUCH }}
       />
+      </View>
       <Row style={{ justifyContent: 'space-between' }}>
         <Text style={[type.small, { flexShrink: 1 }]}>{props.low}</Text>
         <Text style={[type.small, { flexShrink: 1, textAlign: 'right' }]}>{props.high}</Text>
@@ -77,6 +93,8 @@ function Scale(props: {
     </View>
   );
 }
+
+const SKIP_KEY = 'redFollowupSkipped';
 
 const capitalize = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
@@ -103,7 +121,10 @@ export function CheckinScreen() {
   const akut = useMemo(() => akutLevel(text, repo.contextOf('akut').map((e) => e.text)), [text, repo]);
   const garmin = repo.measuredDay(eveningDateKey(new Date()));
   // Dagen efter rött: asked first, answered with one tap per step.
-  const followup = redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), eveningDateKey(new Date()));
+  const followup = redFollowup(repo.assessments(), repo.contextEntries(), repo.plan(), eveningDateKey(new Date()), (repo.kvGet(SKIP_KEY) as string | null) ?? null);
+  // When the person started: the check-in's length is saved, to see what it costs on heavy days.
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const touch = () => setStartedAt((t) => t ?? Date.now());
   const stepAnswers = followup ? redStepAnswers(repo.contextEntries('dagligt'), followup.date) : new Map<string, boolean>();
   const garminSleep = garmin?.sleepHours ?? null;
   // How far the watch has synced to Garmin. Hours behind: the day's stress is not complete.
@@ -122,7 +143,7 @@ export function CheckinScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain, manualSleepHours: manualSleep, manualStress }, new Date(), { browser: Platform.OS === 'web' });
+      const { entry, assessment } = await saveCheckin(repo, { transcript: text, mood, energy, wordsPerMinute: null, medicationTaken: medication, strainYesterday: strain, manualSleepHours: manualSleep, manualStress, durationSec: startedAt ? Math.round((Date.now() - startedAt) / 1000) : null }, new Date(), { browser: Platform.OS === 'web' });
       // HIG: haptics sparingly. A light confirmation that the check-in is saved, never on a red day.
       if (Platform.OS !== 'web' && assessment.level !== 'red' && !assessment.akut) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
@@ -136,6 +157,7 @@ export function CheckinScreen() {
       setStrain(false);
       setManualSleep(null);
       setManualStress(null);
+      setStartedAt(null);
     } finally {
       setBusy(false);
     }
@@ -164,6 +186,7 @@ export function CheckinScreen() {
               </View>
             );
           })}
+          <Button kind="ghost" title="Vill inte svara" onPress={() => repo.kvSet(SKIP_KEY, followup.date)} />
         </Card>
       ) : null}
 
@@ -171,7 +194,7 @@ export function CheckinScreen() {
       <Field
         accessibilityLabel="Din anteckning"
         value={text}
-        onChangeText={setText}
+        onChangeText={(t) => { touch(); setText(t); }}
         multiline
         placeholder="Några meningar om dagen…"
         autoCorrect
@@ -182,7 +205,7 @@ export function CheckinScreen() {
       <Scale
         label="Stämning"
         value={mood}
-        onChange={setMood}
+        onChange={(v) => { touch(); setMood(v); }}
         min={MOOD_MIN}
         max={MOOD_MAX}
         show={(v) => moodStep(v).label}
@@ -192,7 +215,7 @@ export function CheckinScreen() {
         low="Akut depression"
         high="Akut mani"
       />
-      <Scale label="Energi" value={energy} onChange={setEnergy} low="1 Ingen" high="10 Väldigt mycket" />
+      <Scale label="Energi" value={energy} onChange={(v) => { touch(); setEnergy(v); }} low="1 Ingen" high="10 Väldigt mycket" />
 
       <Card>
         <Text style={type.h2} accessibilityRole="header">Sömn och stress</Text>
