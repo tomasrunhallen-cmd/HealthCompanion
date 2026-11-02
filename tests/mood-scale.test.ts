@@ -2,6 +2,7 @@ import { MOOD_SCALE, moodFromTen, moodPolarity, moodStep, moodText } from '../sr
 import { RULES } from '../src/core/analysis/rules';
 import { score } from '../src/core/analysis/scoring';
 import { signDirection } from '../src/core/plan/guidance';
+import { seriousActions } from '../src/core/analysis/assess';
 import type { Entry } from '../src/core/domain/types';
 import { emptySnapshot, memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
@@ -38,12 +39,28 @@ describe('Stämning från Akut depression till Akut mani', () => {
     expect(signDirection(at(3).signals, [])).toBe('up');
   });
 
-  it('counts a jump of two steps against the last week', () => {
-    const history = ['2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'].map((date, i) => ({ entry: entry({ id: `h${i}`, date, mood: 0 }), level: 'green' as const }));
-    const r = score({ entry: entry({ mood: -2 }), matches: [], plan: [], planSettings: DEFAULT_PLAN_SETTINGS, history });
-    expect(r.signals.map((s) => s.kind).sort()).toEqual(['mood_jump', 'mood_rated']);
-    const small = score({ entry: entry({ mood: 1 }), matches: [], plan: [], planSettings: DEFAULT_PLAN_SETTINGS, history });
+  it('counts a jump of two steps against the last week once: not again when the rating already counts that way', () => {
+    const week = (mood: number) => ['2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'].map((date, i) => ({ entry: entry({ id: `h${i}`, date, mood }), level: 'green' as const }));
+    const rated = score({ entry: entry({ mood: -2 }), matches: [], plan: [], planSettings: DEFAULT_PLAN_SETTINGS, history: week(0) });
+    expect(rated.signals.map((s) => s.kind)).toEqual(['mood_rated']);
+    const swing = score({ entry: entry({ mood: -1 }), matches: [], plan: [], planSettings: DEFAULT_PLAN_SETTINGS, history: week(1) });
+    expect(swing.signals.map((s) => s.kind)).toEqual(['mood_jump']);
+    const small = score({ entry: entry({ mood: 1 }), matches: [], plan: [], planSettings: DEFAULT_PLAN_SETTINGS, history: week(0) });
     expect(small.signals).toEqual([]);
+  });
+
+  it('±3 weighs as a serious sign: with another sign the day is red, and the plan\'s steps at red show', () => {
+    const plan = [
+      { id: 'e1', kind: 'early' as const, text: 'Pratar fortare', order: 0, approvedAt: null },
+      { id: 'r1', kind: 'action_red' as const, text: 'Ringer mottagningen', order: 0, approvedAt: null },
+    ];
+    const alone = score({ entry: entry({ mood: 3 }), matches: [], plan, planSettings: DEFAULT_PLAN_SETTINGS, history: [] });
+    expect(alone.level).toBe('yellow');
+    expect(seriousActions({ signals: alone.signals, akut: false }, plan)?.map((p) => p.text)).toEqual(['Ringer mottagningen']);
+    const withSign = score({ entry: entry({ mood: 3 }), matches: [{ planItemId: 'e1', quote: 'Pratar fortare' }], plan, planSettings: DEFAULT_PLAN_SETTINGS, history: [] });
+    expect([withSign.level, withSign.reason]).toEqual(['red', 'serious_plus_other']);
+    const two = score({ entry: entry({ mood: 2 }), matches: [], plan, planSettings: DEFAULT_PLAN_SETTINGS, history: [] });
+    expect(seriousActions({ signals: two.signals, akut: false }, plan)).toBeNull();
   });
 
   it('moves saved entries to the new scale once, keeping the old value, and reads imported days from the diary', async () => {

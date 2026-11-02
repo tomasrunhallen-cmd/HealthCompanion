@@ -9,6 +9,7 @@
     "points",
     "level",
     "measuredCapPerDay",
+    "excusedMeasuredToRed",
     "sleepThresholdHoursDefault",
     "stressFactor",
     "speechFastFraction",
@@ -202,6 +203,9 @@
     "moodJumpThreshold": {
       "type": "number",
       "minimum": 0
+    },
+    "excusedMeasuredToRed": {
+      "type": "boolean"
     }
   }
 }

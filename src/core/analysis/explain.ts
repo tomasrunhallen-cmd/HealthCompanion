@@ -53,6 +53,8 @@ function conclusion(a: Assessment): string {
       return `${p} hade gett rött, men mätta tecken som sömn och stress räknas bara mot rött när de fanns även dagen innan. I dag är första dagen, så det blir gult.`;
     case 'akut':
       return 'Det du skrev liknar formuleringar om att inte vilja leva eller att skada dig. Då visar appen alltid rött och krisnumren, oavsett poäng. Anteckningen skickades inte till någon språkmodell.';
+    case 'excused':
+      return `${p} hade gett rött, men en del kommer från sömn eller stress som kan förklaras av alkohol, sjukdom eller hård träning i går. De räknas bara mot gult.`;
     case 'standard_cap':
       return `${p} hade gett rött, men en del av poängen kommer från standardtecken som du inte bekräftat. De kan bara ge gult, så det blir gult.`;
     case 'recent_days':
@@ -88,7 +90,7 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
         : `Stress ${entry.stressAvg} i dag${stressFrom}, ingen baslinje än`,
     );
   }
-  if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');
+  if (entry.strainYesterday) data.push('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknas därför bara mot gult i dag');
   if (garmin?.bodyBatteryWake != null) data.push(`Body Battery ${garmin.bodyBatteryWake} vid uppvaknandet`);
   if (wasStale(entry)) data.push(`Klockan hade synkat fram till ${entry.measuredUntil}, så dagens värden var inte kompletta`);
   if (entry.kind === 'checkin') data.push(`Inlägget gjordes ${formatTime(entry.createdAt)}`);

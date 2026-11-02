@@ -1,6 +1,6 @@
 ---
 id: testfall
-version: 2.6.0
+version: 2.7.0
 response: data
 ---
 # Testfall
@@ -714,8 +714,8 @@ Historiken räknas bakåt från fallets kväll. `time` är klockslaget då inlä
     },
     {
       "id": "festkvall-markerad",
-      "name": "Samma festkväll med ja på ”Alkohol, sjuk eller hård träning i går?” ger grönt",
-      "expected": "green",
+      "name": "Samma festkväll med ja på ”Alkohol, sjuk eller hård träning i går?” ger gult: värdena syns och räknas, men bara mot gult",
+      "expected": "yellow",
       "history": "gron_vecka_utan_igar",
       "entry": {
         "time": "21:30",

@@ -44,8 +44,10 @@ it('puts an entry after midnight on the day before, and 04:00 on the new day', (
     expect([eveningDateKey(TRAVEL), localClock(TRAVEL)]).toEqual(['2026-11-05', '04:00']);
     expect(entryClock(entry(TRAVEL.toISOString(), '22:00'))).toEqual({ hour: 22, minute: 0 });
     expect(nightSign(entry(TRAVEL.toISOString(), '22:00'))).toBe(false);
-    // An entry saved before the local time existed is read in the phone's current zone.
-    expect(nightSign(entry(TRAVEL.toISOString()))).toBe(true);
+    // An entry saved before the local time existed is read in the phone's current zone: 04:00,
+    // which since rules 1.2.0 is the start of a new day, not a night entry.
+    expect(entryClock(entry(TRAVEL.toISOString()))).toEqual({ hour: 4, minute: 0 });
+    expect(nightSign(entry(TRAVEL.toISOString()))).toBe(false);
   });
 });
 

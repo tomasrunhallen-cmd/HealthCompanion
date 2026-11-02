@@ -34,7 +34,7 @@ async function run(c: TestCase): Promise<Assessment> {
 
 describe('prompts/testfall.md', () => {
   it('has at least 18 cases with unique ids, all scenarios from the spec, and version 2.0.0', () => {
-    expect(suite.version).toBe('2.6.0');
+    expect(suite.version).toBe('2.7.0');
     expect(suite.cases.length).toBeGreaterThanOrEqual(18);
     expect(new Set(suite.cases.map((c) => c.id)).size).toBe(suite.cases.length);
     for (const id of [
@@ -100,13 +100,13 @@ describe('what each case shows', () => {
     expect(at.signals.map((s) => s.kind)).toEqual(['sleep_low']);
   });
 
-  it('the party night (asleep 03:00, 4 h, stress 1,6 times usual) is yellow; with yes to alcohol it is green', async () => {
+  it('the party night (asleep 03:00, 4 h, stress 1,6 times usual) is yellow; with yes to alcohol too, the values still show', async () => {
     const party = await run(byId('festkvall'));
     expect([party.level, party.points]).toEqual(['yellow', 2]);
     expect(party.signals.map((s) => s.kind)).toEqual(['sleep_low', 'stress_high', 'late_sleep_no_entry']);
     expect(party.signals.find((s) => s.kind === 'late_sleep_no_entry')?.capped).toBe(true);
     const marked = await run(byId('festkvall-markerad'));
-    expect([marked.level, marked.points]).toEqual(['green', 0]);
+    expect([marked.level, marked.points]).toEqual(['yellow', 2]);
     expect(marked.signals.filter((s) => s.excused).map((s) => s.kind).sort()).toEqual(['late_sleep_no_entry', 'sleep_low', 'stress_high']);
   });
 

@@ -124,11 +124,17 @@ export function levelFromSignals(
 ): { level: Level; points: number; reason: LevelReason } {
   const all = rawLevel(signals, recentNonGreenDays);
   if (all.level !== 'red') return all;
+  // Signs that may give yellow but never red on their own: unconfirmed standard rows, measured
+  // signs that were not there the day before, and (by default) measured signs with a possible
+  // explanation from yesterday. Red needs red without them.
   const firstDay = (s: Signal) => CAPPED_KINDS.includes(s.kind) && !s.persistent;
-  const firm = rawLevel(signals.filter((s) => !s.unconfirmedStandard && !firstDay(s)), recentNonGreenDays);
+  const excused = (s: Signal) => !!s.excused && !RULES.excusedMeasuredToRed;
+  const firm = rawLevel(signals.filter((s) => !s.unconfirmedStandard && !firstDay(s) && !excused(s)), recentNonGreenDays);
   if (firm.level === 'red') return { ...firm, points: all.points };
-  const withoutStandard = rawLevel(signals.filter((s) => !s.unconfirmedStandard), recentNonGreenDays);
-  return { level: 'yellow', points: all.points, reason: withoutStandard.level === 'red' ? 'measured_first_day' : 'standard_cap' };
+  const noStandard = signals.filter((s) => !s.unconfirmedStandard);
+  if (rawLevel(noStandard, recentNonGreenDays).level !== 'red') return { level: 'yellow', points: all.points, reason: 'standard_cap' };
+  const noExcused = noStandard.filter((s) => !excused(s));
+  return { level: 'yellow', points: all.points, reason: rawLevel(noExcused, recentNonGreenDays).level === 'red' ? 'measured_first_day' : 'excused' };
 }
 
 function rawLevel(
@@ -138,7 +144,7 @@ function rawLevel(
   const counted = signals.filter((s) => s.points > 0);
   const points = counted.reduce((sum, s) => sum + s.points, 0);
   const L = RULES.level;
-  const serious = counted.some((s) => s.kind === 'serious_sign');
+  const serious = counted.some((s) => s.kind === 'serious_sign' || s.serious);
   // "Ett allvarligt tecken matchar tillsammans med minst ett annat tecken".
   const seriousPlusOther = serious && counted.length >= L.seriousPlusOtherSigns;
   // The first rule that applies is the one shown to the user.
@@ -192,8 +198,9 @@ function adjustMeasured(signals: Signal[], entry: Entry, yesterday: Set<SignalKi
   return signals.map((s) => {
     if (!CAPPED_KINDS.includes(s.kind)) return s;
     let next: Signal = { ...s, persistent: yesterday.has(s.kind) };
+    // A possible explanation, not a reason to hide what was measured: it still counts, towards yellow.
     if (entry.strainYesterday && EXCUSABLE_KINDS.includes(s.kind)) {
-      next = { ...next, points: 0, excused: true, label: `${s.label}, räknas bort: alkohol, sjuk eller hård träning i går` };
+      next = { ...next, excused: true, label: `${s.label}, möjlig förklaring: alkohol, sjuk eller hård träning i går` };
     }
     if (next.points > 0) {
       const room = Math.max(0, RULES.measuredCapPerDay - used);
@@ -372,7 +379,9 @@ export function score(input: ScoreInput): ScoreResult {
     const threshold = key === 'mood' ? RULES.moodJumpThreshold : RULES.jumpThreshold;
     return Math.abs(today - avg) >= threshold ? round1(today - avg) : null;
   };
-  const moodJump = jump('mood');
+  // A jump in the direction the person rated (±2 or more) is the same thing seen twice: counted once.
+  const rawMoodJump = jump('mood');
+  const moodJump = rawMoodJump != null && entry.mood != null && Math.abs(entry.mood) >= 2 && Math.sign(rawMoodJump) === Math.sign(entry.mood) ? null : rawMoodJump;
   const energyJump = jump('energy');
   if (moodJump != null || energyJump != null) {
     const parts: string[] = [];
@@ -395,6 +404,8 @@ export function score(input: ScoreInput): ScoreResult {
       label: `Du skattade stämningen som ${step.label.toLowerCase()}`,
       measured: false,
       polarity: entry.mood > 0 ? 'up' : 'down',
+      // ±3 weighs as a serious sign: the plan's steps at red show.
+      ...(Math.abs(entry.mood) >= 3 ? { serious: true } : {}),
     });
   }
 

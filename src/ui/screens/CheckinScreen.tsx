@@ -251,7 +251,7 @@ export function CheckinScreen() {
             label="Alkohol, sjuk eller hård träning i går?"
             value={strain}
             onChange={setStrain}
-            hint="Då räknas inte sömn och stress i dag"
+            hint="Då kan sömn och stress inte ge rött i dag"
           />
         </View>
       </Card>

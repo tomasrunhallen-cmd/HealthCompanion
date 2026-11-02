@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
-import { actionsForLevel, displaySentence, firstStep, SERIOUS_INTRO, seriousActions } from '../../core/analysis/assess';
+import { actionsForLevel, displaySentence, firstStep, seriousActions, seriousIntro } from '../../core/analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvYear, formatTime } from '../../core/analysis/dates';
 import { explainAssessment } from '../../core/analysis/explain';
 import { CrisisCard } from '../CrisisCard';
@@ -146,7 +146,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       {serious && (
         <Card style={{ borderColor: colors.red, borderWidth: 2 }}>
           <Text style={type.h2} accessibilityRole="header">Åtgärder vid rött</Text>
-          <P style={{ marginTop: space.xs }}>{SERIOUS_INTRO}</P>
+          <P style={{ marginTop: space.xs }}>{seriousIntro(a)}</P>
           {serious.length ? serious.map((p, i) => (
             <P key={p.id} style={{ marginTop: space.xs }}>{`${i + 1}. ${p.text}`}</P>
           )) : (

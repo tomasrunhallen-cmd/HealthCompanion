@@ -26,19 +26,30 @@ const partyGarmin = g(TODAY, { sleepStart: '03:00', sleepEnd: '07:00', sleepHour
 const partyEntry = (over: Partial<Entry> = {}) => entry(TODAY, { sleepHours: 4, stressAvg: 48, ...over });
 
 describe('measured signs are not counted twice', () => {
-  it('a party night with yes to alcohol yesterday gives green: sleep, late sleep and stress count 0', () => {
+  it('a party night with yes to alcohol yesterday still shows and counts, but only towards yellow', () => {
     const e = partyEntry({ strainYesterday: true });
     const r = score({ entry: e, matches: [], plan: [], planSettings: PS, history: greenWeeks, garmin: { [TODAY]: partyGarmin } });
-    expect(r.level).toBe('green');
-    expect(r.points).toBe(0);
+    expect(r.level).toBe('yellow');
+    expect(r.points).toBe(2);
     expect(r.signals.map((s) => [s.kind, s.points, !!s.excused])).toEqual([
-      ['sleep_low', 0, true],
-      ['stress_high', 0, true],
+      ['sleep_low', 1, true],
+      ['stress_high', 1, true],
       ['late_sleep_no_entry', 0, true],
     ]);
-    expect(r.signals[2].label).toContain('räknas bort: alkohol, sjuk eller hård träning i går');
+    expect(r.signals[0].label).toContain('möjlig förklaring: alkohol, sjuk eller hård träning i går');
     const why = explainAssessment(e, { ...r, id: 'a', entryId: e.id, date: TODAY, createdAt: '', sentence: '', method: 'wordmatch', model: null, promptId: null, promptVersion: null, levelReason: r.reason } as Assessment, partyGarmin);
-    expect(why.data).toContain('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknades därför bort i dag');
+    expect(why.data).toContain('Du svarade ja på alkohol, sjuk eller hård träning i går. Sömn, sen insomning och stress räknas därför bara mot gult i dag');
+  });
+
+  it('with the excuse the same values two days in a row and a serious sign stay yellow, and say why', () => {
+    const plan = [{ id: 's1', kind: 'serious' as const, text: 'Slutar äta', order: 0, approvedAt: null }];
+    const yesterday = { entry: { ...partyEntry(), id: 'y', date: '2026-11-03', strainYesterday: true }, level: 'yellow' as const };
+    const r = score({
+      entry: partyEntry({ strainYesterday: true }), matches: [{ planItemId: 's1', quote: 'x' }], plan, planSettings: PS,
+      history: [...greenWeeks.filter((h) => h.entry.date < '2026-11-03'), yesterday], garmin: { [TODAY]: partyGarmin, '2026-11-03': partyGarmin },
+    });
+    expect(r.level).toBe('yellow');
+    expect(r.reason).toBe('excused');
   });
 
   it('the same party night without the excuse is still at most yellow: capped at 2 points, first day', () => {
@@ -98,7 +109,7 @@ describe('measured signs give red only from the second day', () => {
 });
 
 describe('the question in the check-in', () => {
-  it('is saved with the entry and puts sleep and stress at 0', async () => {
+  it('is saved with the entry and keeps sleep and stress, towards yellow only', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { saveCheckin } = require('../src/services/checkin');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -108,7 +119,7 @@ describe('the question in the check-in', () => {
     const repo = await Repository.create(memoryBackend());
     const { entry: e, assessment } = await saveCheckin(repo, { transcript: 'Sov fyra timmar efter festen.', mood: 0, energy: 5, wordsPerMinute: null, strainYesterday: true }, new Date(2026, 10, 4, 21));
     expect(e.strainYesterday).toBe(true);
-    expect(assessment.signals).toEqual([expect.objectContaining({ kind: 'sleep_low', points: 0, excused: true })]);
-    expect(assessment.level).toBe('green');
+    expect(assessment.signals).toEqual([expect.objectContaining({ kind: 'sleep_low', points: 1, excused: true })]);
+    expect(assessment.level).toBe('yellow');
   });
 });

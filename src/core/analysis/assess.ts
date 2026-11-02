@@ -73,6 +73,12 @@ export function actionsForLevel(level: Level, plan: PlanItem[], dir: Polarity | 
 }
 
 export const SERIOUS_INTRO = 'Ett av dina allvarliga tecken syntes. Din plan säger att du då ska:';
+export const SERIOUS_MOOD_INTRO = 'Du skattade stämningen som akut. Din plan säger att du då ska:';
+
+/** The intro to the plan's steps at red: a serious sign from the plan, or a rating of ±3. */
+export function seriousIntro(a: Pick<Assessment, 'signals'>): string {
+  return a.signals.some((s) => s.kind === 'serious_sign' && s.points > 0) ? SERIOUS_INTRO : SERIOUS_MOOD_INTRO;
+}
 
 /**
  * The plan's actions at red when one of the user's serious signs matched, whatever the
@@ -81,7 +87,7 @@ export const SERIOUS_INTRO = 'Ett av dina allvarliga tecken syntes. Din plan sä
  */
 export function seriousActions(a: Pick<Assessment, 'signals' | 'akut'>, plan: PlanItem[], dir: Polarity | null = null): PlanItem[] | null {
   if (a.akut) return null;
-  if (!a.signals.some((s) => s.kind === 'serious_sign' && s.points > 0)) return null;
+  if (!a.signals.some((s) => (s.kind === 'serious_sign' || s.serious) && s.points > 0)) return null;
   return actionsForLevel('red', plan, dir);
 }
 

@@ -4,7 +4,7 @@ Den här mappen innehåller alla trösklar och poäng som avgör om en dag blir 
 
 Filen har ett versionsnummer. Varje bedömning sparar vilken version den räknades med. Ändras en regel ska versionen höjas, och *Räkna om historiken med nya regler* visar vilka dagar som skulle få en annan nivå innan något sparas. `rules.schema.json` beskriver vilka fält som får finnas och vilka värden de får ha. Appen vägrar starta med en regelfil som inte följer schemat.
 
-Version: **1.1.0**. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
+Version: **1.2.0**. Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
 
 ## Dygnet
 
@@ -23,7 +23,7 @@ Version: **1.1.0**. Version 1.1.0 lade till stämningen på skalan −3 till +3:
 | `points.silence` | 1 | Inga inlägg på `silenceDays` dagar före dagens inlägg. |
 | `points.jump` | 1 | Energin skiljer sig med minst `jumpThreshold` steg, eller stämningen med minst `moodJumpThreshold` steg (2), från snittet de senaste `jumpWindowDays` dagarna. Kräver minst `jumpMinSamples` tidigare dagar. |
 | `points.moodModerate` | 1 | Personen skattade stämningen som *Depression* (−2) eller *Uppvarvning* (+2). |
-| `points.moodSevere` | 2 | Personen skattade stämningen som *Akut depression* (−3) eller *Akut mani* (+3). |
+| `points.moodSevere` | 2 | Personen skattade stämningen som *Akut depression* (−3) eller *Akut mani* (+3). Väger som ett allvarligt tecken: planens steg vid rött visas, och tillsammans med ett annat tecken blir dagen röd. Ett hopp i samma riktning räknas inte en gång till. |
 | `points.heavyDay` | 1 | Personen tryckte *Orkar bara trycka*. |
 | `points.medicationMissed` | 1 | Personen svarade nej på medicinfrågan `medicationMissedDays` kvällar i rad. |
 
@@ -36,8 +36,9 @@ Version: **1.1.0**. Version 1.1.0 lade till stämningen på skalan −3 till +3:
 | `speechFastFraction` | 0,25 | Tal mer än 25 % fortare än personens baslinje är ett tecken. Mäts inte ännu. |
 | `lateSleepHour` | 2 | Insomning från 02:00 räknas som sen. |
 | `lateSleepLatestHour` | 12 | Insomning från 12:00 räknas som dagsömn och ger inget. |
-| `nightEntryEndHour` | 5 | Ett inlägg mellan 00:00 och 05:00 är ett tecken. |
-| `measuredCapPerDay` | 2 | De mätta tecknen ger tillsammans högst 2 poäng per dag, så att en dålig natt inte räknas flera gånger. Ett mätt tecken bidrar bara till rött om det fanns även dagen innan. Svarar personen ja på *Alkohol, sjuk eller hård träning i går?* ger sömn, sen insomning och stress 0 poäng den dagen. |
+| `nightEntryEndHour` | 4 | Ett inlägg mellan 00:00 och 04:00 är ett tecken. Samma gräns som dygnet, så ett inlägg 04:01 hör till ett nytt dygn och ger inget nattecken. |
+| `measuredCapPerDay` | 2 | De mätta tecknen ger tillsammans högst 2 poäng per dag, så att en dålig natt inte räknas flera gånger. Ett mätt tecken bidrar bara till rött om det fanns även dagen innan. Svarar personen ja på *Alkohol, sjuk eller hård träning i går?* räknas sömn, sen insomning och stress som vanligt och syns med "möjlig förklaring", men se `excusedMeasuredToRed`. |
+| `excusedMeasuredToRed` | false | Efter ja på *Alkohol, sjuk eller hård träning i går?* kan sömn, sen insomning och stress ge gult men inte bidra till rött. Svaret är en möjlig förklaring, inte ett bevis på att förändringen är ofarlig. |
 | `trendDays` | 3 | Har sömnen blivit kortare, eller stressen högre, så här många dagar i rad utan att passera gränsen visas en neutral rad under grönt. Den ger ingen poäng. |
 
 ## Baslinjer

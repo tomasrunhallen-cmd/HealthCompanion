@@ -297,6 +297,8 @@ export interface Signal {
   persistent?: boolean;
   /** Which way a rating points (stämning): up towards mania, down towards depression. */
   polarity?: 'up' | 'down';
+  /** Weighs as a serious sign: the plan's steps at red show, and with another sign the day is red. Stämning ±3. */
+  serious?: boolean;
   /** Counted as 0: alcohol, illness or hard training the day before. */
   excused?: boolean;
   /** Reduced by the daily cap on measured signs. */
@@ -316,6 +318,7 @@ export type LevelReason =
   | 'measured_three' // old rule, kept to explain assessments saved before it was removed
   | 'measured_first_day' // would be red only through measured signs that were not there the day before: yellow
   | 'standard_cap' // would be red only through unconfirmed standard rows: yellow
+  | 'excused' // would be red only through sleep or stress after alcohol, illness or hard training yesterday: yellow
   | 'akut'; // the note matched the emergency word list
 
 export interface Assessment {

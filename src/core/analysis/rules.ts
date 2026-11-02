@@ -36,6 +36,11 @@ export interface Rules {
   };
   /** Measured signs give at most this many points together per day. */
   measuredCapPerDay: number;
+  /**
+   * Whether sleep and stress after "ja" to alcohol, illness or hard training yesterday can
+   * count towards red. False: they still count, and show, but only towards yellow.
+   */
+  excusedMeasuredToRed: boolean;
   /** Sleep below this is a sign until the person sets an own limit. */
   sleepThresholdHoursDefault: number;
   stressFactor: number;
