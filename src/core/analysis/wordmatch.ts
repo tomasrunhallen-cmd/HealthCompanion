@@ -16,6 +16,18 @@ const STOPWORDS = new Set([
 /** Words that change meaning and must never be dropped. */
 const KEEP = new Set(['inte', 'ingen', 'inget', 'inga', 'aldrig', 'utan']);
 
+const NEGATIONS = new Set(['inte', 'ingen', 'inget', 'inga', 'aldrig', 'ej']);
+
+/**
+ * True when a sentence or quote carries a negation the sign itself does not have: "Jag har
+ * inte slutat äta" against the sign "Slutar äta". Used on word matching's hits and on the
+ * model's quotes, on the phone.
+ */
+export function negatedAgainst(text: string, signText: string): boolean {
+  const sign = new Set(tokenize(signText));
+  return tokenize(text).some((w) => NEGATIONS.has(w) && !sign.has(w));
+}
+
 export function normalize(text: string): string {
   return text
     .toLowerCase()
@@ -87,7 +99,7 @@ export function matchSigns(note: string, signs: PlanItem[]): SignMatch[] {
     if (needed.length === 0) continue;
     for (const sentence of sentences) {
       const words = tokenize(sentence);
-      const ok = needed.every((t) => words.some((w) => wordsMatch(w, t)));
+      const ok = needed.every((t) => words.some((w) => wordsMatch(w, t))) && !negatedAgainst(sentence, sign.text);
       if (ok) {
         matches.push({ planItemId: sign.id, quote: quoteFrom(sentence, needed) });
         break;

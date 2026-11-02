@@ -6,7 +6,7 @@ import type {
   Assessment, AssessmentInputs, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Polarity, Signal, SignMatch,
 } from '../domain/types';
 import { actionsFor } from '../plan/guidance';
-import { matchSigns } from './wordmatch';
+import { matchSigns, tokenize, wordsMatch } from './wordmatch';
 import { score, type HistoryDay } from './scoring';
 import { addDays } from './dates';
 import { RULES, RULES_VERSION } from './rules';
@@ -51,6 +51,32 @@ export const wordMatcher: SignMatcher = {
     };
   },
 };
+
+/** Words that name what a measured sign is about, so "Du sov 4,5 timmar" fits a sleep sign. */
+const TOPIC: Partial<Record<Signal['kind'], string[]>> = {
+  sleep_low: ['sov', 'sömn', 'natt', 'nätt'],
+  sleep_low_consecutive: ['sov', 'sömn', 'natt', 'nätt'],
+  late_sleep_no_entry: ['sov', 'sömn', 'somna', 'insomn', 'natt', 'sent'],
+  stress_high: ['stress'],
+  night_entry: ['natt', 'sent'],
+  silence: ['inlägg', 'tyst', 'dagar'],
+  medication_missed: ['medicin', 'tablett'],
+  mood_rated: ['stämning', 'humör', 'mani', 'depression', 'nedstämd', 'uppvarv'],
+  mood_jump: ['stämning', 'humör'],
+  energy_jump: ['energi', 'ork'],
+  heavy_day: ['tung', 'ork'],
+};
+
+/** A model sentence fits when it is short and speaks of something that gave points. */
+export function sentenceFits(sentence: string, signals: Signal[]): boolean {
+  if (sentence.length > 300) return false;
+  const words = tokenize(sentence);
+  return signals.filter((s) => s.points > 0).some((s) => {
+    const about = tokenize(`${s.label} ${s.quote ?? ''}`).filter((w) => w.length >= 4);
+    if (words.some((w) => w.length >= 4 && about.some((t) => wordsMatch(w, t)))) return true;
+    return (TOPIC[s.kind] ?? []).some((t) => words.some((w) => w.startsWith(t)));
+  });
+}
 
 /** Calm one-sentence summary built only from the user's own words and measured facts. */
 export function templateSentence(signals: Signal[]): string {
@@ -132,7 +158,23 @@ export async function assessEntry(args: {
   }
   const medication: Record<DateKey, boolean> = {};
   for (const e of bank) if (e.kind === 'medication_taken' && e.date && e.taken != null) medication[e.date] = e.taken;
-  const scored = score({ entry, matches: result.matches, plan, planSettings, history, garmin, medication });
+  // The model reads the note better than word matching, but it must not be able to hide a
+  // serious sign: one that word matching finds on the phone always counts. Other differences
+  // are kept and shown under Så räknade appen.
+  let matches = result.matches;
+  const keptByPhone: SignMatch[] = [];
+  const wordOnly: SignMatch[] = [];
+  if (result.method === 'llm' && entry.transcript.trim()) {
+    const kindOf = new Map(signs.map((s) => [s.id, s.kind]));
+    const have = new Set(matches.map((m) => m.planItemId));
+    for (const m of matchSigns(entry.transcript, signs)) {
+      if (have.has(m.planItemId)) continue;
+      if (kindOf.get(m.planItemId) === 'serious') keptByPhone.push(m);
+      else wordOnly.push(m);
+    }
+    matches = [...matches, ...keptByPhone];
+  }
+  const scored = score({ entry, matches, plan, planSettings, history, garmin, medication });
   // Everything needed to compute the level again: the days the rules look back at, the signs and matches.
   const lookback = Math.max(RULES.trendDays, RULES.medicationMissedDays, 2);
   const days = Array.from({ length: lookback + 1 }, (_, i) => addDays(entry.date, -i));
@@ -141,7 +183,7 @@ export async function assessEntry(args: {
     sentText: result.sent ?? null,
     rawAnswer: result.raw ?? null,
     signs,
-    matches: result.matches,
+    matches,
     planSettings: { sleepThresholdHours: planSettings.sleepThresholdHours },
     garmin: Object.fromEntries(days.filter((d) => garmin?.[d]).map((d) => [d, garmin![d]])),
     medication: Object.fromEntries(days.filter((d) => medication[d] != null).map((d) => [d, medication[d]])),
@@ -153,11 +195,18 @@ export async function assessEntry(args: {
     scored.level = 'red';
     scored.reason = 'akut';
   }
+  // The model's sentence only when it speaks of something that gave points; otherwise the
+  // template, so an odd or steered sentence ("allt är bra") never stands over a yellow day.
+  const modelSentence = result.sentence?.trim() || null;
+  const usable = modelSentence && sentenceFits(modelSentence, scored.signals);
   const sentence = args.akut
     ? AKUT_SENTENCE
     : scored.level === 'green'
       ? GREEN_SENTENCE
-      : result.sentence?.trim() || templateSentence(scored.signals);
+      : usable ? modelSentence : templateSentence(scored.signals);
+  if (keptByPhone.length) inputs.keptByPhone = keptByPhone;
+  if (wordOnly.length) inputs.wordOnly = wordOnly;
+  if (modelSentence && !usable && scored.level !== 'green' && !args.akut) inputs.sentenceDropped = modelSentence;
   return {
     id: newId('a'),
     entryId: entry.id,

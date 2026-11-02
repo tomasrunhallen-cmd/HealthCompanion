@@ -107,6 +107,12 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   else if (a.method === 'wordmatch') data.push('Tecknen hittades med ordmatchning på telefonen');
   else if (a.method === 'import') data.push('Tecknen kom från hur du kopplade dagbokens kolumner till dina tecken, och från ordmatchning i anteckningen');
 
+  // Where the model and word matching on the phone disagreed.
+  const signText = (id: string) => a.inputs?.signs.find((x) => x.id === id)?.text ?? id;
+  for (const m of a.inputs?.keptByPhone ?? []) data.push(`Modellen tog inte med det allvarliga tecknet ”${signText(m.planItemId)}”, som ordmatchningen hittade. Det räknas ändå`);
+  for (const m of a.inputs?.wordOnly ?? []) data.push(`Ordmatchningen hittade också ”${signText(m.planItemId)}”, men modellen räknade det inte`);
+  if (a.inputs?.sentenceDropped) data.push('Modellens mening användes inte, eftersom den inte nämnde det som gav poäng');
+
   if (a.baseline.greenDays < RULES.baselineMinSamples) {
     data.push(`Baslinjen är inte klar: ${a.baseline.greenDays} av ${RULES.baselineMinSamples} gröna dagar`);
   }

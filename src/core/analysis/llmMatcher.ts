@@ -8,7 +8,7 @@ import { loadPrompt } from '../prompts/loader';
 import { scrub } from '../privacy/scrub';
 import type { MatchResult, SignMatcher } from './assess';
 import { NO_MEASUREMENTS } from './measurements';
-import { normalize } from './wordmatch';
+import { normalize, negatedAgainst } from './wordmatch';
 
 interface AnalysAnswer {
   matches: { sign_id: number; quote: string }[];
@@ -51,6 +51,8 @@ export function createLlmMatcher(opts: {
         const sign = signs[m.sign_id - 1];
         // Drop matches whose quote is not actually in the note: the model must not guess.
         if (!sign || !normNote.includes(normalize(m.quote))) continue;
+        // Nor a quote that says the opposite of the sign ("har inte slutat äta" for "Slutar äta").
+        if (negatedAgainst(m.quote, sign.text)) continue;
         if (!matches.some((x) => x.planItemId === sign.id)) matches.push({ planItemId: sign.id, quote: m.quote });
       }
       return {

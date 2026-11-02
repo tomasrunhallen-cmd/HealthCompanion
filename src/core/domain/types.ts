@@ -381,6 +381,12 @@ export interface AssessmentInputs {
   /** Medication answers per day, as used by the rule. */
   medication: Record<DateKey, boolean>;
   baseline: Baseline;
+  /** With a model: serious signs word matching found and the model left out. They count anyway. */
+  keptByPhone?: SignMatch[];
+  /** With a model: other signs word matching found and the model did not count. Shown, not counted. */
+  wordOnly?: SignMatch[];
+  /** The model's sentence, when it was not used because it did not mention what gave points. */
+  sentenceDropped?: string | null;
 }
 
 export interface Baseline {

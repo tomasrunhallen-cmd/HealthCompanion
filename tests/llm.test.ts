@@ -241,7 +241,8 @@ describe('Testa modellen', () => {
       ['orkade-inte-svara', 'yellow', 'green'],
       ['omskrivet-tecken', 'yellow', 'green'],
       ['allvarligt-ensamt', 'yellow', 'green'],
-      ['allvarligt-plus-annat', 'red', 'green'],
+      // The serious sign is found on the phone and counts anyway: yellow, with the steps at red.
+      ['allvarligt-plus-annat', 'red', 'yellow'],
       ['tva-korta-natter-tva-tecken', 'red', 'yellow'],
       ['flera-gula-dagar', 'red', 'green'],
       ['standard-allvarligt', 'yellow', 'yellow'],
