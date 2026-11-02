@@ -78,6 +78,8 @@ function Scale(props: {
   );
 }
 
+const capitalize = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
 const SLEEP_MAX = 14;
 /** Hours to the nearest half hour, within the slider. */
 const halfHour = (h: number) => Math.min(SLEEP_MAX, Math.max(0, Math.round(h * 2) / 2));
@@ -196,12 +198,12 @@ export function CheckinScreen() {
         <Text style={type.h2} accessibilityRole="header">Sömn och stress</Text>
         {garmin && (garminSleep != null || garmin.stressAvg != null) ? (
           <P style={{ marginTop: space.xs }}>
-            {[
+            {capitalize([
               garminSleep != null
                 ? `Sömn i natt ${String(garminSleep).replace('.', ',')} h ${FROM_SOURCE[sleepSourceOf(garmin) ?? 'garmin']}${garmin.sleepStart ? `, somnade ${garmin.sleepStart}` : ''}`
                 : null,
               garmin.stressAvg != null ? `stress hittills i dag ${garmin.stressAvg} ${FROM_SOURCE[stressSourceOf(garmin) ?? 'garmin']}` : null,
-            ].filter(Boolean).join(', ') + '.'}
+            ].filter(Boolean).join(', ')) + '.'}
           </P>
         ) : null}
         {connected ? (
