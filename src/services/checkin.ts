@@ -9,6 +9,7 @@ import { setRoutineDone } from './routines';
 import { sleepSourceOf, stressSourceOf } from '../core/analysis/sources';
 import type { Repository } from '../storage/repository';
 import { refreshForCheckin, type GarminOptions } from './garmin';
+import { createTextComparer } from './references';
 import { currentMatcher, type AdapterOptions } from './llm';
 
 export interface CheckinInput {
@@ -138,6 +139,8 @@ export async function saveCheckin(
   // The configured language model when there is one; word matching otherwise, and always
   // word matching when the emergency rule matched.
   const matcher = akut || akutMild ? wordMatcher : await currentMatcher(repo, { now: () => now, ...adapterOptions });
+  // Mina tidigare texter: only with a model, and never for a note that matched the emergency rule.
+  const textComparer = matcher !== wordMatcher ? await createTextComparer(repo, input.transcript, { now: () => now, ...adapterOptions }) : null;
   if (matcher === wordMatcher) {
     const assessment = await assessEntry({ ...base, matcher });
     await repo.saveEntry(entry, assessment);
@@ -146,7 +149,7 @@ export async function saveCheckin(
 
   // B7: the model gets the time that is left of the budget. If it has not answered by then,
   // word matching's result is saved and shown at once, and the model's fills it in later.
-  const fromModel = assessEntry({ ...base, matcher });
+  const fromModel = assessEntry({ ...base, matcher, ...(textComparer ? { textComparer } : {}) });
   const left = budgetMs - (clock() - started) - MARGIN_MS;
   const first = await Promise.race([fromModel, timeout(left)]);
   if (first !== 'timeout') {

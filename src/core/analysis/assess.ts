@@ -4,10 +4,12 @@
 import { buildContext, entriesFromPlan, type PromptContext } from '../context/buildContext';
 import type {
   Assessment, AssessmentInputs, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Polarity, Signal, SignMatch,
+  TextComparison, TextObservationInput,
 } from '../domain/types';
 import { actionsFor } from '../plan/guidance';
 import { matchSigns, tokenize, wordsMatch } from './wordmatch';
-import { score, type HistoryDay } from './scoring';
+import { score, type HistoryDay, type ScoreResult } from './scoring';
+import type { CheckedObservation, TextComparerResult } from '../references/patterns';
 import { addDays } from './dates';
 import { RULES, RULES_VERSION } from './rules';
 
@@ -143,12 +145,21 @@ export async function assessEntry(args: {
   akutMild?: boolean;
   /** Why the match was mild: a negation, or the past, someone else or a topic. */
   akutMildBecause?: 'negation' | 'context';
+  /**
+   * Mina tidigare texter: compares the note with approved personal patterns. Never called when
+   * the emergency rule matched, fully or mildly: such a note is never sent to a model.
+   */
+  textComparer?: () => Promise<TextComparerResult | null>;
   now?: Date;
 }): Promise<Assessment> {
   const { entry, plan, planSettings, history, matcher, garmin } = args;
   const bank = args.context ?? entriesFromPlan(plan, planSettings.normalState);
   const built = buildContext({ entries: bank, entry, history, garmin }, planSettings);
   const signs = built.signs;
+  // The comparison with earlier texts runs alongside the sign matching.
+  const textRun: Promise<TextComparerResult | null> = args.textComparer && !args.akut && !args.akutMild && entry.transcript.trim()
+    ? args.textComparer().catch((e: Error) => ({ check: null, error: e.message || 'okänt fel', model: null, promptId: 'textjamforelse', promptVersion: '?', referenceVersion: '?', referenceIds: [], patternIds: [], stableMissing: true }))
+    : Promise.resolve(null);
   let result: MatchResult;
   try {
     result = await matcher.match(entry.transcript, signs, planSettings, { variables: built.variables });
@@ -174,7 +185,9 @@ export async function assessEntry(args: {
     }
     matches = [...matches, ...keptByPhone];
   }
-  const scored = score({ entry, matches, plan, planSettings, history, garmin, medication });
+  const text = await textRun;
+  const textObservations = (text?.check?.observations ?? []).filter((o) => o.eligible).map(toInput);
+  const scored = score({ entry, matches, plan, planSettings, history, garmin, medication, textObservations });
   // Everything needed to compute the level again: the days the rules look back at, the signs and matches.
   const lookback = Math.max(RULES.trendDays, RULES.medicationMissedDays, 2);
   const days = Array.from({ length: lookback + 1 }, (_, i) => addDays(entry.date, -i));
@@ -188,6 +201,7 @@ export async function assessEntry(args: {
     garmin: Object.fromEntries(days.filter((d) => garmin?.[d]).map((d) => [d, garmin![d]])),
     medication: Object.fromEntries(days.filter((d) => medication[d] != null).map((d) => [d, medication[d]])),
     baseline: scored.baseline,
+    ...(textObservations.length ? { textObservations } : {}),
   };
   if (args.akut) {
     // The emergency rule always gives red, whatever the points and also in standard mode.
@@ -227,5 +241,36 @@ export async function assessEntry(args: {
     ...(args.akutMild && !args.akut ? { akutMild: true, ...(args.akutMildBecause ? { akutMildBecause: args.akutMildBecause } : {}) } : {}),
     ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : {}),
     inputs,
+    ...(text ? { textPatterns: textComparison(text, scored) } : {}),
+  };
+}
+
+function toInput(o: CheckedObservation): TextObservationInput {
+  return { patternId: o.patternId, quote: o.quote, direction: o.direction, phenomenon: o.phenomenon, planSignId: o.planSignId, description: o.description, referenceIds: o.referenceIds, note: o.note };
+}
+
+/** What Mina tidigare texter did to the day, saved for review: every observation and why it counted or not. */
+export function textComparison(text: TextComparerResult, scored: Pick<ScoreResult, 'textOutcomes' | 'withoutText'>): TextComparison {
+  const outcome = (o: CheckedObservation) => scored.textOutcomes.find((x) => x.patternId === o.patternId && x.quote === o.quote);
+  return {
+    rulesVersion: RULES_VERSION,
+    model: text.model,
+    promptId: text.promptId,
+    promptVersion: text.promptVersion,
+    referenceVersion: text.referenceVersion,
+    referenceIds: text.referenceIds,
+    patternIds: text.patternIds,
+    abstained: !!text.check?.abstained,
+    abstainReason: text.check?.abstainReason ?? null,
+    observations: (text.check?.observations ?? []).map((o) => {
+      const r = outcome(o);
+      return { ...toInput(o), perspective: o.perspective, counted: !!r?.counted, reason: o.reason ?? r?.reason ?? null };
+    }),
+    differences: text.check?.differences ?? [],
+    uncertainties: text.check?.uncertainties ?? [],
+    stableMissing: text.stableMissing,
+    levelWithout: scored.withoutText.level,
+    pointsWithout: scored.withoutText.points,
+    error: text.error,
   };
 }

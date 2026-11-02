@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "textjamforelse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["abstain", "abstain_reason", "observations", "differences", "uncertainties"],
+  "properties": {
+    "abstain": { "type": "boolean" },
+    "abstain_reason": { "type": "string", "maxLength": 300 },
+    "observations": {
+      "type": "array",
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pattern", "quote", "perspective", "note", "references"],
+        "properties": {
+          "pattern": { "type": "string", "maxLength": 10 },
+          "quote": { "type": "string", "maxLength": 200 },
+          "perspective": { "type": "string", "enum": ["self_now", "history", "other_person", "quote_or_hypothetical", "humor_or_irony", "text_context"] },
+          "note": { "type": "string", "maxLength": 300 },
+          "references": { "type": "array", "maxItems": 4, "items": { "type": "string", "maxLength": 10 } }
+        }
+      }
+    },
+    "differences": { "type": "array", "maxItems": 4, "items": { "type": "string", "maxLength": 300 } },
+    "uncertainties": { "type": "array", "maxItems": 4, "items": { "type": "string", "maxLength": 300 } }
+  }
+}

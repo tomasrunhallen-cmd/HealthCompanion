@@ -4,7 +4,7 @@ Den här mappen innehåller alla trösklar och poäng som avgör om en dag blir 
 
 Filen har ett versionsnummer. Varje bedömning sparar vilken version den räknades med. Ändras en regel ska versionen höjas, och *Räkna om historiken med nya regler* visar vilka dagar som skulle få en annan nivå innan något sparas. `rules.schema.json` beskriver vilka fält som får finnas och vilka värden de får ha. Appen vägrar starta med en regelfil som inte följer schemat.
 
-Version: **1.2.0**. Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
+Version: **1.3.0**. Version 1.3.0 lade till kategorin personliga textmönster (*Mina tidigare texter*, experimentell, se nedan). Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
 
 ## Dygnet
 
@@ -62,6 +62,26 @@ Reglerna prövas i den här ordningen, och den första som gäller visas för pe
 
 Två begränsningar gäller alltid, oavsett siffrorna: standardrader som personen inte bekräftat kan bara ge gult, och mätta tecken som inte fanns dagen innan kan bara ge gult.
 
+## Personliga textmönster (experimentellt)
+
+Kategorin hör till *Mina tidigare texter* och gäller bara mönster som personen själv godkänt. Viktningen är ett **produktantagande, inte kliniskt prövad**. Godkännandet betyder att mönstret får användas experimentellt, inte att det är validerat.
+
+| Fält | Värde | Betydelse |
+| --- | --- | --- |
+| `textPatterns.points` | 1 | Ett godkänt mönster med ett belägg i dagens anteckning ger 1 poäng. Beläggen kontrolleras på telefonen: mönstrets id, citatet ordagrant i anteckningen, och att det handlar om personen själv nu. |
+| `textPatterns.capPerDay` | 2 | Högst 2 poäng om dagen från kategorin, och bara från skilda mönster, fenomen och citat. |
+| `textPatterns.aloneCanGiveRed` | false | Mönstren kan tillsammans med andra tecken höja gult till rött, men aldrig ensamma ge rött: inte genom poäng, inte genom allvarligt tecken plus annat och inte genom regeln om de senaste dagarna. Dagen blir då gul med skälet *text_alone*. |
+
+**Avdubblering.** Ett mönster räknas inte när samma sak redan räknas. Vid tvekan läggs ingen poäng till.
+
+- **Planens tecken:** mönstret är kopplat till ett tecken ur planen som syntes, eller citatet delar tre ord i rad med ett tecken som räknas.
+- **Mätta och skattade värden:** sömnmönster räknas inte när sömnen redan gav poäng, stämningsmönster inte när stämningen gjorde det, tempomönster inte när talhastigheten gjorde det och aktivitetsmönster inte när energin gjorde det.
+- **Andra mönster samma dag:** samma mönster, samma fenomen och samma citat räknas en gång.
+
+Ett mönster blir aldrig ett allvarligt tecken. Att inget mönster syns, eller att anteckningen liknar stabila texter, sänker aldrig något. Riktningen visas, och mönster uppåt och nedåt samma dag tar inte ut varandra.
+
+**Prioritet:** akutregeln går före allt och påverkas aldrig av referensmaterialet. Därefter räknas tecken, mätvärden och textmönster, och nivån sätts. Sist gäller spärrarna mot rött i ordningen standardinnehåll, första dagens mätvärden, möjlig förklaring och textmönster ensamma.
+
 ## Algoritmen i ordning
 
 Så räknas en dag, steg för steg. Koden ligger i `src/core/analysis/scoring.ts` (`score`, `levelFromSignals`) och `assess.ts`.
@@ -75,26 +95,27 @@ Så räknas en dag, steg för steg. Koden ligger i `src/core/analysis/scoring.ts
    - Ett tecken märks *fanns i går* om det fanns även dagen innan.
    - Efter ja på alkoholfrågan märks det *möjlig förklaring*.
    - Tillsammans ger de högst `measuredCapPerDay` poäng, i den ordningen.
-4. **Övriga tecken:**
+4. **Personliga textmönster** (experimentellt, se ovan): 1 poäng per godkänt mönster med kontrollerat belägg, högst 2, efter avdubbleringen.
+5. **Övriga tecken:**
    - nattinlägg 00:00–04:00
    - tystnad
    - medicin
    - stämning skattad till ±2 eller ±3, där ±3 väger som ett allvarligt tecken
    - hopp i stämning eller energi; ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte
    - *Orkar bara trycka*
-5. **Nivån.** Den första regeln som gäller avgör:
+6. **Nivån.** Den första regeln som gäller avgör:
    1. Poäng ≥ `redAt` ger rött.
    2. Ett allvarligt tecken tillsammans med minst ett annat tecken ger rött.
    3. Poäng ≥ `redWithHistoryAt` ger rött om minst `historyNonGreenDays` av de `historyWindowDays` dagarna före i dag var gula eller röda. Dagen själv räknas inte.
    4. Poäng ≥ `yellowAt` ger gult.
    5. Annars grönt.
-6. **Spärrar mot rött.** Blir det rött räknas dagen om utan tre sorters tecken:
+7. **Spärrar mot rött.** Blir det rött räknas dagen om utan tre sorters tecken:
    - obekräftade standardrader
    - mätta tecken som inte fanns i går
    - mätta tecken med möjlig förklaring
 
-   Blir det fortfarande rött är dagen röd. Annars blir den gul, med skälet: standardinnehåll, första dagen eller möjlig förklaring.
-7. **Grönt** visar alltid samma mening, och neutrala trendrader utan poäng.
+   Blir det fortfarande rött är dagen röd. Annars blir den gul, med skälet: standardinnehåll, första dagen eller möjlig förklaring. Ger bara textmönster poäng blir dagen också gul (*text_alone*).
+8. **Grönt** visar alltid samma mening, och neutrala trendrader utan poäng.
 
 **Tid och källor**
 

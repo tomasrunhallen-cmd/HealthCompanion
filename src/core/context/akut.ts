@@ -245,6 +245,18 @@ export function akutCheckWith(note: string, lists: AkutLists, userPhrases: strin
   return { level: null, phrases: [] };
 }
 
+/**
+ * True when a text speaks of the past, of someone else or of a topic rather than the writer's
+ * own state now ("för tio år sedan", "min vän", "hon", "boken"), by the same context list as the
+ * emergency rule. Used to keep such quotes from counting as the person's own observation today.
+ */
+export function aboutPastOrOthers(text: string): boolean {
+  const lists = akutLists();
+  const contexts = (lists.contexts ?? []).map(tokenize);
+  const cores = lists.cores.map((c) => tokenize(c)[0]).filter(Boolean);
+  return clauses(text).some((words) => contextIn(words, contexts, cores));
+}
+
 /** The phrases that occur in the note without a negation. Empty when none. */
 export function akutMatches(note: string, userPhrases: string[] = []): string[] {
   const r = akutCheck(note, userPhrases);

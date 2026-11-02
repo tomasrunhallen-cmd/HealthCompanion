@@ -10,6 +10,7 @@
     "level",
     "measuredCapPerDay",
     "excusedMeasuredToRed",
+    "textPatterns",
     "sleepThresholdHoursDefault",
     "stressFactor",
     "speechFastFraction",
@@ -206,6 +207,28 @@
     },
     "excusedMeasuredToRed": {
       "type": "boolean"
+    },
+    "textPatterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "points",
+        "capPerDay",
+        "aloneCanGiveRed"
+      ],
+      "properties": {
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capPerDay": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aloneCanGiveRed": {
+          "type": "boolean"
+        }
+      }
     }
   }
 }

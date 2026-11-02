@@ -41,6 +41,12 @@ export interface Rules {
    * count towards red. False: they still count, and show, but only towards yellow.
    */
   excusedMeasuredToRed: boolean;
+  /**
+   * Mina tidigare texter, an experimental product assumption: an approved personal pattern with
+   * a checked quote in today's note gives `points`, at most `capPerDay` a day from distinct
+   * phenomena. Without other signs they never give red.
+   */
+  textPatterns: { points: number; capPerDay: number; aloneCanGiveRed: boolean };
   /** Sleep below this is a sign until the person sets an own limit. */
   sleepThresholdHoursDefault: number;
   stressFactor: number;

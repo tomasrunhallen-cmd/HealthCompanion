@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "textmonster",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["patterns", "notes"],
+  "properties": {
+    "patterns": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "direction", "phenomenon", "evidence", "counterexamples", "alternatives", "plan_sign"],
+        "properties": {
+          "description": { "type": "string", "minLength": 3, "maxLength": 300 },
+          "direction": { "type": "string", "enum": ["up", "down", "mixed", "unclear"] },
+          "phenomenon": { "type": "string", "enum": ["sleep", "activity", "mood", "speech", "social", "self_worth", "thinking", "other"] },
+          "evidence": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text", "quote"],
+              "properties": { "text": { "type": "string", "maxLength": 10 }, "quote": { "type": "string", "maxLength": 200 } }
+            }
+          },
+          "counterexamples": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text", "quote", "note"],
+              "properties": { "text": { "type": "string", "maxLength": 10 }, "quote": { "type": "string", "maxLength": 200 }, "note": { "type": "string", "maxLength": 200 } }
+            }
+          },
+          "alternatives": { "type": "array", "maxItems": 4, "items": { "type": "string", "maxLength": 200 } },
+          "plan_sign": { "type": "string", "maxLength": 10 }
+        }
+      }
+    },
+    "notes": { "type": "string", "maxLength": 400 }
+  }
+}

@@ -2,6 +2,7 @@
 // compute signals, points and level. Pure and fully testable.
 
 import type {
+  TextObservationInput,
   Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, MeasureSource, PlanItem, PlanSettings, Signal, SignalKind, SignMatch,
 } from '../domain/types';
 import { addDays, daysBetween, entryClock, weekStart } from './dates';
@@ -25,6 +26,16 @@ export interface ScoreInput {
   garmin?: Record<DateKey, GarminDay>;
   /** The check-in's medication answer per evening: true taken, false not taken. Unanswered days are absent. */
   medication?: Record<DateKey, boolean>;
+  /** Mina tidigare texter: observations of approved personal patterns that passed the checks on the phone. */
+  textObservations?: TextObservationInput[];
+}
+
+/** What became of one personal text observation in the rules. */
+export interface TextOutcome {
+  patternId: string;
+  quote: string;
+  counted: boolean;
+  reason: string | null;
 }
 
 export interface ScoreResult {
@@ -36,6 +47,9 @@ export interface ScoreResult {
   recentNonGreenDays: number;
   signals: Signal[];
   baseline: Baseline;
+  /** Mina tidigare texter: what each observation did, and the level the day would have had without them. */
+  textOutcomes: TextOutcome[];
+  withoutText: { level: Level; points: number; reason: LevelReason };
 }
 
 function mean(values: number[]): number | null {
@@ -122,6 +136,20 @@ export const EXCUSABLE_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutiv
  * before. A day that would be red only through those becomes yellow.
  */
 export function levelFromSignals(
+  signals: Signal[],
+  recentNonGreenDays: number,
+): { level: Level; points: number; reason: LevelReason } {
+  const result = levelBeforeTextRule(signals, recentNonGreenDays);
+  // Personal text patterns may lift a day with other signs to red, never make it red alone:
+  // not through points, the serious-plus-other rule or the recent-days rule.
+  if (result.level === 'red' && !RULES.textPatterns.aloneCanGiveRed) {
+    const others = signals.filter((s) => s.kind !== 'text_pattern' && s.points > 0);
+    if (!others.length) return { level: 'yellow', points: result.points, reason: 'text_alone' };
+  }
+  return result;
+}
+
+function levelBeforeTextRule(
   signals: Signal[],
   recentNonGreenDays: number,
 ): { level: Level; points: number; reason: LevelReason } {
@@ -428,10 +456,72 @@ export function score(input: ScoreInput): ScoreResult {
       .map((h) => h.entry.date),
   ).size;
 
-  const adjusted = adjustMeasured(signals, entry, yesterdaysMeasured(entry.date, history, garmin, planSettings, baseline));
+  const measuredAndPlan = adjustMeasured(signals, entry, yesterdaysMeasured(entry.date, history, garmin, planSettings, baseline));
+  const withoutText = levelFromSignals(measuredAndPlan, recentNonGreen);
+  const { signals: textSignals, outcomes: textOutcomes } = textPatternSignals(input.textObservations ?? [], measuredAndPlan);
+  const adjusted = [...measuredAndPlan, ...textSignals];
   const { level, points, reason } = levelFromSignals(adjusted, recentNonGreen);
   const trend = trendLines(entry, history, garmin, planSettings, baseline);
-  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend };
+  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText };
+}
+
+// ---- Mina tidigare texter ----
+
+/** The measured or rated signals that are the same phenomenon as a personal text pattern. */
+const SAME_PHENOMENON: Partial<Record<TextObservationInput['phenomenon'], SignalKind[]>> = {
+  sleep: ['sleep_low', 'sleep_low_consecutive', 'late_sleep_no_entry'],
+  mood: ['mood_rated', 'mood_jump'],
+  speech: ['speech_fast'],
+  activity: ['energy_jump'],
+};
+
+function words(text: string): string[] {
+  return text.toLowerCase().replace(/[^a-zåäöéü0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+
+/** Two quotes overlap when they share three words in a row, or one holds the other. */
+function overlaps(a: string, b: string): boolean {
+  const x = words(a);
+  const y = words(b).join(' ');
+  if (!x.length || !y) return false;
+  if (y.includes(x.join(' ')) || x.join(' ').includes(y)) return true;
+  for (let i = 0; i + 3 <= x.length; i++) if (` ${y} `.includes(` ${x.slice(i, i + 3).join(' ')} `)) return true;
+  return false;
+}
+
+/**
+ * Personal text patterns as signals. One point each, at most the daily cap, from distinct
+ * patterns, phenomena and quotes. Never when the same thing already counts as a plan sign or a
+ * measured or rated value: when in doubt, no extra point. They never weigh as serious.
+ */
+export function textPatternSignals(observations: TextObservationInput[], others: Signal[]): { signals: Signal[]; outcomes: TextOutcome[] } {
+  const T = RULES.textPatterns;
+  const counted = others.filter((s) => s.points > 0);
+  const signals: Signal[] = [];
+  const outcomes: TextOutcome[] = [];
+  const skip = (o: TextObservationInput, reason: string) => outcomes.push({ patternId: o.patternId, quote: o.quote, counted: false, reason });
+  for (const o of observations) {
+    if (o.planSignId && others.some((s) => s.planItemId === o.planSignId)) { skip(o, 'Samma som ett tecken ur din plan, som redan räknas'); continue; }
+    if (counted.some((s) => s.planItemId && s.quote && overlaps(o.quote, s.quote))) { skip(o, 'Samma ord som ett tecken ur din plan, som redan räknas'); continue; }
+    const same = SAME_PHENOMENON[o.phenomenon] ?? [];
+    if (counted.some((s) => same.includes(s.kind))) { skip(o, 'Samma sak som ett mätt eller skattat värde, som redan räknas'); continue; }
+    if (signals.some((s) => s.patternId === o.patternId)) { skip(o, 'Samma mönster räknas en gång om dagen'); continue; }
+    const earlier = observations.filter((x) => signals.some((s) => s.patternId === x.patternId));
+    if (earlier.some((x) => x.phenomenon === o.phenomenon)) { skip(o, 'Samma fenomen som ett annat mönster i dag'); continue; }
+    if (signals.some((s) => s.quote && overlaps(o.quote, s.quote))) { skip(o, 'Samma citat som ett annat mönster i dag'); continue; }
+    if (signals.length * T.points + T.points > T.capPerDay) { skip(o, `Högst ${T.capPerDay} poäng om dagen från dina tidigare texter`); continue; }
+    signals.push({
+      kind: 'text_pattern',
+      points: T.points,
+      label: `Mönster ur dina tidigare texter: ${o.description}`,
+      quote: o.quote,
+      measured: false,
+      patternId: o.patternId,
+      ...(o.direction === 'up' || o.direction === 'down' ? { polarity: o.direction } : {}),
+    });
+    outcomes.push({ patternId: o.patternId, quote: o.quote, counted: true, reason: null });
+  }
+  return { signals, outcomes };
 }
 
 /** Builds history pairs from stored entries and assessments. */

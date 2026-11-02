@@ -2,6 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import React from 'react';
 import { Linking, Pressable, Text, useColorScheme, View } from 'react-native';
 import { PRIVACY_POLICY_URL } from '../../legal';
+import { referenceTexts } from '../../services/references';
 import { Card, Screen, Section } from '../components';
 import { useNav, type Route } from '../nav';
 import { useRepo } from '../state';
@@ -41,6 +42,7 @@ export function MeScreen() {
   const pending = repo.pendingSuggestions().length;
   const signs = repo.plan().filter((p) => p.kind === 'early' || p.kind === 'serious').length;
   const routineCount = repo.contextOf('routine').length;
+  const refCount = referenceTexts(repo).length;
   return (
     <Screen title="Jag">
       <Section title="Min plan">
@@ -48,6 +50,11 @@ export function MeScreen() {
           <ListRow title="Min krisplan" detail={signs ? `${signs} tecken` : 'Inga tecken än'} to={{ name: 'plan' }} />
           <ListRow title="Rutiner" detail={routineCount ? `${routineCount} ur planen, påminnelser och avbockning` : 'Påminnelser och avbockning'} to={{ name: 'routines' }} last={!pending} />
           {pending ? <ListRow title="Förslag att granska" detail={`${pending} väntar`} to={{ name: 'suggestions' }} last /> : null}
+        </Card>
+      </Section>
+      <Section title="Min profil">
+        <Card style={{ paddingVertical: 0 }}>
+          <ListRow title="Mina tidigare texter" detail={refCount ? `${refCount} texter, experimentellt` : 'Experimentellt'} to={{ name: 'references' }} last />
         </Card>
       </Section>
       <Section title="Det appen vet">

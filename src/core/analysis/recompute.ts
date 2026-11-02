@@ -44,6 +44,8 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
     history,
     garmin: inp?.garmin ?? ctx.garmin,
     medication: inp?.medication ?? ctx.medication,
+    // Observations the person said did not fit are left out (Mina tidigare texter).
+    textObservations: (inp?.textObservations ?? []).filter((o) => !a.textPatterns?.observations.some((x) => x.patternId === o.patternId && x.quote === o.quote && x.rejectedAt)),
   });
   // The emergency rule is decided before any rule and stays as it was.
   if (a.akut) {
@@ -63,6 +65,17 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
     baseline: scored.baseline,
     ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : { trend: undefined }),
     inputs: inp ? { ...inp, rulesVersion: RULES_VERSION, baseline: scored.baseline } : undefined,
+    textPatterns: a.textPatterns
+      ? {
+        ...a.textPatterns,
+        levelWithout: scored.withoutText.level,
+        pointsWithout: scored.withoutText.points,
+        observations: a.textPatterns.observations.map((o) => {
+          const r = scored.textOutcomes.find((x) => x.patternId === o.patternId && x.quote === o.quote);
+          return { ...o, counted: !!r?.counted && !o.rejectedAt, reason: o.rejectedAt ? 'Du sa att den inte stämde' : o.reason && !r ? o.reason : r?.reason ?? null };
+        }),
+      }
+      : a.textPatterns,
     recomputed: { at: now.toISOString(), fromRulesVersion: inp?.rulesVersion ?? null, level: a.level, points: a.points },
   };
 }

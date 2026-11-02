@@ -42,6 +42,17 @@ Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery frå
 
 Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
+## Mina tidigare texter (experimentellt)
+
+- **Lagring.** Referenstexter och mönster sparas i appens vanliga lagring, som allt annat: krypterad på telefonen, och krypterad i webbläsaren innan den når Firebase.
+- **Exporten** *Exportera texter och mönster* ger en okrypterad JSON-fil. Appen varnar innan.
+- **Inget skickas** förrän personen sett förhandsvisningen och slagit på jämförelsen. Därefter:
+  - när mönster föreslås: alla texter som får användas, rensade, högst 1 500 tecken var
+  - varje kväll: anteckningen och högst 8 utdrag, rensade, högst två per period
+- **Akutregeln.** Texter som den reagerar på skickas aldrig, inte heller gamla, och en anteckning med akutträff jämförs aldrig.
+- **Meddelanden.** Från meddelandefiler tas bara personens egna rader med.
+- **Rensat, inte anonymt.** Smeknamn, arbetsplatser och ovanliga händelser kan finnas kvar i det som skickas.
+
 ## Kontextbanken och lärandet
 
 Det appen vet om användaren ligger i kontextbanken på telefonen (i webbversionen i användarens Firebase). Inget lärs in i någon modell, och leverantörernas minnesfunktioner används inte. Varje kväll skickas en sammanställning ur banken med till modellen, rensad på samma sätt som anteckningen.

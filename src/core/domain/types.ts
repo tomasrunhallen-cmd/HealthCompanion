@@ -276,6 +276,7 @@ export type SignalKind =
   | 'silence'
   | 'mood_jump'
   | 'mood_rated'
+  | 'text_pattern'
   | 'energy_jump'
   | 'heavy_day'
   | 'late_sleep_no_entry'
@@ -301,6 +302,8 @@ export interface Signal {
   polarity?: 'up' | 'down';
   /** Weighs as a serious sign: the plan's steps at red show, and with another sign the day is red. Stämning ±3. */
   serious?: boolean;
+  /** A personal text pattern (Mina tidigare texter) behind this signal. */
+  patternId?: string;
   /** Counted as 0: alcohol, illness or hard training the day before. */
   excused?: boolean;
   /** Reduced by the daily cap on measured signs. */
@@ -321,6 +324,7 @@ export type LevelReason =
   | 'measured_first_day' // would be red only through measured signs that were not there the day before: yellow
   | 'standard_cap' // would be red only through unconfirmed standard rows: yellow
   | 'excused' // would be red only through sleep or stress after alcohol, illness or hard training yesterday: yellow
+  | 'text_alone' // would be red, but nothing else than personal text patterns gave points: yellow
   | 'akut'; // the note matched the emergency word list
 
 export interface Assessment {
@@ -361,6 +365,8 @@ export interface Assessment {
   remeasured?: { at: string; level: Level; points: number; changes: string[] } | null;
   /** The person kept the day as it was although the watch's later values gave this. */
   remeasureDeclined?: { at: string; level: Level; points: number } | null;
+  /** Mina tidigare texter: what the comparison with the person's earlier texts found and changed. */
+  textPatterns?: TextComparison | null;
 }
 
 /**
@@ -391,6 +397,8 @@ export interface AssessmentInputs {
   wordOnly?: SignMatch[];
   /** The model's sentence, when it was not used because it did not mention what gave points. */
   sentenceDropped?: string | null;
+  /** Observations of personal text patterns that passed the checks on the phone (Mina tidigare texter). */
+  textObservations?: TextObservationInput[];
 }
 
 export interface Baseline {
@@ -441,6 +449,10 @@ export interface AppSettings {
   firstUseAt?: DateKey | null;
   /** Första veckan: the sleep source suggestion and the first week picture have been answered. */
   firstWeekDone?: { sleepSource?: boolean; weekPicture?: boolean };
+  /** Mina tidigare texter: compare the evening's note with approved personal patterns. Set after the preview. */
+  textPatterns?: { enabled: boolean; consentAt: string | null } | null;
+  /** The person's own name in message files, so only their own lines are imported. */
+  ownMessageName?: string | null;
 }
 
 /** direct: as soon as there is one. weekly: on Mondays. visit: only under Inför återbesök. */
@@ -462,3 +474,114 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   standardSince: null,
   standardNudgeDismissedWeek: null,
 };
+
+// ---- Mina tidigare texter (experimental, personal use) ----
+
+/** How the person labelled the period a text comes from. A label is the person's judgement, never a certainty. */
+export type PeriodType = 'stable' | 'up' | 'down' | 'mixed' | 'unsure';
+/** Who made the label: the person afterwards, or together with the care. */
+export type LabelSource = 'self_after' | 'with_care';
+export type ReferenceTextType = 'diary' | 'message' | 'work' | 'other';
+
+/** A text the person wrote earlier, kept as reference material. Historical data, never instructions. */
+export interface ReferenceText {
+  id: string;
+  text: string;
+  /** Approximate date: "2024", "2024-03" or "2024-03-12". */
+  approxDate: string | null;
+  /** The person's own name for the period, so several texts can share it ("vår 2024"). */
+  periodId: string;
+  periodType: PeriodType;
+  labelSource: LabelSource;
+  textType: ReferenceTextType;
+  comment: string | null;
+  /** May the text be used in the analysis. Off: kept, never sent, never used. */
+  useInAnalysis: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PatternDirection = 'up' | 'down' | 'mixed' | 'unclear';
+/** What a pattern is about, so it is never counted again as a plan sign or a measured value of the same kind. */
+export type Phenomenon = 'sleep' | 'activity' | 'mood' | 'speech' | 'social' | 'self_worth' | 'thinking' | 'other';
+
+export interface PatternEvidence {
+  refId: string;
+  /** Word for word from the reference text, checked on the phone. */
+  quote: string;
+}
+
+/**
+ * A recurring pattern in the person's earlier texts, proposed by the model with quotes. Used
+ * only after the person approves it, and then experimentally: approval is not clinical validation.
+ */
+export interface TextPattern {
+  id: string;
+  description: string;
+  direction: PatternDirection;
+  phenomenon: Phenomenon;
+  evidence: PatternEvidence[];
+  counterExamples: (PatternEvidence & { note: string | null })[];
+  alternatives: string[];
+  /** A plan sign the pattern is the same as, when there is one: then the sign counts, never the pattern too. */
+  planSignId: string | null;
+  /** needs_review: some of its sources were removed or turned off; not used until approved again. */
+  status: 'proposed' | 'approved' | 'rejected' | 'needs_review';
+  createdAt: string;
+  decidedAt: string | null;
+  model: string | null;
+  promptVersion: string | null;
+  /** The reference material it was proposed from. */
+  referenceVersion: string;
+  /** How many times the person has said an observation of it did not fit. Shown, never acted on by itself. */
+  rejectedObservations?: number;
+}
+
+/** Whose experience a quote is about. Only self_now can give points. */
+export type Perspective = 'self_now' | 'history' | 'other_person' | 'quote_or_hypothetical' | 'humor_or_irony' | 'text_context';
+
+/** An observation that passed the checks on the phone and may count, if the rules let it. */
+export interface TextObservationInput {
+  patternId: string;
+  quote: string;
+  direction: PatternDirection;
+  phenomenon: Phenomenon;
+  planSignId: string | null;
+  description: string;
+  /** Reference texts the model compared with. */
+  referenceIds: string[];
+  note: string;
+}
+
+export interface TextObservationResult extends TextObservationInput {
+  perspective: Perspective;
+  /** True when the observation gave a point today. */
+  counted: boolean;
+  /** Why it did not count, in plain words. */
+  reason: string | null;
+  /** The person said it did not fit. */
+  rejectedAt?: string | null;
+}
+
+/** What Mina tidigare texter did to one assessment, saved so its effect can be reviewed afterwards. */
+export interface TextComparison {
+  rulesVersion: string;
+  model: string | null;
+  promptId: string;
+  promptVersion: string;
+  referenceVersion: string;
+  referenceIds: string[];
+  patternIds: string[];
+  abstained: boolean;
+  abstainReason: string | null;
+  observations: TextObservationResult[];
+  differences: string[];
+  uncertainties: string[];
+  /** No stable-period texts in the comparison: said in the result. */
+  stableMissing: boolean;
+  /** The level and points the day would have had without personal text patterns. */
+  levelWithout: Level;
+  pointsWithout: number;
+  /** The model call failed: nothing counted. */
+  error?: string | null;
+}

@@ -16,6 +16,7 @@ import { RemeasureCard } from '../RemeasureCard';
 import { wasStale } from '../../core/analysis/remeasure';
 import { moodText } from '../../core/analysis/mood';
 import { thinLine } from '../../core/analysis/coverage';
+import { TextPatternResult } from '../TextPatternResult';
 import { forgetKept, isKept, remeasureEntry } from '../../services/remeasure';
 import { SYNC_DAYS, syncGarmin } from '../../services/garmin';
 import { colors, LEVEL_TEXT, levelColor, space, type } from '../theme';
@@ -229,6 +230,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         </Section>
       ) : null}
 
+      <TextPatternResult a={a} />
+
       <Section title="Stämmer bedömningen?">
         <Card>
           <Button kind="secondary" title={answered ? 'Ändra ditt svar' : 'Svara'} label={answered ? 'Ändra ditt svar om bedömningen' : 'Svara om bedömningen stämmer'} onPress={() => nav.push({ name: 'correction', assessmentId: a.id })} />
@@ -287,6 +290,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             {a.method === 'llm' && a.model ? ` Modell ${a.model}, prompt ${a.promptId} ${a.promptVersion}.` : ''}
             {a.inputs ? ` Regler ${a.inputs.rulesVersion}.` : ''}
             {a.awaitingModel ? ' Språkmodellen hade inte svarat när bedömningen visades, så ordmatchningens resultat gäller.' : ''}
+            {a.textPatterns ? ` Mina tidigare texter: prompt ${a.textPatterns.promptId} ${a.textPatterns.promptVersion}${a.textPatterns.model ? `, modell ${a.textPatterns.model}` : ''}, referenser ${a.textPatterns.referenceVersion} (${a.textPatterns.referenceIds.length} utdrag), regler ${a.textPatterns.rulesVersion}.` : ''}
             {a.remeasured ? ` Uppdaterad med klockans senare värden ${a.remeasured.at.slice(0, 10)}; tidigare ${LEVEL_TEXT[a.remeasured.level].toLowerCase()} med ${a.remeasured.points} poäng.` : ''}
             {a.recomputed ? ` Omräknad ${a.recomputed.at.slice(0, 10)}; tidigare ${LEVEL_TEXT[a.recomputed.level].toLowerCase()} med ${a.recomputed.points} poäng.` : ''}
           </P>

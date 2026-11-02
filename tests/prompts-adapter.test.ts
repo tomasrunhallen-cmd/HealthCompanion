@@ -9,7 +9,7 @@ import { fill, listPrompts, loadPrompt, loadSchema, parsePrompt, render, variabl
 describe('prompt loader', () => {
   it('loads all prompt files with id and version', () => {
     const ids = listPrompts().map((p) => p.meta.id).sort();
-    expect(ids).toEqual(['analys', 'aterbesok', 'historik-import', 'krisplan-sortera', 'profil-uppdatering', 'testfall']);
+    expect(ids).toEqual(['analys', 'aterbesok', 'historik-import', 'krisplan-sortera', 'profil-uppdatering', 'testfall', 'textjamforelse', 'textmonster']);
     for (const p of listPrompts()) expect(p.meta.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 

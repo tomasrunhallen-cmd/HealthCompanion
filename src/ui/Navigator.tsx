@@ -35,6 +35,8 @@ import { ShareScreen } from './screens/ShareScreen';
 import { RelativesScreen } from './screens/RelativesScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { ReferencesScreen } from './screens/ReferencesScreen';
+import { TextPatternsScreen } from './screens/TextPatternsScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { TrendScreen } from './screens/TrendScreen';
 import { useRepo } from './state';
@@ -84,6 +86,8 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   visit: VisitScreen,
   share: ShareScreen,
   relatives: RelativesScreen,
+  references: ReferencesScreen,
+  textPatterns: TextPatternsScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -110,6 +114,8 @@ const TITLE: Record<RouteName, string> = {
   visit: 'Återbesök',
   share: 'Visa för någon',
   relatives: 'Anhörigkort',
+  references: 'Tidigare texter',
+  textPatterns: 'Mönster',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };

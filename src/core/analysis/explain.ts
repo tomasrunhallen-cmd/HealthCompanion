@@ -53,6 +53,8 @@ function conclusion(a: Assessment): string {
       return `${p} hade gett rött, men mätta tecken som sömn och stress räknas bara mot rött när de fanns även dagen innan. I dag är första dagen, så det blir gult.`;
     case 'akut':
       return 'Det du skrev liknar formuleringar om att inte vilja leva eller att skada dig. Då visar appen alltid rött och krisnumren, oavsett poäng. Anteckningen skickades inte till någon språkmodell.';
+    case 'text_alone':
+      return `${p} hade gett rött, men poängen kommer bara från mönster ur dina tidigare texter. De kan höja en dag med andra tecken, aldrig ensamma ge rött.`;
     case 'excused':
       return `${p} hade gett rött, men en del kommer från sömn eller stress som kan förklaras av alkohol, sjukdom eller hård träning i går. De räknas bara mot gult.`;
     case 'standard_cap':
@@ -112,6 +114,15 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
   for (const m of a.inputs?.keptByPhone ?? []) data.push(`Modellen tog inte med det allvarliga tecknet ”${signText(m.planItemId)}”, som ordmatchningen hittade. Det räknas ändå`);
   for (const m of a.inputs?.wordOnly ?? []) data.push(`Ordmatchningen hittade också ”${signText(m.planItemId)}”, men modellen räknade det inte`);
   if (a.inputs?.sentenceDropped) data.push('Modellens mening användes inte, eftersom den inte nämnde det som gav poäng');
+  if (a.textPatterns) {
+    const t = a.textPatterns;
+    const n = t.observations.filter((o) => o.counted && !o.rejectedAt).length;
+    data.push(t.error
+      ? `Jämförelsen med dina tidigare texter misslyckades (${t.error}). Inget därifrån räknades`
+      : t.abstained
+        ? `Jämförelsen med dina tidigare texter avstod${t.abstainReason ? `: ${t.abstainReason}` : ''}`
+        : `Jämförelsen med dina tidigare texter gav ${n === 1 ? 'en observation' : `${n} observationer`} som räknades, med ${t.referenceIds.length} referenser och regler ${t.rulesVersion}`);
+  }
 
   if (a.baseline.greenDays < RULES.baselineMinSamples) {
     data.push(`Baslinjen är inte klar: ${a.baseline.greenDays} av ${RULES.baselineMinSamples} gröna dagar`);

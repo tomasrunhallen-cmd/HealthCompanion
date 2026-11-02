@@ -54,7 +54,7 @@ export interface ImportRecord {
 }
 
 /** Version 2: crisis plan and normal state moved into the context bank. Version 3: plan rows get their fields. */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 const LAYERS: ContextLayer[] = ['grund', 'profil', 'dagligt'];
 
@@ -158,6 +158,15 @@ export class Repository {
         const next: Entry = { ...e, mood: fromDiary ?? moodFromTen(e.mood), moodTen: e.mood };
         this.snap.entries[e.id] = next;
         await this.backend.put('entries', e.id, next);
+      }
+    }
+    // Version 5: Mina tidigare texter. Empty reference material and patterns; the comparison is off.
+    if (version < 5) {
+      for (const key of ['referenceTexts', 'textPatterns']) {
+        if (this.snap.kv[key] == null) {
+          this.snap.kv[key] = {};
+          await this.backend.put('kv', key, {});
+        }
       }
     }
     this.snap.kv.schemaVersion = SCHEMA_VERSION;

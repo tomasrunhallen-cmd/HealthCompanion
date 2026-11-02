@@ -151,7 +151,7 @@ Säg till om något värde saknas eller ser fel ut jämfört med Garmin Connect.
 ### Automatiska tester
 
 ```bash
-npm test          # 551 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 7 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
+npm test          # 586 tester i Jest, alla testfall på fyra plattformar, tidstester i två tidszoner och 7 för Netlify-funktionerna: ampel, testfall, promptspärr, rensning, promptladdare, adaptrar, Garmin, lagring, Firebase, backup, Testa modellen
 npm run typecheck
 ```
 
@@ -346,6 +346,74 @@ Inte åtgärdat i koden: F09 (kräver riktig iPhone), F10 (regelverk, beslut fö
 - **Avstämningen** börjar med anteckningen. Veckofrågan om händelser ligger sist.
 
 Mer om varför står i `DESIGN.md` under *Enkelhet: en sak i taget*.
+
+## Mina tidigare texter (experimentellt, personligt bruk)
+
+Funktionen använder personens egna tidigare texter för att hitta individuella förändringar som ordmatchning missar. Den kan påverka nivån: en språkmodell föreslår personliga mönster med citat, personen godkänner dem, och modellen jämför sedan kvällens anteckning med de godkända mönstren. Nivån räknas fortfarande i koden, men **modellens observationer kan ge poäng och därmed ändra ampeln**.
+
+**Flödet**
+
+1. **Texter.** Under *Jag → Min profil → Mina tidigare texter* läggs texter in genom inklistring eller som `.txt`-filer.
+   - Varje text har ungefärligt datum, period, periodtyp (stabil, uppvarvad eller mani, nedstämd eller depression, blandad, osäker), vem som gjort märkningen, texttyp, kommentar och om den får användas.
+   - Importerade filer får periodtypen *osäker* och används inte förrän personen märkt dem.
+   - Från meddelandefiler tas bara personens egna rader med.
+   - Texter går att ändra, ta bort, stänga av och exportera.
+2. **Förhandsvisning och påslagning.** Skärmen *Mönster* visar de rensade utdragen och den senaste anteckningen som de skulle skickas. Inget skickas förrän jämförelsen är påslagen.
+3. **Mönsterförslag** (`prompts/textmonster.md` 1.0.0). Varje förslag har:
+   - beskrivning, riktning och fenomen
+   - citat med käll-id, och vilka texter och perioder som stöder det
+   - motexempel och andra möjliga förklaringar
+   - koppling till ett tecken i planen, när ett sådant finns
+
+   Telefonen behåller bara förslag där varje citat står ordagrant i sin text och belägg finns från minst två texter. Allt är förslag tills personen godkänner det. Godkänt betyder *får användas experimentellt*, inte kliniskt prövat.
+4. **Kvällens jämförelse** (`prompts/textjamforelse.md` 1.0.0). Anteckningen jämförs med godkända mönster och ett balanserat urval utdrag: motexempel och stabila texter först, högst två per period.
+   - Modellen svarar med observationer, skillnader och osäkerheter, eller avstår. Den bestämmer ingen färg.
+   - En observation får räknas bara om alla dessa kontroller på telefonen håller:
+     - mönster-id:t är godkänt
+     - citatet står ordagrant i anteckningen
+     - perspektivet är *jag nu*
+     - meningen handlar inte om något förr, någon annan eller ett ämne
+5. **Poäng** (regler 1.3.0, kategorin `textPatterns`):
+   - 1 poäng per godkänt mönster med kontrollerat belägg, högst 2 om dagen, från skilda mönster, fenomen och citat.
+   - Ingen poäng när samma sak redan räknas som tecken ur planen eller som mätt eller skattat värde.
+   - Kan höja gult till rött tillsammans med andra tecken, men aldrig ge rött ensamt.
+   - Se `rules/README.md`.
+6. **Visning.** Under bedömningen visas:
+   - nivån utan och med textmönster
+   - observationerna med citat och referensernas period och datum
+   - det som inte räknades och varför
+   - skillnader och osäkerheter
+   - knappen *Stämmer inte*. Den räknar om dagen utan att röra texterna.
+
+   Modell, promptversion, regelversion, referensversion, valda referenser och kontrollerade observationer sparas med bedömningen.
+7. **Utvärdering.** En hel period hålls utanför. Mönster föreslås från de andra perioderna, och periodens texter jämförs med dem.
+   - Nära kopior, med åtta ord i rad gemensamt, tas bort ur referenserna.
+   - Resultatet redovisar falska signaler i stabila perioder, missar, observationer åt fel håll och hur ofta modellen avstod.
+   - Facit är personens egen märkning, inte ampeln.
+
+**Integritet.**
+- Allt sparas i appens vanliga lagring: krypterad på telefonen, och krypterad i webbläsaren före Firebase.
+- Allt som skickas går genom `scrub()`.
+- Texter som akutregeln reagerar på skickas aldrig, inte heller gamla. Skärmen säger varför.
+- En anteckning som ger akutträff, full eller mild, jämförs aldrig.
+
+**Konflikter med de tidigare reglerna, och hur de lösts**
+
+| Konflikt | Lösning |
+| --- | --- |
+| Principen *nivån avgörs aldrig av en modell* | Nivån räknas fortfarande i koden, men modellens observationer kan ge upp till 2 poäng. Det gällde redan planens tecken; nu även personliga mönster. Granskningsunderlaget säger det |
+| Textmönster ensamma får inte ge rött, men regeln om de senaste dagarna ger rött vid 2 poäng efter tre gula dagar | Ny spärr `text_alone` sist i ordningen: ger bara textmönster poäng blir dagen gul. Testat |
+| Allvarligt tecken plus annat tecken ger rött | Ett textmönster kan vara det andra tecknet, aldrig det allvarliga. Testat |
+| Avdubblering mot planens tecken | Bygger på modellens koppling till ett tecken vid förslaget och på citat som delar tre ord i rad. Grov; vid tvekan ingen poäng |
+| Prestandabudgeten på 10 sekunder | Jämförelsen körs samtidigt som teckenanalysen. Hinner modellen inte visas ordmatchningens resultat utan textmönster, och modellens svar fyller på båda senare |
+| Inga diagnosord utanför planen | Periodtyperna *uppvarvad eller mani* och *nedstämd eller depression* kommer från specifikationen och är personens egen märkning |
+| Baslinjen tar gröna dagar | Dagar som blir gula av textmönster faller ur baslinjen. Mönstren lär sig inte av ampeln, men baslinjen gör det indirekt |
+| Godkännanden av ändrade prompter (`prompts/godkand.json`) | Gäller bara analysprompten. De nya promptarna är versionerade men inte körda mot en riktig modell |
+
+**Testat och inte testat.**
+- `tests/text-patterns.test.ts` (24 tester) och `tests/text-patterns-service.test.ts` (8 tester) är deterministiska. De använder fasta modellsvar bakom den riktiga adaptern.
+- Testerna visar vad appen gör med svaren: poäng, avdubblering, spärrar, akutregeln, injektion, borttagning och utvärdering.
+- **De säger ingenting om hur väl en riktig modell hittar mönster.** Ingen riktig modell har körts mot funktionen.
 
 ## Krisplansimporten
 

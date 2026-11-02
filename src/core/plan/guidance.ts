@@ -13,8 +13,8 @@ export function signDirection(signals: Signal[], plan: PlanItem[]): Polarity | n
   const byId = new Map(plan.map((p) => [p.id, p]));
   const dirs = new Set<'up' | 'down'>();
   for (const s of signals) {
-    // The person's own rating of stämning points the same way as a sign.
-    if (s.kind === 'mood_rated' && s.points > 0 && s.polarity) {
+    // The person's own rating of stämning, and a personal text pattern, point the same way as a sign.
+    if ((s.kind === 'mood_rated' || s.kind === 'text_pattern') && s.points > 0 && s.polarity) {
       dirs.add(s.polarity);
       continue;
     }
