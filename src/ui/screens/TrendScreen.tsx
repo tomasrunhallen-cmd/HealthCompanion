@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { eveningDateKey, formatDateSv } from '../../core/analysis/dates';
 import { buildTrend, type TrendDay } from '../../core/analysis/trend';
+import { MOOD_MAX, moodStep, moodText } from '../../core/analysis/mood';
 import { Button, Card, Chip, Dot, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -75,7 +76,64 @@ function BarChart(props: {
   );
 }
 
-/** The Trend tab: the last 14 or 30 days, level, sleep and stress. */
+const MOOD_HALF = 60;
+
+/**
+ * Stämning per day on the scale from −3 to +3: bars from the middle line, up towards mania and
+ * down towards depression, so the direction is read from the position. Balanserad (0) shows as
+ * a short mark on the line, a day without a rating as nothing. Tapping a bar shows its day.
+ */
+function MoodChart(props: { days: TrendDay[] }) {
+  const [picked, setPicked] = useState<TrendDay | null>(null);
+  const rated = props.days.filter((d) => d.mood != null);
+  const up = rated.filter((d) => d.mood! > 0).length;
+  const down = rated.filter((d) => d.mood! < 0).length;
+  const summary = rated.length
+    ? `Stämning: ${rated.length} av ${props.days.length} dagar skattade, ${down} under balanserad, ${rated.length - up - down} balanserad, ${up} över.`
+    : 'Stämning: inga skattningar för perioden.';
+  return (
+    <Card>
+      <Text style={[type.small, { marginBottom: space.s }]}>
+        {picked
+          ? `${formatDateSv(picked.date)}: ${picked.mood != null ? moodText(picked.mood) : 'ingen skattning'}`
+          : rated.length ? 'Tryck på en stapel för dagens skattning.' : 'Inga skattningar för perioden.'}
+      </Text>
+      <Text style={[type.small, { fontSize: 12 }]} importantForAccessibility="no" accessibilityElementsHidden>Akut mani +3</Text>
+      <View accessible accessibilityRole="image" accessibilityLabel={summary} style={{ height: MOOD_HALF * 2, flexDirection: 'row', gap: 2 }}>
+        {props.days.map((d) => {
+          const v = d.mood;
+          const h = v == null ? 0 : Math.max(3, (Math.abs(v) / MOOD_MAX) * MOOD_HALF);
+          const fill = picked?.date === d.date ? colors.text : colors.accent;
+          return (
+            <Pressable
+              key={d.date}
+              onPress={() => setPicked(picked?.date === d.date ? null : d)}
+              importantForAccessibility="no"
+              accessibilityElementsHidden
+              style={{ flex: 1, height: MOOD_HALF * 2 }}
+            >
+              {v != null && v > 0 ? (
+                <View style={{ position: 'absolute', left: 0, right: 0, bottom: MOOD_HALF, height: h, backgroundColor: fill, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+              ) : null}
+              {v != null && v < 0 ? (
+                <View style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF, height: h, backgroundColor: fill, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 }} />
+              ) : null}
+              {v === 0 ? (
+                <View style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF - 2, height: 4, borderRadius: 2, backgroundColor: fill }} />
+              ) : null}
+            </Pressable>
+          );
+        })}
+        {/* The middle line, Balanserad: thin and recessive, under the bars' ends. */}
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF, borderTopWidth: 1, borderColor: colors.border }} />
+      </View>
+      <Text style={[type.small, { fontSize: 12 }]} importantForAccessibility="no" accessibilityElementsHidden>Akut depression −3</Text>
+      {picked?.mood != null ? <Text style={[type.small, { marginTop: space.xs }]}>{moodStep(picked.mood).hint}</Text> : null}
+    </Card>
+  );
+}
+
+/** The Trend tab: the last 14 or 30 days, level, mood, sleep and stress. */
 export function TrendScreen() {
   const repo = useRepo();
   const nav = useNav();
@@ -130,6 +188,10 @@ export function TrendScreen() {
         </Card>
       </Section>
 
+      <Section title="Stämning">
+        <MoodChart days={trend.days} />
+      </Section>
+
       <Section title="Sömn och stress">
         <BarChart title="Sömn" days={trend.days} value={(d) => d.sleepHours} unit="h" reference={{ value: limit, label: `Streckad linje: din gräns på ${dec(limit)} h` }} />
         <BarChart title="Stress" days={trend.days} value={(d) => d.stressAvg} unit="" />
@@ -152,7 +214,7 @@ export function TrendScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={type.body}>{formatDateSv(d.date)}</Text>
                 <Text style={type.small}>
-                  {[d.level ? LEVEL_TEXT[d.level] : 'Inget inlägg', d.sleepHours != null ? `sömn ${dec(d.sleepHours)} h` : null, d.stressAvg != null ? `stress ${d.stressAvg}` : null].filter(Boolean).join(', ')}
+                  {[d.level ? LEVEL_TEXT[d.level] : 'Inget inlägg', d.mood != null ? moodText(d.mood).toLowerCase() : null, d.sleepHours != null ? `sömn ${dec(d.sleepHours)} h` : null, d.stressAvg != null ? `stress ${d.stressAvg}` : null].filter(Boolean).join(', ')}
                 </Text>
               </View>
             </Pressable>
