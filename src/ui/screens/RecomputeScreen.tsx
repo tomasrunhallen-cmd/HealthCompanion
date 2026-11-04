@@ -5,26 +5,36 @@
 import React, { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { formatDateSvTitleYear } from '../../core/analysis/dates';
-import { outdatedDays, type RecomputedDay } from '../../core/analysis/recompute';
+import { outdatedDays, rereadDays, type RecomputedDay } from '../../core/analysis/recompute';
+import { moodStep } from '../../core/analysis/mood';
 import { RULES_VERSION } from '../../core/analysis/rules';
 import { applyRecompute, previewRecompute } from '../../services/recompute';
 import { Button, Card, Dot, P, Screen, Section } from '../components';
 import { useDialog, useRepo } from '../state';
 import { LEVEL_TEXT, space, type } from '../theme';
 
+/** Why a day changes, when it is not the rules: its mood was read again from the diary. */
+function why(d: RecomputedDay): string | null {
+  return d.moodReread ? `Stämningen läses nu som ${moodStep(d.moodReread.to).label} (${d.moodReread.to}), var ${moodStep(d.moodReread.from).label} (${d.moodReread.from})` : null;
+}
+
 function DayRow({ d }: { d: RecomputedDay }) {
+  const reason = why(d);
   return (
     <View
       accessible
-      accessibilityLabel={`${formatDateSvTitleYear(d.date)}: ${LEVEL_TEXT[d.before.level]} blir ${LEVEL_TEXT[d.after.level]}`}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, paddingVertical: space.s }}
+      accessibilityLabel={`${formatDateSvTitleYear(d.date)}: ${LEVEL_TEXT[d.before.level]} blir ${LEVEL_TEXT[d.after.level]}${reason ? `. ${reason}` : ''}`}
+      style={{ paddingVertical: space.s }}
     >
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
       <Text style={[type.body, { flex: 1 }]}>{formatDateSvTitleYear(d.date)}</Text>
       <Dot level={d.before.level} />
       <Text style={type.small}>{LEVEL_TEXT[d.before.level]} {d.before.points} p</Text>
       <Text style={type.body}>→</Text>
       <Dot level={d.after.level} />
       <Text style={[type.small, { fontWeight: '700' }]}>{LEVEL_TEXT[d.after.level]} {d.after.points} p</Text>
+    </View>
+    {reason ? <Text style={type.small}>{reason.replace(/-/g, '−')}</Text> : null}
     </View>
   );
 }
@@ -34,6 +44,7 @@ export function RecomputeScreen() {
   const dialog = useDialog();
   const [days, setDays] = useState<RecomputedDay[] | null>(null);
   const outdated = useMemo(() => outdatedDays(repo.assessments()), [repo, repo.revision]);
+  const reread = useMemo(() => rereadDays(repo.entries(), repo.assessments()), [repo, repo.revision]);
   const changed = days?.filter((d) => d.changed) ?? [];
   const approximate = days?.filter((d) => d.approximate).length ?? 0;
 
@@ -41,7 +52,7 @@ export function RecomputeScreen() {
     <Screen
       title="Räkna om"
       footer={
-        days && !changed.length && !outdated ? (
+        days && !changed.length && !outdated && !reread ? (
           <Button big title="Klar" onPress={() => setDays(null)} />
         ) : days ? (
           <>
@@ -65,6 +76,12 @@ export function RecomputeScreen() {
       <P muted style={{ marginTop: space.s }}>
         {outdated ? `${outdated} dagar är räknade med äldre regler eller saknar regelversion.` : 'Alla dagar är räknade med de nuvarande reglerna.'}
       </P>
+      {reread ? (
+        <P style={{ marginTop: space.s }}>
+          {reread === 1 ? 'En importerad dag' : `${reread} importerade dagar`} har fått stämningen omläst ur dagboken: dagbokens Depression är nu −2, inte −3.
+          Nivån ändras först när du sparar här.
+        </P>
+      ) : null}
       {days ? (
         <>
           <Section title={changed.length ? (changed.length === 1 ? 'En dag ändras' : `${changed.length} dagar ändras`) : 'Inga dagar ändras'}>

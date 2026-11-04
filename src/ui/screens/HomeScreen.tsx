@@ -23,6 +23,7 @@ import { GREEN_MEANS } from '../../core/analysis/firstWeek';
 import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { remeasurePending } from '../../services/remeasure';
+import { rereadDays } from '../../core/analysis/recompute';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, paletteHex, space, type } from '../theme';
@@ -54,6 +55,8 @@ export function HomeScreen() {
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   // Days saved while the watch lagged, whose level would change with the values it synced later.
   const remeasured = remeasurePending(repo);
+  // Imported days whose mood was read again (schema 6): their levels wait for the person.
+  const reread = rereadDays(entries, repo.assessments());
   const [reviewing, setReviewing] = useState(false);
 
   const review = async () => {
@@ -142,6 +145,7 @@ export function HomeScreen() {
     !hasSigns ? { kind: 'start' as const, id: 'start' } : null,
     ...tomorrow.map((t) => ({ kind: 'tomorrow' as const, id: `tomorrow_${t.date}_${t.event}` })),
     ...remeasured.map((r) => ({ kind: 'remeasure' as const, id: `remeasure_${r.entry.id}` })),
+    reread ? { kind: 'reread' as const, id: `reread_${reread}` } : null,
     sleepNote ? { kind: 'sleepNotice' as const, id: 'sleepNotice' } : null,
     fw?.weekPicture ? { kind: 'weekPicture' as const, id: 'weekPicture' } : null,
     fw?.offerSleepSource ? { kind: 'sleepSource' as const, id: 'sleepSource' } : null,
@@ -202,6 +206,17 @@ export function HomeScreen() {
         const r = remeasured.find((x) => `remeasure_${x.entry.id}` === c.id)!;
         return <RemeasureCard r={r} />;
       }
+      case 'reread':
+        return (
+          <Card>
+            <Text style={type.h2} accessibilityRole="header">Importerade dagar är omlästa</Text>
+            <P style={{ marginTop: space.xs, marginBottom: space.m }}>
+              Dagbokens Depression räknas nu som Depression (−2), inte Akut depression (−3). {reread === 1 ? 'En dag' : `${reread} dagar`} kan få en annan nivå. Du ser vilka innan något sparas.
+            </P>
+            <Button title="Visa skillnaden" onPress={() => nav.push({ name: 'recompute' })} />
+            {notNow(c.id)}
+          </Card>
+        );
       case 'sleepNotice':
         return (
           <Card>

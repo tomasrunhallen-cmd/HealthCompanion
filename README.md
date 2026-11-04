@@ -183,7 +183,7 @@ Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsni
 | I dagboken | I Dagsljus |
 | --- | --- |
 | Anteckningar | Dagens text. "-" blir tom |
-| Högt Humör, Lågt Humör | Stämning −3 till +3: Depression −3, Mild Depression −2, Nedstämdhet −1, Balanserad 0, Glädje +1, Uppvarvning +2. Ett lågt värde går före ett högt samma dag |
+| Högt Humör, Lågt Humör | Stämning −3 till +3: Depression −2, Mild Depression −2, Nedstämdhet −1, Balanserad 0, Glädje +1, Uppvarvning +2. Dagboken har inget akut steg, så ingen importerad dag får −3 eller +3, som väger som ett allvarligt tecken. Ett lågt värde går före ett högt samma dag |
 | Medicin NEJ | Medicin inte tagen. Två kvällar i rad ger 1 poäng. JA sparas bara på dagen |
 | Alkohol JA | Ja på *Alkohol, sjuk eller hård träning i går?* dagen efter |
 | Raden "Sömn: … ca 7 h" | Sömn, om Garmin saknar natten. Värden under 3 timmar ur texten används inte |
@@ -314,7 +314,7 @@ Stämningen skattas på en bipolär skala med sju steg:
 
 - **Skalan** är inspirerad av de danska MONARCA-studierna, där stämningen skattades varje kväll från −3 (depressiv) till +3 (manisk). MONARCA hade också halvsteg och en fråga om blandat läge; Dagsljus har inte det, och etiketterna och poängen är inte validerade.
 - **Hur svårt ett steg är** avgörs av hur mycket vardagen påverkas, som i NIMH:s Life Chart Method.
-- **Orden** är desamma som i Bipolär dagbok.
+- **Orden** är desamma som i Bipolär dagbok. Dagbokens starkaste ord, *Depression*, blir −2 vid import, inte −3 (sedan 4 november). Redan importerade dagar läses om, och en kort på Hem leder till *Räkna om historiken*, där det syns vilka dagar som skulle få en annan nivå innan något sparas.
 
 **Poäng (regler 1.2.0):**
 - ±2 ger 1 poäng och ±3 ger 2 poäng, i den riktning skattningen pekar. Åtgärderna i planen väljs efter samma riktning.

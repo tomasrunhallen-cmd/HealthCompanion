@@ -203,6 +203,8 @@ export interface Entry {
   mood: number | null;
   /** Stämning on the old 1–10 scale, kept on entries saved before the scale changed (schema 4). */
   moodTen?: number | null;
+  /** An imported day whose mood was read again from the diary's words (schema 6): what it was, and when. */
+  moodReread?: { was: number; at: string } | null;
   /** Energy 1–10. */
   energy: number | null;
   /** Words per minute, only when speech was recorded and timed. */

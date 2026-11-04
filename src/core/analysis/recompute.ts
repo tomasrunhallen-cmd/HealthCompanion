@@ -21,6 +21,8 @@ export interface RecomputedDay {
   before: { level: Level; points: number; rulesVersion: string | null };
   after: { level: Level; points: number };
   changed: boolean;
+  /** The day's mood was read again since the day was assessed: from, to. */
+  moodReread?: { from: number; to: number };
   /** True when the day had no saved inputs and today's plan and values were used. */
   approximate: boolean;
   next: Assessment;
@@ -53,8 +55,11 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
     scored.level = 'red';
     scored.reason = 'akut';
   }
-  // Signs found by the person's own diary import keep their own labels and points rule.
-  const signals = a.method === 'import' && !inp ? a.signals : scored.signals;
+  // Signs found by the person's own diary import keep their own labels and points rule; the
+  // rated mood is counted again, since an imported day's mood can be read again (schema 6).
+  const signals = a.method === 'import' && !inp
+    ? [...a.signals.filter((s) => s.kind !== 'mood_rated'), ...scored.signals.filter((s) => s.kind === 'mood_rated')]
+    : scored.signals;
   return {
     ...a,
     level: scored.level,
@@ -99,12 +104,30 @@ export function recomputeHistory(entries: Entry[], assessments: Assessment[], ct
       before: { level: a.level, points: a.points, rulesVersion: a.inputs?.rulesVersion ?? null },
       after: { level: next.level, points: next.points },
       changed: next.level !== a.level || next.points !== a.points,
+      ...(rereadSince(entry, a) && entry.mood != null ? { moodReread: { from: entry.moodReread!.was, to: entry.mood } } : {}),
       approximate: !a.inputs,
       next,
     });
     history.push({ entry, level: next.level });
   }
   return out;
+}
+
+/** When the day's level was last computed: recomputed, or else first assessed. */
+const computedAt = (a: Assessment) => a.recomputed?.at ?? a.createdAt;
+
+/** True when the day's mood was read again after its level was last computed. */
+function rereadSince(entry: Entry, a: Assessment): boolean {
+  return !!entry.moodReread && computedAt(a) < entry.moodReread.at;
+}
+
+/** Imported days whose mood was read again after their level was computed. */
+export function rereadDays(entries: Entry[], assessments: Assessment[]): number {
+  const byEntry = new Map(assessments.map((a) => [a.entryId, a]));
+  return entries.filter((e) => {
+    const a = byEntry.get(e.id);
+    return !!a && rereadSince(e, a);
+  }).length;
 }
 
 /** Days computed with other rules than the current ones. */

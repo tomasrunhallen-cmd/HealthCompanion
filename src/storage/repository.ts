@@ -54,7 +54,7 @@ export interface ImportRecord {
 }
 
 /** Version 2: crisis plan and normal state moved into the context bank. Version 3: plan rows get their fields. */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /** kv document with the keys that follow the account in the web version (before 2 November 2026: one map). Never exported. */
 export const SYNCED_KEYS = 'syncedKeys';
@@ -176,6 +176,19 @@ export class Repository {
           this.snap.kv[key] = {};
           await this.backend.put('kv', key, {});
         }
+      }
+    }
+    // Version 6: the diary's "Depression" is −2, not −3. Imported days are read again from the
+    // diary's words. Their levels stay until the person recomputes the history and saves.
+    if (version < 6) {
+      const at = new Date().toISOString();
+      for (const e of Object.values(this.snap.entries) as Entry[]) {
+        if (!e.imported || e.mood == null) continue;
+        const now = moodOf({ date: e.date, values: e.imported.values } as DiaryDay);
+        if (now == null || now === e.mood) continue;
+        const next: Entry = { ...e, mood: now, moodReread: { was: e.mood, at } };
+        this.snap.entries[e.id] = next;
+        await this.backend.put('entries', e.id, next);
       }
     }
     this.snap.kv.schemaVersion = SCHEMA_VERSION;

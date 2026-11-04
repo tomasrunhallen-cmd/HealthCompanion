@@ -75,11 +75,11 @@ const PROPOSAL = {
 };
 
 describe('Mina tidigare texter i tjänsterna', () => {
-  it('migrates to schema 5 with empty material and the comparison off', async () => {
+  it('migrates to schema 5 or later with empty material and the comparison off', async () => {
     const snap = emptySnapshot();
     snap.kv.schemaVersion = 4;
     const repo = await Repository.create(memoryBackend(snap));
-    expect(SCHEMA_VERSION).toBe(5);
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(5);
     expect(referenceTexts(repo)).toEqual([]);
     expect(textPatterns(repo)).toEqual([]);
     expect(repo.settings().textPatterns ?? null).toBeNull();
