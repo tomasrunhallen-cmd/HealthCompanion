@@ -23,7 +23,21 @@ function cloud(shared: DocBackend): DocBackend {
   return { ...shared, info: () => ({ kind: 'cloud', encrypted: true, detail: 'test' }) };
 }
 
-const settle = () => new Promise((r) => setTimeout(r, 50));
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * Writes are encrypted and sent in the background, as in the browser. Waits until the store has
+ * been unchanged for a while (up to five seconds), not a fixed time that a busy machine can miss.
+ */
+let store: Map<string, unknown> | null = null;
+async function settle() {
+  let last = '';
+  for (let i = 0; i < 100; i++) {
+    await wait(25);
+    const now = store ? JSON.stringify([...store.entries()]) : '';
+    if (i > 1 && now === last) return;
+    last = now;
+  }
+}
 
 describe('Nycklarna', () => {
   it('stay on the device when the storage is not the encrypted cloud', async () => {
@@ -89,6 +103,7 @@ describe('Nycklarna', () => {
 
   it('works through the real encrypted Firebase store, between two browsers', async () => {
     const docs = memoryCloudDocs();
+    store = docs.store;
     const crypto = webcrypto as unknown as Crypto;
     const { vault } = await createVault('ett långt lösenord', { crypto: crypto as never, iterations: 1000 });
     const open = () => Repository.create(cloudBackend(docs, { account: 'test', vault }));
