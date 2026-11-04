@@ -334,21 +334,29 @@ export function HomeScreen() {
   );
 }
 
-/** Seven days with their level. HIG: fewer columns at large text sizes, so nothing is cut off. */
+/** Seven days with their level; a day with an assessment opens it. HIG: fewer columns at large text sizes, so nothing is cut off. */
 function WeekRow({ week, fontScale }: { week: { date: string; level: Level | null }[]; fontScale: number }) {
+  const repo = useRepo();
+  const nav = useNav();
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: fontScale > 1.4 ? 'flex-start' : 'space-between', rowGap: space.m, columnGap: space.m, marginTop: space.s }}>
-      {week.map((d) => (
-        <View
-          key={d.date}
-          style={{ alignItems: 'center', gap: 6, minWidth: 36 }}
-          accessible
-          accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`}
-        >
-          <Dot level={d.level} size={22} />
-          <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
-        </View>
-      ))}
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: fontScale > 1.4 ? 'flex-start' : 'space-between', rowGap: space.m, columnGap: space.xs, marginTop: space.s }}>
+      {week.map((d) => {
+        const e = d.level ? repo.entryFor(d.date) : null;
+        return (
+          <Pressable
+            key={d.date}
+            disabled={!e}
+            onPress={() => e && nav.push({ name: 'result', entryId: e.id })}
+            accessibilityRole={e ? 'button' : 'text'}
+            accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`}
+            accessibilityHint={e ? 'Visar bedömningen' : undefined}
+            style={({ pressed }) => ({ alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 40, minHeight: 44, opacity: pressed ? 0.5 : 1 })}
+          >
+            <Dot level={d.level} size={22} />
+            <Text style={type.small}>{formatDateSv(d.date).slice(0, 2)}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

@@ -106,8 +106,26 @@ export function TrendScreen() {
             ))}
             <Text style={[type.small, { alignSelf: 'center' }]}>{`Utan inlägg ${trend.missing}`}</Text>
           </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }} accessible accessibilityLabel={`Nivå per dag, ${trend.days.length} dagar. Se listan för varje dag.`}>
-            {trend.days.map((d) => <Dot key={d.date} level={d.level} size={length === 14 ? 20 : 16} />)}
+          {/* One cell per day, 44 points wide (seven to a row on a phone): a tap opens that day's assessment. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2 }}>
+            {trend.days.map((d) => {
+              const e = d.level ? repo.entryFor(d.date) : null;
+              const day = Number(d.date.slice(8, 10));
+              return (
+                <Pressable
+                  key={d.date}
+                  disabled={!e}
+                  onPress={() => e && nav.push({ name: 'result', entryId: e.id })}
+                  accessibilityRole={e ? 'button' : 'text'}
+                  accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'inget inlägg'}`}
+                  accessibilityHint={e ? 'Visar bedömningen' : undefined}
+                  style={({ pressed }) => ({ width: MIN_TOUCH, minHeight: MIN_TOUCH + 6, alignItems: 'center', justifyContent: 'center', gap: 2, borderRadius: radius.s, opacity: pressed ? 0.5 : 1 })}
+                >
+                  <Dot level={d.level} size={length === 14 ? 20 : 18} />
+                  <Text style={{ fontSize: 11, lineHeight: 13, color: colors.textMuted }} importantForAccessibility="no" accessibilityElementsHidden>{day}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </Card>
       </Section>
