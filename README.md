@@ -164,7 +164,8 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsnitt, hur, och var de krockar med specen. Kraven från App Store Review Guidelines, integritetsuppgifterna och det som återstår före inskickning står i `APPSTORE.md`. Integritetspolicyn för användare är `INTEGRITETSPOLICY.md`. Den publiceras som `https://dagsljus.netlify.app/integritet.html` vid varje webbygge.
 
 - **Flikar:** Hem, Avstämning, Trend och Jag. Varje flik har en native stack med stor rubrik.
-- **Trend** visar nivå per dag, stämningen från −3 till +3, sömn och stress för 14 eller 30 dagar. En tryckning på en dags symbol, här eller i veckoraden på Hem, öppnar dagens bedömning.
+- **Trend** har en period för hela sidan: 7 dagar, 30 dagar, 6 månader eller 1 år. Sedan kommer nivå, stämning, rutiner, sömn och stress i den ordningen. 7 och 30 dagar visar varje dag; 6 månader visar en stapel per vecka och ett år en per månad (snitt för stämning, sömn och stress, antal för nivåerna), så staplarna går att läsa och trycka på. En tryckning på en dags symbol, här eller i veckoraden på Hem, öppnar dagens bedömning.
+- **Rutiner på Trend:** andelen hållna rutiner för perioden, andelen per dag, vecka eller månad, och en rad per rutin (till exempel *20 av 24*). Räknat på kvällar då personen bockade av rutiner, så en kväll utan avstämning är inte en miss. Den streckade linjen i stressgrafen är gränsen 30 från reglerna.
 - **Ark:** krisplanen, förslag, rättelser och *Hjälp nu* öppnas som ark.
 - **Utseende:** systemets färger, ljust och mörkt läge, och systemtypsnittet med Dynamic Type och Fet text.
 - **Ampeln:** varje nivå har ord och en egen symbol (cirkel, triangel, oktagon), inte bara färg.

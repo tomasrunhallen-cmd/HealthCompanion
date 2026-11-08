@@ -285,9 +285,9 @@ describe('the Trend tab\'s days', () => {
     const garmin = { '2026-10-30': { date: '2026-10-30', sleepHours: 5.5, stressAvg: 41 } } as never;
     const t = buildTrend(entries, assessments, garmin, '2026-11-01', 3);
     expect(t.days).toEqual([
-      { date: '2026-10-30', level: 'yellow', mood: -2, sleepHours: 5.5, stressAvg: 41 },
-      { date: '2026-10-31', level: null, mood: null, sleepHours: null, stressAvg: null },
-      { date: '2026-11-01', level: 'green', mood: 0, sleepHours: 7, stressAvg: 30 },
+      { date: '2026-10-30', level: 'yellow', mood: -2, sleepHours: 5.5, stressAvg: 41, routines: null },
+      { date: '2026-10-31', level: null, mood: null, sleepHours: null, stressAvg: null, routines: null },
+      { date: '2026-11-01', level: 'green', mood: 0, sleepHours: 7, stressAvg: 30, routines: null },
     ]);
     expect(t.counts).toEqual({ green: 1, yellow: 1, red: 0 });
     expect(t.missing).toBe(1);
