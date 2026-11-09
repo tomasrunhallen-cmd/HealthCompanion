@@ -164,7 +164,7 @@ Inget anrop har gjorts mot Mistrals, Anthropics eller Garmins riktiga tjänster,
 Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsnitt, hur, och var de krockar med specen. Kraven från App Store Review Guidelines, integritetsuppgifterna och det som återstår före inskickning står i `APPSTORE.md`. Integritetspolicyn för användare är `INTEGRITETSPOLICY.md`. Den publiceras som `https://dagsljus.netlify.app/integritet.html` vid varje webbygge.
 
 - **Flikar:** Hem, Avstämning, Trend och Jag. Varje flik har en native stack med stor rubrik.
-- **Trend** har en period för hela sidan: 7 dagar, 30 dagar, 6 månader eller 1 år. Sedan kommer nivå, stämning, rutiner, sömn och stress i den ordningen. 7 och 30 dagar visar varje dag; 6 månader visar en stapel per vecka och ett år en per månad (snitt för stämning, sömn och stress, antal för nivåerna), så staplarna går att läsa och trycka på. En tryckning på en dags symbol, här eller i veckoraden på Hem, öppnar dagens bedömning.
+- **Trend** har en period för hela sidan: 7 dagar, 30 dagar, 6 månader eller 1 år. Sedan kommer nivå, stämning, rutiner, sömn och stress i den ordningen. 7 och 30 dagar visar varje dag; 6 månader visar en stapel per vecka och ett år en per månad (stämningens spann från lägsta till högsta skattning med snittet som en punkt, snitt för sömn och stress, antal för nivåerna), så staplarna går att läsa och trycka på. En tryckning på en dags symbol, här eller i veckoraden på Hem, öppnar dagens bedömning.
 - **Rutiner på Trend:** andelen hållna rutiner för perioden, andelen per dag, vecka eller månad, och en rad per rutin (till exempel *20 av 24*). Räknat på kvällar då personen bockade av rutiner, så en kväll utan avstämning är inte en miss. Den streckade linjen i stressgrafen är gränsen 30 från reglerna.
 - **Ark:** krisplanen, förslag, rättelser och *Hjälp nu* öppnas som ark.
 - **Utseende:** systemets färger, ljust och mörkt läge, och systemtypsnittet med Dynamic Type och Fet text.
@@ -178,7 +178,7 @@ Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsni
 
 1. **Granska.** Appen visar varje fil, antalet ifyllda dagar och perioden. Dagar där formuläret är tomt ("-" överallt) hoppas över. Ett datum som redan finns i Dagsljus lämnas som det är.
 2. **Koppla.** Varje punkt i dagboken som förekommer, till exempel "Ångest", "Handlat Mer Än Vanligt" eller "Lågt Humör: Nedstämdhet", visas med antal dagar. En punkt ger poäng bara om du kopplar den till ett av dina tecken i krisplanen. Appen föreslår kopplingar där orden liknar varandra. Allt annat ignoreras tills du väljer.
-3. **Garmin för samma period.** Om Garmin är anslutet hämtar appen sömn och stress för hela perioden, nyast först, 28 dagar i taget. Värdena sparas i ett arkiv med ett dokument per månad, skilt från de senaste 120 dagarna. Säger Garmin stopp fortsätter hämtningen där den slutade nästa gång. Har Garmin inget under tre omgångar i rad slutar appen fråga, eftersom klockan då inte användes.
+3. **Garmin för samma period.** Om Garmin är anslutet hämtar appen sömn och stress för hela perioden, nyast först, 28 dagar i taget. Värdena sparas i ett arkiv med ett dokument per månad, skilt från de senaste 120 dagarna. Dit flyttas också dagar som blir äldre än 120 dagar, så att inget hämtat försvinner. Under Garmin hämtar *Hämta ett år bakåt* det senaste året en gång. Säger Garmin stopp fortsätter hämtningen där den slutade nästa gång. Har Garmin inget under tre omgångar i rad slutar appen fråga, eftersom klockan då inte användes.
 4. **Räkna.** Varje dag får sin nivå med samma regler i koden som en vanlig kväll, äldsta dagen först, så att tidigare dagar räknas som historik för senare. Akutregeln körs på varje anteckning.
 
 | I dagboken | I Dagsljus |
@@ -591,4 +591,4 @@ Efter att du verifierat steg 2 och 3 på telefonen återstår två saker från f
 1. **Stäng av iCloud-backup av databasen** med en liten config plugin. Det spelar störst roll när du kör utvecklingsbuilden med riktiga uppgifter.
 2. **Inspelning med Whisper** och mätning av ord per minut. Det kräver utvecklingsbuilden.
 
-Andra leveransen enligt specen är trend, återbesök, historikimport, promptbiblioteket och modell på telefonen. Promptbiblioteket har redan sitt underlag: appen sparar den exakta text som skickades vid senaste anropet. Trenden har sitt: Garmin-värden sparas för 120 dagar.
+Andra leveransen enligt specen är trend, återbesök, historikimport, promptbiblioteket och modell på telefonen. Promptbiblioteket har redan sitt underlag: appen sparar den exakta text som skickades vid senaste anropet. Trenden har sitt: alla hämtade Garmin-värden sparas.

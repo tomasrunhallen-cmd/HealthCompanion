@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { addDays, formatDateSv, formatTime, toDateKey } from '../../core/analysis/dates';
 import { GARMIN_KEY_PAGE } from '../../garmin/client';
 import { secretsPersist } from '../../platform/secrets';
 import { connectGarmin, disconnectGarmin, syncGarmin } from '../../services/garmin';
 import { afterSync } from '../../services/remeasure';
+import { backfillGarmin, backfillState } from '../../services/garminHistory';
 import { Button, Card, Field, P, Row, Screen, Section } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
@@ -23,7 +24,9 @@ export function GarminScreen() {
   const status = repo.garminStatus();
   const [key, setKey] = useState('');
   const [replacing, setReplacing] = useState(false);
-  const [busy, setBusy] = useState<'connect' | 'sync' | null>(null);
+  const [busy, setBusy] = useState<'connect' | 'sync' | 'history' | null>(null);
+  const [history, setHistory] = useState<string | null>(null);
+  const stop = useRef(false);
 
   const connect = async () => {
     setBusy('connect');
@@ -45,6 +48,26 @@ export function GarminScreen() {
       const res = await syncGarmin(repo);
       if (!res.ok && res.error) await dialog.info('Hämtningen misslyckades', res.error);
       else if (res.ok) await afterSync(repo);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // A year back, for the trend over 6 months and a year. Days already fetched are not asked again.
+  const fetchYear = async () => {
+    stop.current = false;
+    setBusy('history');
+    const today = toDateKey(new Date());
+    try {
+      const r = await backfillGarmin(repo, addDays(today, -365), today, {
+        cancelled: () => stop.current,
+        onProgress: (p) => setHistory(p.state.nextEnd ? `Hämtar bakåt till ${formatDateSv(p.state.nextEnd)}…` : null),
+      });
+      setHistory(
+        r.error ? r.error
+          : !r.done ? 'Avbrutet. Hämtningen fortsätter där den slutade nästa gång.'
+            : r.state.oldestWithData ? `Klart. Garmin har värden från ${formatDateSv(r.state.oldestWithData)}.` : 'Klart. Garmin hade inga äldre värden.',
+      );
     } finally {
       setBusy(null);
     }
@@ -133,6 +156,20 @@ export function GarminScreen() {
           </P>
         </Card>
       </Section>
+
+      {status.connected ? (
+        <Section title="Äldre värden">
+          <Card>
+            <P>Trenden över 6 månader och ett år använder Garmins värden för hela perioden. Appen sparar alla dagar den hämtat.</P>
+            <P muted style={{ marginTop: space.xs }}>
+              {history ?? (backfillState(repo)?.oldestWithData ? `Hämtat bakåt till ${formatDateSv(backfillState(repo)!.oldestWithData!)}.` : 'Hämta ett år bakåt en gång. Det tar en minut eller två.')}
+            </P>
+            {busy === 'history'
+              ? <Button kind="ghost" title="Avbryt" onPress={() => { stop.current = true; }} />
+              : <Button kind="secondary" title="Hämta ett år bakåt" hint="Hämtar sömn och stress från Garmin för det senaste året" onPress={fetchYear} />}
+          </Card>
+        </Section>
+      ) : null}
 
       {status.connected ? (
         <Section title="Koppla bort">

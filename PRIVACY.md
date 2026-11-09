@@ -11,7 +11,7 @@ Dagsljus hanterar uppgifter om psykisk hälsa. Det är den känsligaste kategori
 | Språkmodellens nyckel | Keychain eller Keystore, bara på den här enheten | Visas aldrig i klartext igen. Följer inte med backup eller export. Raderas med *Radera allt* och *Använd ingen språkmodell*. |
 | Tokenräkning och senast skickade text | Databasen på telefonen | Används för kostnadsuppskattningen och promptbiblioteket |
 | Garmin-nyckel | Keychain eller Keystore, bara på den här enheten | Sparas bara om Garmin godtar den. Raderas med *Koppla bort Garmin* och *Radera allt*. |
-| Sömn, stress och Body Battery från Garmin | Databasen på telefonen | De senaste 120 dagarna sparas |
+| Sömn, stress och Body Battery från Garmin | Databasen på telefonen | Alla hämtade dagar sparas, för trenden över 6 månader och ett år: de senaste 120 dagarna i en post, äldre i en post per månad. Försvinner med *Radera allt* |
 | Backup | Där användaren själv sparar exportfilen | Krypterad med AES-256-GCM, nyckel från lösenordet med PBKDF2-SHA256 |
 
 I Expo Go går SQLCipher inte att använda. Databasen är då okrypterad och appen säger det på skärmen *Data och integritet*. Webbförhandsvisningen sparar okrypterat i webbläsaren och är bara till för att titta på gränssnittet.

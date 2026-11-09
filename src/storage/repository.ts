@@ -318,12 +318,24 @@ export class Repository {
     return this.garminDays()[date] ?? null;
   }
 
-  /** Replaces the given days (Garmin revises recent days) and keeps 120 days. */
+  /**
+   * Replaces the given days (Garmin revises recent days). The recent window holds 120 days so
+   * its document stays small; older days move to the archive, one document per month, and are
+   * kept for the trend over 6 months and a year.
+   */
   async saveGarminDays(days: GarminDay[], today: DateKey): Promise<void> {
     const cutoff = addDays(today, -GARMIN_KEEP_DAYS);
     const next: Record<DateKey, GarminDay> = {};
-    for (const [d, v] of Object.entries(this.garminDays())) if (d > cutoff) next[d] = v;
-    for (const day of days) if (day.date > cutoff) next[day.date] = day;
+    const older: GarminDay[] = [];
+    for (const [d, v] of Object.entries(this.garminDays())) {
+      if (d > cutoff) next[d] = v;
+      else older.push(v);
+    }
+    for (const day of days) {
+      if (day.date > cutoff) next[day.date] = day;
+      else older.push(day);
+    }
+    if (older.length) await this.saveGarminArchive(older);
     this.snap.kv.garmin = next;
     await this.backend.put('kv', 'garmin', next);
     this.changed();
@@ -370,7 +382,7 @@ export class Repository {
   }
 
   // ---- Garmin history, one document per month ----
-  /** Older measured days, fetched for an import from another diary. Kept apart from the 120-day window. */
+  /** Older measured days: moved out of the 120-day window, or fetched afterwards. One document per month. */
   garminArchive(): Record<DateKey, GarminDay> {
     const out: Record<DateKey, GarminDay> = {};
     for (const [k, v] of Object.entries(this.snap.kv)) {

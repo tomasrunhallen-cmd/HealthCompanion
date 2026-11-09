@@ -84,6 +84,9 @@ export interface TrendBucket {
   missing: number;
   /** Averages over the days that have a value; null when none has. */
   mood: number | null;
+  /** Lowest and highest rated mood in the bucket: the swing a mean hides. */
+  moodMin: number | null;
+  moodMax: number | null;
   sleepHours: number | null;
   stressAvg: number | null;
   routines: { done: number; answered: number } | null;
@@ -103,6 +106,11 @@ const mean = (vals: (number | null)[]): number | null => {
   const v = vals.filter((x): x is number => x != null);
   return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null;
 };
+
+function minMax(vals: (number | null)[]): { moodMin: number | null; moodMax: number | null } {
+  const v = vals.filter((x): x is number => x != null);
+  return v.length ? { moodMin: Math.min(...v), moodMax: Math.max(...v) } : { moodMin: null, moodMax: null };
+}
 
 function dayLabel(key: DateKey): string {
   return `${Number(key.slice(8, 10))} ${MONTHS[Number(key.slice(5, 7)) - 1]}`;
@@ -131,6 +139,7 @@ export function bucketTrend(days: TrendDay[], grain: Grain): TrendBucket[] {
       counts,
       missing: ds.filter((d) => !d.level).length,
       mood: mean(ds.map((d) => d.mood)),
+      ...minMax(ds.map((d) => d.mood)),
       sleepHours: mean(ds.map((d) => d.sleepHours)),
       stressAvg: mean(ds.map((d) => d.stressAvg)) == null ? null : Math.round(mean(ds.map((d) => d.stressAvg))!),
       routines: answered ? { done, answered } : null,

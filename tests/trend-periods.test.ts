@@ -39,8 +39,8 @@ describe('Trendens perioder', () => {
     expect(weeks.map((w) => w.label)).toEqual(['v. 44', 'v. 45']);
     const w45 = weeks[1];
     expect([w45.from, w45.to, w45.days.length]).toEqual(['2026-11-02', '2026-11-08', 7]);
-    expect(w45).toMatchObject({ counts: { green: 2, yellow: 1, red: 0 }, missing: 4, mood: -0.3, sleepHours: 7, stressAvg: 35, routines: { done: 3, answered: 4 } });
-    expect(weeks[0]).toMatchObject({ mood: null, routines: null });
+    expect(w45).toMatchObject({ counts: { green: 2, yellow: 1, red: 0 }, missing: 4, mood: -0.3, moodMin: -2, moodMax: 1, sleepHours: 7, stressAvg: 35, routines: { done: 3, answered: 4 } });
+    expect(weeks[0]).toMatchObject({ mood: null, moodMin: null, moodMax: null, routines: null });
 
     const year = buildTrend(entries, assessments, {}, TODAY, 365, ctx);
     const months = bucketTrend(year.days, 'month');
@@ -50,5 +50,22 @@ describe('Trendens perioder', () => {
     const days = bucketTrend(t.days, 'day');
     expect(days).toHaveLength(14);
     expect(days[13]).toMatchObject({ label: '8 nov', mood: 0 });
+  });
+});
+
+describe('Garmins värden sparas', () => {
+  it('days older than 120 move to the monthly archive instead of being removed', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Repository } = require('../src/storage/repository');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { memoryBackend } = require('../src/storage/backend');
+    const repo = await Repository.create(memoryBackend());
+    const g = (date: string) => ({ date, sleepHours: 7, deepMinutes: null, remMinutes: null, sleepStart: null, sleepEnd: null, stressAvg: 28, stressHighMinutes: null, bodyBatteryWake: null, fetchedAt: '' });
+    await repo.saveGarminDays([g('2026-05-01'), g('2026-07-01'), g('2026-11-01')], '2026-07-02');
+    // Four months later the window moves on: May and July leave the window but stay in the archive.
+    await repo.saveGarminDays([g('2026-11-08')], '2026-11-08');
+    expect(Object.keys(repo.garminDays()).sort()).toEqual(['2026-11-01', '2026-11-08']);
+    expect(Object.keys(repo.garminArchive()).sort()).toEqual(['2026-05-01', '2026-07-01']);
+    expect(Object.keys(repo.allMeasuredDays()).sort()).toEqual(['2026-05-01', '2026-07-01', '2026-11-01', '2026-11-08']);
   });
 });

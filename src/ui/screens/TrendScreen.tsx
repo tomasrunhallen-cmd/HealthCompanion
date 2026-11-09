@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { eveningDateKey, formatDateSv } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv } from '../../core/analysis/dates';
 import {
   bucketTrend, buildTrend, GRAIN_TEXT, PERIOD_DAYS, PERIOD_GRAIN, PERIOD_LABEL, PERIODS,
   type Grain, type TrendBucket, type TrendDay, type TrendPeriod,
@@ -16,7 +16,8 @@ import { colors, LEVEL_TEXT, levelColor, MIN_TOUCH, radius, space, type } from '
 const dec = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',').replace('-', '−');
 const withUnit = (n: number, unit: string) => (unit === '%' ? `${Math.round(n)} %` : unit ? `${dec(n)} ${unit}` : dec(n));
 const CHART_HEIGHT = 120;
-const MOOD_HALF = 60;
+const MOOD_HALF = 66;
+const AXIS_W = 22;
 const PERIOD_KEY = 'trendPeriod';
 const MONTH_NAMES = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
 
@@ -28,6 +29,9 @@ interface Point {
   /** Read out on a tap: "tisdag 3 november", "vecka 45, 2–8 nov", "november 2026". */
   name: string;
   value: number | null;
+  /** Mood over a week or month: the lowest and highest rating. */
+  min?: number | null;
+  max?: number | null;
 }
 
 function bucketName(b: TrendBucket, grain: Grain): string {
@@ -104,47 +108,91 @@ function BarChart(props: {
   );
 }
 
+/** Where a mood value sits in the chart, from the top. */
+const moodY = (v: number) => MOOD_HALF - (v / MOOD_MAX) * MOOD_HALF;
+const signed = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
+
 /**
- * Stämning from −3 to +3: bars from a middle line, up towards mania and down towards
- * depression, so the direction is read from the position. Balanserad (0) is a short mark on
- * the line, a day without a rating nothing. Weeks and months show the mean of the rated days.
+ * Stämning from −3 to +3, read against a scale at the side, with faint lines at ±2 where a
+ * rating starts to count. Days: a bar from the middle line, up towards mania and down towards
+ * depression. Weeks and months: the swing from the lowest to the highest rating, with a dot
+ * for the mean, since a mean alone hides the swings that matter in bipolar illness.
  */
-function MoodChart(props: { points: Point[]; averaged: boolean }) {
+function MoodChart(props: { points: Point[]; averaged: boolean; grain: Grain }) {
   const [picked, setPicked] = useState<Point | null>(null);
   const rated = props.points.filter((p) => p.value != null);
-  const up = rated.filter((p) => p.value! >= 0.5).length;
-  const down = rated.filter((p) => p.value! <= -0.5).length;
-  const unit = props.averaged ? 'staplar' : 'dagar';
+  const up = rated.filter((p) => (p.max ?? p.value!) >= 2).length;
+  const down = rated.filter((p) => (p.min ?? p.value!) <= -2).length;
+  const unit = props.grain === 'day' ? 'dagar' : props.grain === 'week' ? 'veckor' : 'månader';
   const summary = rated.length
-    ? `Stämning: ${rated.length} av ${props.points.length} ${unit} med skattning, ${down} under balanserad, ${rated.length - up - down} kring balanserad, ${up} över.`
+    ? `Stämning: ${rated.length} ${unit} med skattning, ${down} med depression eller lägre, ${up} med uppvarvning eller högre.`
     : 'Stämning: inga skattningar för perioden.';
   const readout = (p: Point) => {
     if (p.value == null) return `${p.name}: ingen skattning`;
-    return props.averaged ? `${p.name}: snitt ${dec(p.value)}, närmast ${moodStep(p.value).label.toLowerCase()}` : `${p.name}: ${moodText(p.value)}`;
+    if (!props.averaged) return `${p.name}: ${moodText(p.value)}`;
+    const range = p.min != null && p.max != null && p.min !== p.max
+      ? `från ${moodStep(p.min).label.toLowerCase()} (${signed(p.min)}) till ${moodStep(p.max).label.toLowerCase()} (${signed(p.max)})`
+      : `${moodStep(p.value).label.toLowerCase()} (${signed(Math.round(p.value))}) hela ${props.grain === 'week' ? 'veckan' : 'månaden'}`;
+    return `${p.name}: ${range}, snitt ${dec(p.value)}`;
   };
   return (
     <Card>
       <Text style={[type.small, { marginBottom: space.s }]} accessibilityLiveRegion="polite">
-        {picked ? readout(picked) : rated.length ? 'Tryck på en stapel för detaljer.' : 'Inga skattningar för perioden.'}
+        {picked ? readout(picked) : !rated.length ? 'Inga skattningar för perioden.'
+          : props.averaged ? `Varje stapel visar ${props.grain === 'week' ? 'veckans' : 'månadens'} lägsta till högsta skattning, punkten snittet. Tryck för detaljer.`
+            : 'Tryck på en stapel för detaljer.'}
       </Text>
-      <Text style={[type.small, { fontSize: 12 }]} importantForAccessibility="no" accessibilityElementsHidden>Akut mani +3</Text>
-      <View accessible accessibilityRole="image" accessibilityLabel={summary} style={{ height: MOOD_HALF * 2, flexDirection: 'row', gap: 2 }}>
-        {props.points.map((p) => {
-          const v = p.value;
-          const h = v == null ? 0 : Math.max(3, (Math.abs(v) / MOOD_MAX) * MOOD_HALF);
-          const fill = picked?.key === p.key ? colors.text : colors.accent;
-          return (
-            <Pressable key={p.key} onPress={() => setPicked(picked?.key === p.key ? null : p)} importantForAccessibility="no" accessibilityElementsHidden style={{ flex: 1, height: MOOD_HALF * 2 }}>
-              {v != null && v > 0 ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: MOOD_HALF, height: h, backgroundColor: fill, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} /> : null}
-              {v != null && v < 0 ? <View style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF, height: h, backgroundColor: fill, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 }} /> : null}
-              {v === 0 ? <View style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF - 2, height: 4, borderRadius: 2, backgroundColor: fill }} /> : null}
-            </Pressable>
-          );
-        })}
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF, borderTopWidth: 1, borderColor: colors.border }} />
+      <View style={{ flexDirection: 'row' }}>
+        {/* The scale: +3, +2, 0, −2, −3 at their heights. */}
+        <View style={{ width: AXIS_W, height: MOOD_HALF * 2 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {[3, 2, 0, -2, -3].map((v) => (
+            <Text key={v} style={{ position: 'absolute', top: moodY(v) - 7, left: 0, fontSize: 11, lineHeight: 14, color: colors.textMuted }}>{signed(v)}</Text>
+          ))}
+        </View>
+        <View accessible accessibilityRole="image" accessibilityLabel={summary} style={{ flex: 1, height: MOOD_HALF * 2, flexDirection: 'row', gap: 2 }}>
+          {/* Faint lines at ±2, the middle line at 0. */}
+          {[2, -2].map((v) => (
+            <View key={v} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: moodY(v), borderTopWidth: 1, borderStyle: 'dashed', borderColor: colors.border }} />
+          ))}
+          <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF, borderTopWidth: 1, borderColor: colors.textMuted }} />
+          {props.points.map((p) => {
+            const v = p.value;
+            const on = picked?.key === p.key;
+            const fill = on ? colors.text : colors.accent;
+            let mark: React.ReactNode = null;
+            if (v != null && props.averaged) {
+              const lo = p.min ?? v;
+              const hi = p.max ?? v;
+              const top = moodY(hi);
+              const height = Math.max(6, moodY(lo) - top);
+              mark = (
+                <>
+                  <View style={{ position: 'absolute', alignSelf: 'center', width: 6, top: height === 6 ? top - 3 : top, height, borderRadius: 3, backgroundColor: fill, opacity: on ? 0.9 : 0.35 }} />
+                  <View style={{ position: 'absolute', alignSelf: 'center', top: moodY(v) - 5, width: 10, height: 10, borderRadius: 5, backgroundColor: fill, borderWidth: 2, borderColor: colors.surface }} />
+                </>
+              );
+            } else if (v != null) {
+              const h = (Math.abs(v) / MOOD_MAX) * MOOD_HALF;
+              mark = v > 0
+                ? <View style={{ position: 'absolute', left: 0, right: 0, bottom: MOOD_HALF, height: h, backgroundColor: fill, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                : v < 0
+                  ? <View style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF, height: h, backgroundColor: fill, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 }} />
+                  : <View style={{ position: 'absolute', left: 0, right: 0, top: MOOD_HALF - 2, height: 4, borderRadius: 2, backgroundColor: fill }} />;
+            }
+            return (
+              <Pressable key={p.key} onPress={() => setPicked(on ? null : p)} importantForAccessibility="no" accessibilityElementsHidden style={{ flex: 1, height: MOOD_HALF * 2 }}>
+                {mark}
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-      <Text style={[type.small, { fontSize: 12 }]} importantForAccessibility="no" accessibilityElementsHidden>Akut depression −3</Text>
-      <Axis points={props.points} />
+      <View style={{ marginLeft: AXIS_W }}>
+        <Axis points={props.points} />
+      </View>
+      <Text style={[type.small, { fontSize: 12, marginTop: space.xs }]} importantForAccessibility="no" accessibilityElementsHidden>
+        +3 Akut mani · +2 Uppvarvning · 0 Balanserad · −2 Depression · −3 Akut depression
+      </Text>
     </Card>
   );
 }
@@ -292,6 +340,9 @@ export function TrendScreen() {
   const point = (value: (b: TrendBucket) => number | null): Point[] =>
     buckets.map((b) => ({ key: b.key, short: b.label, name: bucketName(b, grain), value: value(b) }));
   const limit = repo.planSettings().sleepThresholdHours;
+  // Garmin connected, but no values from the start of a long period: offer to fetch them.
+  const oldestGarmin = useMemo(() => Object.keys(repo.allGarminDays()).sort()[0] ?? null, [repo, repo.revision]);
+  const missingGarmin = averaged && repo.garminStatus().connected && oldestGarmin != null && oldestGarmin > addDays(trend.days[0].date, 14);
 
   return (
     <Screen title="Trend">
@@ -321,7 +372,7 @@ export function TrendScreen() {
       </Section>
 
       <Section title="Stämning">
-        <MoodChart points={point((b) => b.mood)} averaged={averaged} />
+        <MoodChart points={buckets.map((b) => ({ key: b.key, short: b.label, name: bucketName(b, grain), value: b.mood, min: b.moodMin, max: b.moodMax }))} averaged={averaged} grain={grain} />
       </Section>
 
       <Section title="Rutiner">
@@ -329,6 +380,12 @@ export function TrendScreen() {
       </Section>
 
       <Section title="Sömn och stress">
+        {missingGarmin ? (
+          <Card>
+            <P>Garmins värden äldre än {formatDateSv(oldestGarmin!)} saknas, så sömn och stress visas bara för en del av perioden.</P>
+            <Button kind="ghost" title="Hämta från Garmin" hint="Öppnar Garmin, där ett år bakåt kan hämtas" onPress={() => nav.push({ name: 'garmin' })} />
+          </Card>
+        ) : null}
         <BarChart title="Sömn" points={point((b) => b.sleepHours)} unit="h" averaged={averaged} reference={{ value: limit, label: `Streckad linje: din gräns på ${dec(limit)} h` }} />
         <BarChart title="Stress" points={point((b) => b.stressAvg)} unit="" averaged={averaged} reference={{ value: RULES.stressHighAt, label: `Streckad linje: ${RULES.stressHighAt}, gränsen för hög stress` }} />
       </Section>

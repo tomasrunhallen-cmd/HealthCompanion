@@ -43,7 +43,7 @@ Appen kontaktar aldrig någon person åt dig. Krisnumren öppnar telefonens uppr
 
 ## Hur länge uppgifterna sparas
 
-Tills du raderar dem. Garmin-värden för de senaste 120 dagarna och för perioder du importerat sparas på samma sätt som resten.
+Tills du raderar dem. Alla Garmin-värden appen hämtat, också för perioder du importerat, sparas på samma sätt som resten.
 
 ## Dina val
 
