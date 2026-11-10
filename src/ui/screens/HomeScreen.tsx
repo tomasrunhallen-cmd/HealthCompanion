@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, Text, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
-import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle, localClock, toDateKey } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
 import { RULES } from '../../core/analysis/rules';
 import { logHeavyDay } from '../../services/checkin';
@@ -10,7 +10,9 @@ import { startWithStandard, unconfirmedStandard } from '../../services/standard'
 import { dueNow, runProfileReview } from '../../services/profile';
 import { Button, Card, Dot, Eyebrow, P, Row, Screen, Section } from '../components';
 import { SymbolView } from 'expo-symbols';
-import { SOURCE_TEXT, sleepSourceOf } from '../../core/analysis/sources';
+import { SOURCE_TEXT, sleepSourceOf, stressSourceOf, stressWord } from '../../core/analysis/sources';
+import { minutesBehind, STALE_MINUTES } from '../../core/analysis/remeasure';
+import { syncGarmin } from '../../services/garmin';
 import { homeQueue, laterToday, putAside, type HomeCard, type HomeLater } from '../../core/analysis/homeCards';
 import type { Level } from '../../core/domain/types';
 import { MEDICAL_REMINDER } from '../../legal';
@@ -22,7 +24,7 @@ import { adviceForTomorrow } from '../../core/analysis/events';
 import { GREEN_MEANS } from '../../core/analysis/firstWeek';
 import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
-import { remeasurePending } from '../../services/remeasure';
+import { afterSync, remeasurePending } from '../../services/remeasure';
 import { rereadDays } from '../../core/analysis/recompute';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
@@ -325,7 +327,7 @@ export function HomeScreen() {
         <Button kind="secondary" title="Orkar bara trycka" hint="Loggar dagen som tung, utan frågor" busy={busy} onPress={onHeavy} />
         <P muted style={{ marginTop: space.s }}>Du behöver inte skriva något.</P>
       </Card>
-      <LastNight />
+      <TodayMeasures />
 
       {card ? (
         <View style={{ marginTop: space.xl }}>
@@ -383,32 +385,95 @@ function hoursMinutes(h: number): string {
   return m ? `${Math.floor(total / 60)} h ${m} min` : `${total / 60} h`;
 }
 
-/** Last night's sleep, with where it came from and when it was fetched. Hidden without a value. */
-function LastNight() {
+/** "14:32" today, "i går 21:10", or "8 nov 21:10" from an ISO time. */
+function whenText(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  const clock = localClock(d);
+  const day = toDateKey(d);
+  if (day === toDateKey(now)) return clock;
+  if (day === addDays(toDateKey(now), -1)) return `i går ${clock}`;
+  return `${formatDateSv(day).replace(/^\S+ /, '')} ${clock}`;
+}
+
+/**
+ * Last night's sleep and today's stress, and how current the watch is. The app cannot make the
+ * watch sync (Garmin Connect on the phone does that over Bluetooth); it fetches from Garmin when
+ * opened, and again on coming back while the watch lags. So the card says when the watch last
+ * synced, and what to do when it lags.
+ */
+function TodayMeasures() {
   const repo = useRepo();
+  const [fetching, setFetching] = useState(false);
   const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const m = repo.measuredDay(eveningDateKey(new Date()));
-  if (m?.sleepHours == null) return null;
-  const raw = SOURCE_TEXT[sleepSourceOf(m) ?? 'garmin'];
-  const source = raw.charAt(0).toUpperCase() + raw.slice(1);
-  const at = m.fetchedAt && !Number.isNaN(Date.parse(m.fetchedAt))
-    ? new Date(m.fetchedAt).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-    : null;
-  const spoken = hoursMinutes(m.sleepHours).replace(' h', ' timmar').replace(' min', ' minuter');
+  const now = new Date();
+  const m = repo.measuredDay(eveningDateKey(now));
+  const status = repo.garminStatus();
+  const watch = repo.garminDay(eveningDateKey(now));
+  if (m?.sleepHours == null && m?.stressAvg == null && !status.connected) return null;
+
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const sleepFrom = m?.sleepHours != null ? cap(SOURCE_TEXT[sleepSourceOf(m) ?? 'garmin']) : null;
+  const stressFrom = m?.stressAvg != null ? cap(SOURCE_TEXT[stressSourceOf(m) ?? 'garmin']) : null;
+  const behind = watch ? minutesBehind(watch.dataUntil, localClock(now)) : null;
+  const lags = status.connected && (!watch || (behind != null && behind >= STALE_MINUTES));
+  const fetched = status.lastSyncAt ? whenText(status.lastSyncAt, now) : null;
+
+  const fetchAgain = async () => {
+    setFetching(true);
+    try {
+      const r = await syncGarmin(repo, { days: 1 });
+      if (r.ok) await afterSync(repo);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const metric = (label: string, value: string | null, from: string | null, spoken: string) => (
+    <View style={{ flex: 1 }} accessible accessibilityLabel={value ? `${label}: ${spoken}, ${from}` : `${label}: saknas`}>
+      <Text style={type.small}>{label}</Text>
+      <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '600', letterSpacing: -0.5, color: value ? colors.text : colors.textMuted }}>{value ?? '–'}</Text>
+      {from ? <Text style={[type.small, { fontSize: 13 }]}>{from}</Text> : null}
+    </View>
+  );
+
   return (
     <Card>
-      <View
-        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.m }}
-        accessible
-        accessibilityLabel={`Senaste nattens sömn: ${spoken}, ${source}${at ? `, uppdaterat ${at}` : ''}`}
-      >
-        <View style={{ flexShrink: 1 }}>
-          <Text style={type.small}>Senaste nattens sömn</Text>
-          <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '600', letterSpacing: -0.5, color: colors.text }}>{hoursMinutes(m.sleepHours)}</Text>
-        </View>
-        <SymbolView name={{ ios: 'moon.fill', android: 'bedtime', web: 'bedtime' } as never} size={22} tintColor={paletteHex('accent', mode)} fallback={null} />
+      <View style={{ flexDirection: 'row', gap: space.m }}>
+        {metric('Sömn i natt', m?.sleepHours != null ? hoursMinutes(m.sleepHours) : null, sleepFrom,
+          m?.sleepHours != null ? hoursMinutes(m.sleepHours).replace(' h', ' timmar').replace(' min', ' minuter') : '')}
+        {metric('Stress i dag', m?.stressAvg != null ? `${m.stressAvg}, ${stressWord(m.stressAvg)}` : null,
+          stressFrom ? `${stressFrom}${stressSourceOf(m!) !== 'manual' ? ', hittills' : ''}` : null,
+          m?.stressAvg != null ? `${m.stressAvg} av 100, ${stressWord(m.stressAvg)}` : '')}
       </View>
-      <Text style={[type.small, { marginTop: space.s }]}>{source}{at ? ` · uppdaterat ${at}` : ''}</Text>
+      {status.connected ? (
+        <View style={{ marginTop: space.m, paddingTop: space.s, borderTopWidth: 1, borderColor: colors.border }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }} accessible accessibilityLiveRegion="polite"
+            accessibilityLabel={lags
+              ? `${watch?.dataUntil ? `Klockan har inte synkat sedan ${watch.dataUntil}` : 'Inget från klockan i dag'}. ${fetched ? `Appen hämtade ${fetched}.` : ''}`
+              : `${watch?.dataUntil ? `Klockan synkad ${watch.dataUntil}` : 'Dagens värden från klockan finns'}. ${fetched ? `Appen hämtade ${fetched}.` : ''}`}>
+            <SymbolView
+              name={(lags ? { ios: 'exclamationmark.arrow.triangle.2.circlepath', android: 'sync_problem', web: 'sync_problem' } : { ios: 'arrow.triangle.2.circlepath', android: 'sync', web: 'sync' }) as never}
+              size={18} tintColor={paletteHex(lags ? 'yellow' : 'textMuted', mode)} fallback={null} />
+            <View style={{ flex: 1 }}>
+              <Text style={[type.small, lags && { color: colors.text, fontWeight: '600' }]}>
+                {lags
+                  ? watch?.dataUntil ? `Klockan har inte synkat sedan ${watch.dataUntil}` : 'Inget från klockan i dag'
+                  : watch?.dataUntil ? `Klockan synkad ${watch.dataUntil}` : 'Dagens värden från klockan finns'}
+              </Text>
+              {fetched ? <Text style={[type.small, { fontSize: 13 }]}>Appen hämtade från Garmin {fetched}</Text> : null}
+            </View>
+          </View>
+          {lags ? (
+            <>
+              <P muted style={{ marginTop: space.xs }}>
+                Appen kan inte starta synken från klockan. Öppna Garmin Connect på telefonen, så hämtar Dagsljus de nya värdena när du kommer tillbaka.
+              </P>
+              <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
+            </>
+          ) : null}
+          {status.lastError ? <P muted style={{ marginTop: space.xs }}>{status.lastError}</P> : null}
+        </View>
+      ) : null}
     </Card>
   );
 }

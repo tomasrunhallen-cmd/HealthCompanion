@@ -1,7 +1,8 @@
 // Fetches sleep, stress and Body Battery from the user's own Garmin account and stores
 // them on the phone. Runs when the app opens and just before an evening check-in.
 
-import { addDays, toDateKey } from '../core/analysis/dates';
+import { addDays, eveningDateKey, localClock, toDateKey } from '../core/analysis/dates';
+import { minutesBehind, STALE_MINUTES } from '../core/analysis/remeasure';
 import type { DateKey, GarminDay } from '../core/domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
 import { garminBaseUrl } from '../platform/endpoints';
@@ -16,6 +17,8 @@ export const SYNC_DAYS = 7;
 export const FIRST_SYNC_DAYS = 14;
 /** The app-open sync is skipped when the last one is this recent. */
 const MIN_SYNC_INTERVAL_MS = 30 * 60 * 1000;
+/** When the watch lags: the person may just have opened Garmin Connect to sync it, so ask again sooner. */
+const LAGGING_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
 export interface GarminOptions {
   fetch?: GarminFetch;
@@ -90,12 +93,28 @@ export async function syncGarmin(repo: Repository, opts: GarminOptions & { days?
   }
 }
 
-/** When the app opens: fetch missing days, unless a sync ran in the last half hour. */
+/**
+ * True when today's values from the watch are missing or lag two hours or more. The app cannot
+ * make the watch sync; Garmin Connect on the phone does that.
+ */
+export function watchLags(repo: Repository, now = new Date()): boolean {
+  const m = repo.garminDay(eveningDateKey(now));
+  if (!m) return true;
+  const behind = minutesBehind(m.dataUntil, localClock(now));
+  return behind != null && behind >= STALE_MINUTES;
+}
+
+/**
+ * When the app opens or comes back to the front: fetch missing days, unless a sync ran in the
+ * last half hour, or the last five minutes while the watch lags (coming back from Garmin
+ * Connect after syncing the watch fetches the new values at once).
+ */
 export async function syncOnOpen(repo: Repository, opts: GarminOptions = {}): Promise<SyncResult | null> {
   const s = repo.garminStatus();
   if (!s.connected) return null;
   const now = opts.now ?? new Date();
-  if (s.lastSyncAt && now.getTime() - new Date(s.lastSyncAt).getTime() < MIN_SYNC_INTERVAL_MS && !s.lastError) return null;
+  const interval = watchLags(repo, now) ? LAGGING_SYNC_INTERVAL_MS : MIN_SYNC_INTERVAL_MS;
+  if (s.lastSyncAt && now.getTime() - new Date(s.lastSyncAt).getTime() < interval && !s.lastError) return null;
   return syncGarmin(repo, opts);
 }
 
