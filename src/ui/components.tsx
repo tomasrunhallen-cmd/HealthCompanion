@@ -137,11 +137,11 @@ export function Chip(props: { label: string; selected?: boolean; onPress?: () =>
 }
 
 /** A switch with its label (HIG: Toggles). */
-export function Toggle(props: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; hint?: string }) {
+export function Toggle(props: { label: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; hint?: string; plain?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, minHeight: MIN_TOUCH }}>
       <View style={{ flex: 1 }}>
-        <Text style={[type.body, { fontWeight: '600' }]}>{props.label}</Text>
+        <Text style={[type.body, !props.plain && { fontWeight: '600' }]}>{props.label}</Text>
         {props.hint ? <Text style={type.small}>{props.hint}</Text> : null}
       </View>
       <Switch

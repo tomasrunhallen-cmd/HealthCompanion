@@ -94,13 +94,13 @@ function Scale(props: {
   );
 }
 
-/** One measured value: name and source on the left, the value and Ändra on the right. */
-function MeasureRow(props: { label: string; value: string; spoken?: string; detail: string; action: string; actionLabel: string; onAction: () => void }) {
+/** One measured value on one line: the name, the value and Ändra. A source other than the watch goes under the name. */
+function MeasureRow(props: { label: string; value: string; spoken?: string; detail?: string; action: string; actionLabel: string; onAction: () => void }) {
   return (
-    <Row style={{ marginTop: space.s, justifyContent: 'space-between', alignItems: 'center' }}>
-      <View style={{ flexShrink: 1 }} accessible accessibilityLabel={`${props.label} ${props.spoken ?? props.value}, ${props.detail}`}>
+    <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+      <View style={{ flexShrink: 1 }} accessible accessibilityLabel={`${props.label} ${props.spoken ?? props.value}${props.detail ? `, ${props.detail}` : ''}`}>
         <Text style={type.body}>{props.label}</Text>
-        <Text style={type.small}>{props.detail}</Text>
+        {props.detail ? <Text style={type.small}>{props.detail}</Text> : null}
       </View>
       <Row style={{ alignItems: 'center', gap: space.s }}>
         <Text style={[type.body, { fontWeight: '600' }]} importantForAccessibility="no" accessibilityElementsHidden>{props.value}</Text>
@@ -246,7 +246,10 @@ export function CheckinScreen() {
       <Scale label="Energi" value={energy} onChange={(v) => { touch(); setEnergy(v); }} low="1 Ingen" high="10 Väldigt mycket" />
 
       <Card>
-        <Text style={type.h2} accessibilityRole="header">Sömn och stress</Text>
+        <Row style={{ justifyContent: 'space-between', alignItems: 'baseline', gap: space.s, marginBottom: space.xs }}>
+          <Text style={[type.h2, { flexShrink: 1 }]} accessibilityRole="header">Sömn och stress</Text>
+          {connected && !lags ? <Text style={type.small} accessibilityLiveRegion="polite">{updated}</Text> : null}
+        </Row>
         {/* The watch's values are used as they are; Ändra opens the person's own entry. */}
         {manualSleep == null ? (
           <MeasureRow
@@ -254,7 +257,7 @@ export function CheckinScreen() {
             value={garminSleep != null ? hoursText(garminSleep) : sleep != null ? hoursText(sleep) : '–'}
             spoken={garminSleep != null ? hoursSpoken(garminSleep) : sleep != null ? hoursSpoken(sleep) : 'saknas'}
             detail={garminSleep != null
-              ? `${SOURCE_TEXT[sleepSourceOf(garmin!) ?? 'garmin']}${garmin!.sleepStart ? `, somnade ${garmin!.sleepStart}` : ''}`
+              ? (sleepSourceOf(garmin!) ?? 'garmin') === 'garmin' ? undefined : SOURCE_TEXT[sleepSourceOf(garmin!)!]
               : sleep != null ? 'Ur anteckningen' : 'Inget från klockan'}
             action={garminSleep != null || sleep != null ? 'Ändra' : 'Ange'}
             actionLabel="Ange sömnen själv"
@@ -271,7 +274,7 @@ export function CheckinScreen() {
             label="Stress i dag"
             value={`${garmin.stressAvg}, ${stressWord(garmin.stressAvg)}`}
             spoken={`${garmin.stressAvg} av 100, ${stressWord(garmin.stressAvg)}`}
-            detail={`${SOURCE_TEXT[stressSourceOf(garmin) ?? 'garmin']}, hittills i dag`}
+            detail={(stressSourceOf(garmin) ?? 'garmin') === 'garmin' ? undefined : SOURCE_TEXT[stressSourceOf(garmin)!]}
             action="Ändra"
             actionLabel="Ange stressen själv"
             onAction={() => setStressOpen(true)}
@@ -290,26 +293,16 @@ export function CheckinScreen() {
             ) : null}
           </>
         )}
-        {connected ? (
-          // When the watch last reached Garmin, and what to do when it lags: the app cannot make
-          // the watch sync; Garmin Connect on the phone does.
-          <View style={{ marginTop: space.s, paddingTop: space.s, borderTopWidth: 1, borderColor: colors.border }}>
-            <Text style={[type.small, lags && { color: colors.text, fontWeight: '600' }]} accessibilityLiveRegion="polite">{updated}</Text>
-            {lags ? (
-              <>
-                <P muted style={{ marginTop: space.xs }}>Appen kan inte starta synken från klockan. Öppna Garmin Connect, så hämtar Dagsljus de nya värdena när du kommer tillbaka.</P>
-                <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
-              </>
-            ) : null}
+        {connected && lags ? (
+          // The watch lags: the app cannot make the watch sync; Garmin Connect on the phone does.
+          <View style={{ marginTop: space.s }}>
+            <Text style={[type.small, { color: colors.text, fontWeight: '600' }]} accessibilityLiveRegion="polite">{updated}</Text>
+            <P muted style={{ marginTop: space.xs }}>Appen kan inte starta synken från klockan. Öppna Garmin Connect, så hämtar Dagsljus de nya värdena när du kommer tillbaka.</P>
+            <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
           </View>
         ) : null}
-        <View style={{ marginTop: space.m }}>
-          <Toggle
-            label="Alkohol, sjuk eller hård träning i går?"
-            value={strain}
-            onChange={setStrain}
-            hint="Då kan sömn och stress inte ge rött i dag"
-          />
+        <View style={{ marginTop: space.s, paddingTop: space.xs, borderTopWidth: 1, borderColor: colors.border }}>
+          <Toggle label="Alkohol, sjuk eller hård träning i går?" value={strain} onChange={setStrain} plain />
         </View>
       </Card>
 
