@@ -63,16 +63,18 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
   const hasUp = repo.contextOf('routine').some((e) => e.plan?.polarity === 'up');
   const hasDown = repo.contextOf('routine').some((e) => e.plan?.polarity === 'down');
   const suggested = mode ? null : recentDirection(repo, today);
-  if (!all.length && !hasUp && !hasDown) return null;
+  const empty = !all.length && !hasUp && !hasDown;
 
-  // Hem: the day's suggestion first, then the other routines due today.
+  // Hem: the day's suggestion first, then the other routines due today. The hooks come before
+  // any early return, so they run in the same order on every render.
   const [suggestion, setSuggestion] = useState<DaySuggestion | null>(() => (compact ? null : daySuggestion(repo)));
   useEffect(() => {
-    if (compact || suggestion?.date === today) return;
+    if (compact || empty || suggestion?.date === today) return;
     let live = true;
     makeDaySuggestion(repo, { browser: Platform.OS === 'web' }).then((s) => live && setSuggestion(s)).catch(() => undefined);
     return () => { live = false; };
-  }, [repo, compact, today, suggestion?.date]);
+  }, [repo, compact, empty, today, suggestion?.date]);
+  if (empty) return null;
   const statuses = compact ? [] : routineStatuses(entries, today);
   const status = new Map(statuses.map((st) => [st.routine.id, st]));
   const picked = (suggestion?.date === today ? suggestion.items : [])

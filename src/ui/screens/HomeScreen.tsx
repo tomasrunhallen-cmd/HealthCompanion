@@ -8,7 +8,7 @@ import { logHeavyDay } from '../../services/checkin';
 import { standardNudgeWeek } from '../../core/context/standard';
 import { startWithStandard, unconfirmedStandard } from '../../services/standard';
 import { dueNow, runProfileReview } from '../../services/profile';
-import { Button, Card, Dot, Eyebrow, P, Row, Screen, Section } from '../components';
+import { Button, Card, Dot, Eyebrow, P, Row, Screen } from '../components';
 import { SymbolView } from 'expo-symbols';
 import { SOURCE_TEXT, sleepSourceOf, stressSourceOf, stressWord } from '../../core/analysis/sources';
 import { minutesBehind, STALE_MINUTES } from '../../core/analysis/remeasure';
@@ -289,6 +289,7 @@ export function HomeScreen() {
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
+      <TodayMeasures />
       {todayAssessment ? (
         <Pressable
           onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
@@ -309,12 +310,9 @@ export function HomeScreen() {
           </Card>
         </Pressable>
       ) : (
-        <>
-          <Text style={type.title} accessibilityRole="header">En stund för dig.</Text>
-          <P muted style={{ marginTop: space.xs }}>Samla dagen, i din takt.</P>
-        </>
+        <Text style={[type.title, { marginTop: space.m }]} accessibilityRole="header">En stund för dig.</Text>
       )}
-      <Card tone="accent" style={{ marginTop: todayAssessment ? space.s : space.xl }}>
+      <Card tone="accent" style={{ marginTop: todayAssessment ? space.s : space.l }}>
         <Text style={type.h2} accessibilityRole="header">{todayEntry ? 'Har något ändrats?' : 'Hur har din dag varit?'}</Text>
         <P muted style={{ marginTop: space.xs, marginBottom: space.m }}>
           {todayEntry ? 'Du kan göra om kvällens avstämning.' : 'Skriv en rad och skatta hur du mår.'}
@@ -327,7 +325,6 @@ export function HomeScreen() {
         <Button kind="secondary" title="Orkar bara trycka" hint="Loggar dagen som tung, utan frågor" busy={busy} onPress={onHeavy} />
         <P muted style={{ marginTop: space.s }}>Du behöver inte skriva något.</P>
       </Card>
-      <TodayMeasures />
 
       {card ? (
         <View style={{ marginTop: space.xl }}>
@@ -339,12 +336,6 @@ export function HomeScreen() {
           ) : null}
         </View>
       ) : null}
-
-      <Section title="Senaste veckan" right={<Button kind="ghost" title="Alla dagar" onPress={() => nav.push({ name: 'history' })} />}>
-        <Card>
-          <WeekRow week={week} fontScale={fontScale} />
-        </Card>
-      </Section>
 
       <Button kind="ghost" title="Lågt läge: bara avstämningen" hint="Döljer allt utom avstämningen och Hjälp nu" onPress={() => repo.updateSettings({ lowMode: true })} />
     </Screen>
@@ -417,6 +408,8 @@ function TodayMeasures() {
   const behind = watch ? minutesBehind(watch.dataUntil, localClock(now)) : null;
   const lags = status.connected && (!watch || (behind != null && behind >= STALE_MINUTES));
   const fetched = status.lastSyncAt ? whenText(status.lastSyncAt, now) : null;
+  const at = watch?.dataUntil ?? fetched;
+  const updated = !watch ? 'Inget från klockan i dag' : at ? `Uppdaterades ${at}` : 'Uppdaterades i dag';
 
   const fetchAgain = async () => {
     setFetching(true);
@@ -447,27 +440,15 @@ function TodayMeasures() {
       </View>
       {status.connected ? (
         <View style={{ marginTop: space.m, paddingTop: space.s, borderTopWidth: 1, borderColor: colors.border }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }} accessible accessibilityLiveRegion="polite"
-            accessibilityLabel={lags
-              ? `${watch?.dataUntil ? `Klockan har inte synkat sedan ${watch.dataUntil}` : 'Inget från klockan i dag'}. ${fetched ? `Appen hämtade ${fetched}.` : ''}`
-              : `${watch?.dataUntil ? `Klockan synkad ${watch.dataUntil}` : 'Dagens värden från klockan finns'}. ${fetched ? `Appen hämtade ${fetched}.` : ''}`}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }} accessible accessibilityLiveRegion="polite" accessibilityLabel={updated}>
             <SymbolView
               name={(lags ? { ios: 'exclamationmark.arrow.triangle.2.circlepath', android: 'sync_problem', web: 'sync_problem' } : { ios: 'arrow.triangle.2.circlepath', android: 'sync', web: 'sync' }) as never}
-              size={18} tintColor={paletteHex(lags ? 'yellow' : 'textMuted', mode)} fallback={null} />
-            <View style={{ flex: 1 }}>
-              <Text style={[type.small, lags && { color: colors.text, fontWeight: '600' }]}>
-                {lags
-                  ? watch?.dataUntil ? `Klockan har inte synkat sedan ${watch.dataUntil}` : 'Inget från klockan i dag'
-                  : watch?.dataUntil ? `Klockan synkad ${watch.dataUntil}` : 'Dagens värden från klockan finns'}
-              </Text>
-              {fetched ? <Text style={[type.small, { fontSize: 13 }]}>Appen hämtade från Garmin {fetched}</Text> : null}
-            </View>
+              size={16} tintColor={paletteHex(lags ? 'yellow' : 'textMuted', mode)} fallback={null} />
+            <Text style={[type.small, { flex: 1 }, lags && { color: colors.text, fontWeight: '600' }]}>{updated}</Text>
           </View>
           {lags ? (
             <>
-              <P muted style={{ marginTop: space.xs }}>
-                Appen kan inte starta synken från klockan. Öppna Garmin Connect på telefonen, så hämtar Dagsljus de nya värdena när du kommer tillbaka.
-              </P>
+              <P muted style={{ marginTop: space.xs }}>Appen kan inte starta synken från klockan. Öppna Garmin Connect, så hämtar Dagsljus de nya värdena när du kommer tillbaka.</P>
               <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
             </>
           ) : null}

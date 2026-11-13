@@ -14,6 +14,7 @@ import { polarityText } from '../../core/plan/fields';
 import { routineSettings, routineStats, routines, suggestReminderTime } from '../../core/plan/routines';
 import { cancelHint, cancelRoutineReminder, reminderSupported, reminderViaCalendar, scheduleRoutineReminder } from '../../platform/reminder';
 import { planBlocks, saveBlock } from '../../services/planBlocks';
+import { renameRoutine } from '../../services/routines';
 import { Button, Card, Chip, Field, P, Row, Screen, Section, Segmented, Toggle } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
@@ -96,9 +97,32 @@ function RoutineCard({ e, stat }: { e: ContextEntry; stat: { answered: number; d
     else await remind(true, next);
   };
 
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const rename = async () => {
+    const next = await renameRoutine(repo, e, renaming ?? '');
+    setRenaming(null);
+    // A phone reminder carries the routine's words: schedule it again with the new ones.
+    if (next && settings.reminder && !reminderViaCalendar) {
+      await scheduleRoutineReminder(e.id, next.text, Number(settings.reminder.slice(0, 2)), Number(settings.reminder.slice(3, 5)));
+    }
+  };
+
   return (
     <Card>
-      <P style={{ fontWeight: '600' }}>{e.text}</P>
+      {renaming != null ? (
+        <View>
+          <Field label="NYTT NAMN" value={renaming} onChangeText={setRenaming} autoFocus accessibilityLabel="Rutinens nya namn" onSubmitEditing={rename} returnKeyType="done" />
+          <Row>
+            <Button title="Spara" disabled={!renaming.trim() || renaming.trim() === e.text} onPress={rename} />
+            <Button kind="ghost" title="Avbryt" onPress={() => setRenaming(null)} />
+          </Row>
+        </View>
+      ) : (
+        <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+          <P style={{ fontWeight: '600', flex: 1 }}>{e.text}</P>
+          <Button kind="ghost" title="Byt namn" label={`Byt namn på ${e.text}`} onPress={() => setRenaming(e.text)} />
+        </Row>
+      )}
       {e.plan?.polarity && e.plan.polarity !== 'both' ? (
         <Text style={[type.small, { marginTop: 2 }]}>Gäller {polarityText(e.plan.polarity, words).toLowerCase()}</Text>
       ) : null}

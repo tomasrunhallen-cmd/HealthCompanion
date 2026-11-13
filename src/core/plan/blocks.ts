@@ -122,6 +122,35 @@ export function blockLines(text: string): { text: string; number: number | null 
   return out;
 }
 
+/**
+ * The block's text with one line given new words, keeping its list mark ("- ", "2. ") and every
+ * other line as it was. A line that runs over several rows is replaced whole. The new words
+ * start with a capital letter, so they are never read as the end of the line before. Null when
+ * the line is not in the block.
+ */
+export function renameLine(text: string, oldLine: string, newLine: string): string | null {
+  const raws = text.replace(/\r\n?/g, '\n').split('\n');
+  const next = newLine.replace(/\s+/g, ' ').trim();
+  if (!next) return null;
+  const words = next.charAt(0).toUpperCase() + next.slice(1);
+  // Group the rows into lines exactly as blockLines does.
+  const groups: { start: number; end: number; text: string; mark: string }[] = [];
+  raws.forEach((raw, i) => {
+    if (!raw.trim()) return;
+    const m = raw.match(MARK);
+    const line = raw.replace(MARK, '').trim();
+    if (!line) return;
+    const prev = groups[groups.length - 1];
+    if (!m && prev && /^[a-zåäö]/.test(line)) {
+      prev.text = `${prev.text} ${line}`;
+      prev.end = i;
+    } else groups.push({ start: i, end: i, text: line, mark: m ? m[0] : raw.match(/^\s*/)![0] });
+  });
+  const g = groups.find((x) => x.text === oldLine.trim());
+  if (!g) return null;
+  return [...raws.slice(0, g.start), `${g.mark}${words}`, ...raws.slice(g.end + 1)].join('\n');
+}
+
 export interface BlockRow {
   text: string;
   fields: PlanFields;
