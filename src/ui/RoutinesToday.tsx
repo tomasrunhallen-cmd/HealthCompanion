@@ -1,33 +1,40 @@
 // "Rutiner i dag": the plan's daily routines, and its routines at early signs while the person
 // follows them, ticked off during the day. Every tap is saved at once for today. Ticking off
-// never changes the level and is never sent to a model.
+// never changes the level. On Hem the day's suggestion comes first (services/daySuggestion.ts),
+// and routines not planned today, or with the week's goal reached, are left out.
 
-import React, { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { addDays, eveningDateKey, formatDateSv } from '../core/analysis/dates';
 import type { ContextEntry } from '../core/domain/types';
 import { polarityWord } from '../core/plan/fields';
 import { signDirection } from '../core/plan/guidance';
 import { routineLog, routinesToday } from '../core/plan/routines';
 import { setRoutineDone } from '../services/routines';
-import { Button, Card, P, Row } from './components';
+import { routineStatuses } from '../core/plan/routineFrequency';
+import type { DaySuggestion } from '../core/plan/daySuggestion';
+import { daySuggestion, makeDaySuggestion } from '../services/daySuggestion';
+import { Button, Card, P, Row, Tag } from './components';
 import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
 
-function RoutineRow({ r, done, onSet }: { r: ContextEntry; done: boolean | undefined; onSet: (v: boolean | null) => void }) {
+export function RoutineRow({ r, done, onSet, detail }: { r: ContextEntry; done: boolean | undefined; onSet: (v: boolean | null) => void; detail?: string }) {
   const on = done === true;
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
-      accessibilityLabel={r.text}
+      accessibilityLabel={detail ? `${r.text}. ${detail}` : r.text}
       onPress={() => onSet(on ? null : true)}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: MIN_TOUCH, paddingVertical: space.xs }}
     >
       <View style={{ width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: colors.green, backgroundColor: on ? colors.green : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
         {on ? <Text style={{ color: colors.onAccent, fontWeight: '700' }}>✓</Text> : null}
       </View>
-      <Text style={[type.body, { flex: 1 }]}>{r.text}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={type.body}>{r.text}</Text>
+        {detail ? <Text style={type.small}>{detail}</Text> : null}
+      </View>
     </Pressable>
   );
 }
@@ -58,17 +65,55 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
   const suggested = mode ? null : recentDirection(repo, today);
   if (!all.length && !hasUp && !hasDown) return null;
 
+  // Hem: the day's suggestion first, then the other routines due today.
+  const [suggestion, setSuggestion] = useState<DaySuggestion | null>(() => (compact ? null : daySuggestion(repo)));
+  useEffect(() => {
+    if (compact || suggestion?.date === today) return;
+    let live = true;
+    makeDaySuggestion(repo, { browser: Platform.OS === 'web' }).then((s) => live && setSuggestion(s)).catch(() => undefined);
+    return () => { live = false; };
+  }, [repo, compact, today, suggestion?.date]);
+  const statuses = compact ? [] : routineStatuses(entries, today);
+  const status = new Map(statuses.map((st) => [st.routine.id, st]));
+  const picked = (suggestion?.date === today ? suggestion.items : [])
+    .map((i) => ({ ...i, r: daily.find((d) => d.id === i.routineId) }))
+    .filter((i): i is typeof i & { r: ContextEntry } => !!i.r);
+  // Not today: a weekday routine on another day, or a weekly goal already reached (unless ticked today).
+  const notToday = (r: ContextEntry) => {
+    const st = status.get(r.id);
+    return !!st && !st.dueToday && !st.doneToday;
+  };
+  const rest = compact ? daily : daily.filter((r) => !picked.some((p) => p.r.id === r.id) && !notToday(r));
+  const restingCount = compact ? 0 : daily.filter(notToday).length;
+
   const set = (r: ContextEntry) => (v: boolean | null) => void setRoutineDone(repo, today, r, v);
+  const counted = compact ? all : [...picked.map((p) => p.r), ...rest, ...(mode ? extra : [])];
+  const done = counted.filter((r) => log.get(r.id) === true).length;
   const follow = (direction: 'up' | 'down') => repo.updateSettings({ planMode: { direction, since: today } });
-  const done = all.filter((r) => log.get(r.id) === true).length;
+
 
   return (
     <Card>
       <Text style={type.h2} accessibilityRole="header">Rutiner i dag</Text>
       <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
-        {all.length ? `${done} av ${all.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
+        {all.length ? `${done} av ${counted.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
       </Text>
-      {(compact && !showAll ? daily.slice(0, COMPACT_MAX) : daily).map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+      {picked.length ? (
+        <View style={{ marginTop: space.s }}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text style={type.label}>FÖRESLAGET I DAG</Text>
+            {suggestion?.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
+          </Row>
+          {picked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
+          {rest.length ? <Text style={[type.label, { marginTop: space.m }]}>ÖVRIGA I DAG</Text> : null}
+        </View>
+      ) : null}
+      {(compact && !showAll ? rest.slice(0, COMPACT_MAX) : rest).map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+      {restingCount ? (
+        <Text style={[type.small, { marginTop: space.xs }]}>
+          {restingCount === 1 ? 'En rutin' : `${restingCount} rutiner`} är klara för veckan eller inte planerade i dag.
+        </Text>
+      ) : null}
       {compact && !showAll && daily.length > COMPACT_MAX ? (
         <Button kind="ghost" title={`Visa ${daily.length - COMPACT_MAX} till`} onPress={() => setShowAll(true)} />
       ) : null}

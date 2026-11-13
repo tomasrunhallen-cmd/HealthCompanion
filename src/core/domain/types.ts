@@ -129,7 +129,18 @@ export interface RoutineSettings {
   track: boolean;
   /** "HH:MM", a daily reminder on the phone. Null: no reminder. */
   reminder: string | null;
+  /** How often the routine should be done. Missing: read from the routine's words, else every day. */
+  frequency?: RoutineFrequency | null;
 }
+
+/**
+ * How often a routine should be done: every day, a number of times a week (any days), or on
+ * given weekdays (1 Monday … 7 Sunday). Weeks run Monday to Sunday.
+ */
+export type RoutineFrequency =
+  | { kind: 'daily' }
+  | { kind: 'weekly'; times: number }
+  | { kind: 'weekdays'; days: number[] };
 
 /**
  * A change the app proposes to the context bank. Nothing in it touches the bank until the
@@ -453,6 +464,8 @@ export interface AppSettings {
   firstWeekDone?: { sleepSource?: boolean; weekPicture?: boolean };
   /** Mina tidigare texter: compare the evening's note with approved personal patterns. Set after the preview. */
   textPatterns?: { enabled: boolean; consentAt: string | null } | null;
+  /** The day's routine suggestion on Hem worded by the language model. Missing: on when a model is set up. */
+  routineSuggestions?: boolean;
   /** The person's own name in message files, so only their own lines are imported. */
   ownMessageName?: string | null;
 }

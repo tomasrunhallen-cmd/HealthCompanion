@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dagsforslag",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["suggestions"],
+  "properties": {
+    "suggestions": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["routine", "why"],
+        "properties": {
+          "routine": { "type": "string", "maxLength": 10 },
+          "why": { "type": "string", "maxLength": 200 }
+        }
+      }
+    }
+  }
+}

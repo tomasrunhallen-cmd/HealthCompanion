@@ -10,16 +10,17 @@ const all: HomeCard[] = [
 ];
 
 describe('Startsidan: ett kort åt gången', () => {
-  it('ranks safety first and the routines last', () => {
+  it('ranks safety first, the day\'s routines right after what concerns days already saved, and app reminders last', () => {
     expect(HOME_PRIORITY[0]).toBe('silence');
-    expect(HOME_PRIORITY[HOME_PRIORITY.length - 1]).toBe('routines');
-    expect(homeQueue(all, []).map((c) => c.kind)).toEqual(['silence', 'tomorrow', 'tomorrow', 'weekPicture', 'suggestions', 'routines']);
+    expect(HOME_PRIORITY[HOME_PRIORITY.length - 1]).toBe('standardNudge');
+    expect(HOME_PRIORITY.indexOf('routines')).toBe(HOME_PRIORITY.indexOf('reread') + 1);
+    expect(homeQueue(all, []).map((c) => c.kind)).toEqual(['silence', 'tomorrow', 'tomorrow', 'routines', 'weekPicture', 'suggestions']);
   });
 
   it('shows the next card when one is put aside, and only that one', () => {
     const later = putAside(null, '2026-11-01', 'tomorrow_2026-11-02_Fest');
     const q = homeQueue(all, laterToday(later, '2026-11-01'));
-    expect(q.map((c) => c.id)).toEqual(['silence_3', 'tomorrow_2026-11-02_Resa', 'weekPicture', 'suggestions', 'routines']);
+    expect(q.map((c) => c.id)).toEqual(['silence_3', 'tomorrow_2026-11-02_Resa', 'routines', 'weekPicture', 'suggestions']);
   });
 
   it('brings the cards back the next day', () => {

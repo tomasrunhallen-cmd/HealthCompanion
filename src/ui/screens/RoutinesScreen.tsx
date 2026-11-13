@@ -1,22 +1,67 @@
 // Rutiner: the routines and lifestyle from the crisis plan. The person chooses which ones to
-// tick off in the evening check-in and which ones to be reminded of, and sees how often they
-// kept them. A support for balance; it never changes the level and is never sent to a model.
+// tick off in the evening check-in, how often each should be done, and which ones to be
+// reminded of, and sees how often they kept them. A support for balance; it never changes the
+// level. The day's suggestion on Hem may send the routines' words, scrubbed, and their numbers
+// to the person's language model; the person can turn that off here.
 
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { eveningDateKey } from '../../core/analysis/dates';
-import type { ContextEntry, RoutineSettings } from '../../core/domain/types';
+import type { ContextEntry, RoutineFrequency, RoutineSettings } from '../../core/domain/types';
+import { frequencyOf, frequencyText, suggestFrequency, WEEKDAY_SHORT } from '../../core/plan/routineFrequency';
+import { DAY_SUGGESTION_KEY, modelSuggestionsOn } from '../../services/daySuggestion';
 import { polarityText } from '../../core/plan/fields';
 import { routineSettings, routineStats, routines, suggestReminderTime } from '../../core/plan/routines';
 import { cancelHint, cancelRoutineReminder, reminderSupported, reminderViaCalendar, scheduleRoutineReminder } from '../../platform/reminder';
 import { planBlocks, saveBlock } from '../../services/planBlocks';
-import { Button, Card, Field, P, Row, Screen, Section, Toggle } from '../components';
+import { Button, Card, Chip, Field, P, Row, Screen, Section, Segmented, Toggle } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, space, type } from '../theme';
 
 function shift(time: string, minutes: number): string {
   const total = (Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) + minutes + 24 * 60) % (24 * 60);
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/** How often the routine should be done: every day, a number of times a week, or given weekdays. */
+function FrequencyPicker({ e, onChange }: { e: ContextEntry; onChange: (f: RoutineFrequency) => void }) {
+  const f = frequencyOf(e);
+  const fromWords = !e.routine?.frequency ? suggestFrequency(e.text) : null;
+  return (
+    <View style={{ marginTop: space.xs, marginBottom: space.s }}>
+      <Segmented
+        label="Hur ofta"
+        options={[{ value: 'daily', label: 'Varje dag' }, { value: 'weekly', label: 'Per vecka' }, { value: 'weekdays', label: 'Vissa dagar' }]}
+        value={f.kind}
+        onChange={(kind) => onChange(kind === 'daily' ? { kind } : kind === 'weekly' ? { kind, times: 3 } : { kind, days: [1, 3, 5] })}
+      />
+      {f.kind === 'weekly' ? (
+        <Row style={{ marginTop: space.s, gap: 6 }}>
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <Chip key={n} label={`${n}`} selected={f.times === n} onPress={() => onChange({ kind: 'weekly', times: n })} />
+          ))}
+          <Text style={type.small}>gånger i veckan</Text>
+        </Row>
+      ) : null}
+      {f.kind === 'weekdays' ? (
+        <Row style={{ marginTop: space.s, gap: 6 }}>
+          {WEEKDAY_SHORT.map((name, i) => {
+            const day = i + 1;
+            const on = f.days.includes(day);
+            return (
+              <Chip key={name} label={name} selected={on} onPress={() => {
+                const days = on ? f.days.filter((d) => d !== day) : [...f.days, day].sort();
+                if (days.length) onChange({ kind: 'weekdays', days });
+              }} />
+            );
+          })}
+        </Row>
+      ) : null}
+      <Text style={[type.small, { marginTop: space.xs }]}>
+        {fromWords ? `Läst ur planens ord: ${frequencyText(fromWords)}. Ändra om det inte stämmer.` : `Mål: ${frequencyText(f)}.`}
+      </Text>
+    </View>
+  );
 }
 
 function RoutineCard({ e, stat }: { e: ContextEntry; stat: { answered: number; done: number } | undefined }) {
@@ -59,11 +104,14 @@ function RoutineCard({ e, stat }: { e: ContextEntry; stat: { answered: number; d
       ) : null}
       {stat && stat.answered ? (
         <Text style={[type.small, { marginTop: space.xs, color: colors.green }]}>
-          {stat.done} av {stat.answered} {stat.answered === 1 ? 'dag' : 'dagar'}, senaste 14 dagarna
+          {frequencyOf(e).kind === 'daily'
+            ? `${stat.done} av ${stat.answered} ${stat.answered === 1 ? 'dag' : 'dagar'}, senaste 14 dagarna`
+            : `${stat.done} ${stat.done === 1 ? 'gång' : 'gånger'} de senaste 14 dagarna, målet är ${frequencyText(frequencyOf(e))}`}
         </Text>
       ) : null}
       <View style={{ marginTop: space.s }}>
         <Toggle label="Bocka av i kvällens avstämning" value={settings.track} onChange={(track) => save({ track })} />
+        {settings.track && (e.plan?.polarity ?? 'both') === 'both' ? <FrequencyPicker e={e} onChange={async (frequency) => { await save({ frequency }); await repo.kvSet(DAY_SUGGESTION_KEY, null); }} /> : null}
         {reminderViaCalendar ? null : (
           <Toggle
             label="Påminn mig varje dag"
@@ -106,6 +154,19 @@ export function RoutinesScreen() {
   return (
     <Screen title="Rutiner">
       <P muted>{reminderViaCalendar ? 'Påminnelsen läggs i kalendern, utan rutinens ord.' : 'Rutinens ord syns på låsskärmen.'}</P>
+      {list.length ? (
+        <Card style={{ marginTop: space.m }}>
+          <Toggle
+            label="Dagens förslag med språkmodellen"
+            value={modelSuggestionsOn(repo)}
+            onChange={async (on) => {
+              await repo.updateSettings({ routineSuggestions: on });
+              await repo.kvSet(DAY_SUGGESTION_KEY, null);
+            }}
+            hint="Hem föreslår varje morgon vilka rutiner som passar i dag. Med en kopplad språkmodell väljer och motiverar den utifrån rutinernas ord, rensade, och hur ofta de gjorts. Inga anteckningar skickas. Avstängt väljer appen själv."
+          />
+        </Card>
+      ) : null}
       {list.length === 0 ? (
         <Card style={{ marginTop: space.m }}>
           <P>Inga rutiner än. Lägg in din krisplan, eller skriv en rutin nedan.</P>

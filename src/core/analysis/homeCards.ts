@@ -26,13 +26,13 @@ export const HOME_PRIORITY: readonly HomeCardKind[] = [
   'tomorrow',
   'remeasure',
   'reread',
+  'routines',
   'sleepNotice',
   'weekPicture',
   'sleepSource',
   'suggestions',
   'review',
   'standardNudge',
-  'routines',
 ];
 
 export interface HomeCard {
