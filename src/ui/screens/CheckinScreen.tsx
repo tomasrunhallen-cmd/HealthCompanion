@@ -153,6 +153,11 @@ export function CheckinScreen() {
   // How far the watch has synced to Garmin. Hours behind: the day's stress is not complete.
   const connected = repo.garminStatus().connected;
   const behind = minutesBehind(garmin?.dataUntil, localClock(new Date()));
+  const watchDay = repo.garminDay(eveningDateKey(new Date()));
+  const lags = !watchDay || (behind != null && behind >= STALE_MINUTES);
+  const lastFetch = repo.garminStatus().lastSyncAt;
+  const at = watchDay?.dataUntil ?? (lastFetch ? localClock(new Date(lastFetch)) : null);
+  const updated = !watchDay ? 'Inget från klockan i dag' : at ? `Uppdaterades ${at}` : 'Uppdaterades i dag';
   const [fetching, setFetching] = useState(false);
   const fetchAgain = async () => {
     setFetching(true);
@@ -286,19 +291,17 @@ export function CheckinScreen() {
           </>
         )}
         {connected ? (
-          behind != null && behind >= STALE_MINUTES ? (
-            <View style={{ marginTop: space.s }}>
-              <Text style={[type.body, { fontWeight: '600' }]} accessibilityLiveRegion="polite">
-                Klockan har inte synkat sedan {garmin!.dataUntil}.
-              </Text>
-              <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
-            </View>
-          ) : !garmin ? (
-            <View style={{ marginTop: space.s }}>
-              <P muted>Inga värden från klockan än i dag.</P>
-              <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
-            </View>
-          ) : null
+          // When the watch last reached Garmin, and what to do when it lags: the app cannot make
+          // the watch sync; Garmin Connect on the phone does.
+          <View style={{ marginTop: space.s, paddingTop: space.s, borderTopWidth: 1, borderColor: colors.border }}>
+            <Text style={[type.small, lags && { color: colors.text, fontWeight: '600' }]} accessibilityLiveRegion="polite">{updated}</Text>
+            {lags ? (
+              <>
+                <P muted style={{ marginTop: space.xs }}>Appen kan inte starta synken från klockan. Öppna Garmin Connect, så hämtar Dagsljus de nya värdena när du kommer tillbaka.</P>
+                <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
+              </>
+            ) : null}
+          </View>
         ) : null}
         <View style={{ marginTop: space.m }}>
           <Toggle

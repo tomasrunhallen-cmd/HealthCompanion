@@ -1,7 +1,7 @@
 import { HOME_PRIORITY, homeQueue, laterToday, putAside, type HomeCard } from '../src/core/analysis/homeCards';
 
 const all: HomeCard[] = [
-  { kind: 'routines', id: 'routines' },
+  { kind: 'review', id: 'review_monthly' },
   { kind: 'suggestions', id: 'suggestions' },
   { kind: 'tomorrow', id: 'tomorrow_2026-11-02_Fest' },
   { kind: 'tomorrow', id: 'tomorrow_2026-11-02_Resa' },
@@ -10,17 +10,17 @@ const all: HomeCard[] = [
 ];
 
 describe('Startsidan: ett kort åt gången', () => {
-  it('ranks safety first, the day\'s routines right after what concerns days already saved, and app reminders last', () => {
+  it('ranks safety first and reminders about the app itself last; the routines have their own place', () => {
     expect(HOME_PRIORITY[0]).toBe('silence');
     expect(HOME_PRIORITY[HOME_PRIORITY.length - 1]).toBe('standardNudge');
-    expect(HOME_PRIORITY.indexOf('routines')).toBe(HOME_PRIORITY.indexOf('reread') + 1);
-    expect(homeQueue(all, []).map((c) => c.kind)).toEqual(['silence', 'tomorrow', 'tomorrow', 'routines', 'weekPicture', 'suggestions']);
+    expect(HOME_PRIORITY).not.toContain('routines');
+    expect(homeQueue(all, []).map((c) => c.kind)).toEqual(['silence', 'tomorrow', 'tomorrow', 'weekPicture', 'suggestions', 'review']);
   });
 
   it('shows the next card when one is put aside, and only that one', () => {
     const later = putAside(null, '2026-11-01', 'tomorrow_2026-11-02_Fest');
     const q = homeQueue(all, laterToday(later, '2026-11-01'));
-    expect(q.map((c) => c.id)).toEqual(['silence_3', 'tomorrow_2026-11-02_Resa', 'routines', 'weekPicture', 'suggestions']);
+    expect(q.map((c) => c.id)).toEqual(['silence_3', 'tomorrow_2026-11-02_Resa', 'weekPicture', 'suggestions', 'review_monthly']);
   });
 
   it('brings the cards back the next day', () => {
@@ -31,8 +31,8 @@ describe('Startsidan: ett kort åt gången', () => {
   });
 
   it('starts a new list on a new day', () => {
-    const later = putAside({ date: '2026-10-31', ids: ['suggestions'] }, '2026-11-01', 'routines');
-    expect(later).toEqual({ date: '2026-11-01', ids: ['routines'] });
+    const later = putAside({ date: '2026-10-31', ids: ['suggestions'] }, '2026-11-01', 'review_monthly');
+    expect(later).toEqual({ date: '2026-11-01', ids: ['review_monthly'] });
   });
 
   it('shows nothing when there is nothing', () => {

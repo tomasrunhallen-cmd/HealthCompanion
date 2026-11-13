@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, Text, useColorScheme, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
-import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle, localClock, toDateKey } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
 import { RULES } from '../../core/analysis/rules';
 import { logHeavyDay } from '../../services/checkin';
@@ -9,26 +9,21 @@ import { standardNudgeWeek } from '../../core/context/standard';
 import { startWithStandard, unconfirmedStandard } from '../../services/standard';
 import { dueNow, runProfileReview } from '../../services/profile';
 import { Button, Card, Dot, Eyebrow, P, Row, Screen } from '../components';
-import { SymbolView } from 'expo-symbols';
-import { SOURCE_TEXT, sleepSourceOf, stressSourceOf, stressWord } from '../../core/analysis/sources';
-import { minutesBehind, STALE_MINUTES } from '../../core/analysis/remeasure';
-import { syncGarmin } from '../../services/garmin';
 import { homeQueue, laterToday, putAside, type HomeCard, type HomeLater } from '../../core/analysis/homeCards';
 import type { Level } from '../../core/domain/types';
 import { MEDICAL_REMINDER } from '../../legal';
 import { useNav } from '../nav';
 import { RoutinesToday } from '../RoutinesToday';
 import { suggestionsOnHome } from '../../core/analysis/signals';
-import { greenDayLine } from '../../core/plan/routines';
 import { adviceForTomorrow } from '../../core/analysis/events';
 import { GREEN_MEANS } from '../../core/analysis/firstWeek';
 import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
-import { afterSync, remeasurePending } from '../../services/remeasure';
+import { remeasurePending } from '../../services/remeasure';
 import { rereadDays } from '../../core/analysis/recompute';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
-import { colors, LEVEL_TEXT, levelColor, paletteHex, space, type } from '../theme';
+import { colors, LEVEL_TEXT, levelColor, MIN_TOUCH, space, type } from '../theme';
 
 const HOME_LATER_KEY = 'homeLater';
 
@@ -38,6 +33,7 @@ export function HomeScreen() {
   const dialog = useDialog();
   const { fontScale } = useWindowDimensions();
   const [busy, setBusy] = useState(false);
+  const [openCard, setOpenCard] = useState<string | null>(null);
 
   const today = eveningDateKey(new Date());
   const entries = repo.entries();
@@ -53,7 +49,6 @@ export function HomeScreen() {
   const sleepNote = todaysSleepNotice(repo);
   const fw = firstWeekState(repo);
   const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
-  const greenLine = greenDayLine(repo.contextEntries(), today, { measured: repo.measuredDays(), window: repo.planSettings().sleepWindow ?? null });
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   // Days saved while the watch lagged, whose level would change with the values it synced later.
   const remeasured = remeasurePending(repo);
@@ -142,7 +137,7 @@ export function HomeScreen() {
 
   // One card at a time, highest priority first (core/analysis/homeCards.ts).
   const pending = showSuggestions ? repo.pendingSuggestions().length : 0;
-  const candidates: HomeCard[] = [
+  const candidates: HomeCard[] = ([
     silent >= RULES.silenceDays ? { kind: 'silence' as const, id: `silence_${silent}` } : null,
     !hasSigns ? { kind: 'start' as const, id: 'start' } : null,
     ...tomorrow.map((t) => ({ kind: 'tomorrow' as const, id: `tomorrow_${t.date}_${t.event}` })),
@@ -154,8 +149,7 @@ export function HomeScreen() {
     pending ? { kind: 'suggestions' as const, id: 'suggestions' } : null,
     showSuggestions && due ? { kind: 'review' as const, id: `review_${due.reason}` } : null,
     nudgeWeek != null ? { kind: 'standardNudge' as const, id: 'standardNudge' } : null,
-    repo.contextOf('routine').length ? { kind: 'routines' as const, id: 'routines' } : null,
-  ].filter((c): c is HomeCard => c != null);
+  ] as (HomeCard | null)[]).filter((c): c is HomeCard => c != null);
   const queue = homeQueue(candidates, laterToday(repo.kvGet(HOME_LATER_KEY) as HomeLater | null, today));
   const card = queue[0] ?? null;
   const later = (id: string) => repo.kvSet(HOME_LATER_KEY, putAside(repo.kvGet(HOME_LATER_KEY) as HomeLater | null, today, id));
@@ -281,64 +275,115 @@ export function HomeScreen() {
             <Button kind="ghost" title="Påminn mig nästa vecka" onPress={() => repo.updateSettings({ standardNudgeDismissedWeek: nudgeWeek! })} />
           </Card>
         );
-      case 'routines':
-        return <RoutinesToday />;
+    }
+  };
+
+  // The queue's card folded to one line, so the page fits without scrolling; a tap opens it.
+  const titleOf = (c: HomeCard): string => {
+    switch (c.kind) {
+      case 'silence': return `${silent} dagar utan avstämning`;
+      case 'start': return 'Lägg in din krisplan';
+      case 'tomorrow': return `I morgon: ${tomorrow.find((x) => `tomorrow_${x.date}_${x.event}` === c.id)?.event ?? ''}`;
+      case 'remeasure': return 'Nya värden från klockan';
+      case 'reread': return 'Importerade dagar är omlästa';
+      case 'sleepNotice': return sleepNote?.title ?? 'Sömnen';
+      case 'weekPicture': return 'Din första vecka';
+      case 'sleepSource': return 'Sömnen gör bedömningen bättre';
+      case 'suggestions': return pending === 1 ? 'Ett förslag väntar' : `${pending} förslag väntar`;
+      case 'review': return 'Dags att se över din profil';
+      case 'standardNudge': return 'Din plan bygger på allmänna tecken';
+      default: return '';
     }
   };
 
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
-      <TodayMeasures />
-      {todayAssessment ? (
-        <Pressable
-          onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
-          accessibilityRole="button"
-          accessibilityLabel={`I kväll: ${LEVEL_TEXT[todayAssessment.level]}. ${displaySentence(todayAssessment)}`}
-          accessibilityHint="Visar bedömningen"
-        >
-          <Card tone={todayAssessment.level}>
-            <Row>
-              <Dot level={todayAssessment.level} size={20} />
-              <Text style={[type.h2, { color: levelColor(todayAssessment.level) }]}>
-                I kväll: {LEVEL_TEXT[todayAssessment.level]}
-              </Text>
-            </Row>
-            <P style={{ marginTop: space.s }}>{displaySentence(todayAssessment)}</P>
-            {todayAssessment.level === 'green' && greenLine ? <P muted style={{ marginTop: space.xs }}>{greenLine}</P> : null}
-            <Text style={[type.small, { marginTop: space.s, color: colors.accent, fontWeight: '600' }]}>Visa bedömningen ›</Text>
-          </Card>
-        </Pressable>
-      ) : (
-        <Text style={[type.title, { marginTop: space.m }]} accessibilityRole="header">En stund för dig.</Text>
-      )}
-      <Card tone="accent" style={{ marginTop: todayAssessment ? space.s : space.l }}>
-        <Text style={type.h2} accessibilityRole="header">{todayEntry ? 'Har något ändrats?' : 'Hur har din dag varit?'}</Text>
-        <P muted style={{ marginTop: space.xs, marginBottom: space.m }}>
-          {todayEntry ? 'Du kan göra om kvällens avstämning.' : 'Skriv en rad och skatta hur du mår.'}
-        </P>
+      <WeekSummary week={week} fontScale={fontScale} today={today} />
+      <RoutinesToday collapsible />
+
+      {card ? (
+        openCard === card.id ? (
+          <View>
+            {renderCard(card)}
+            <Button kind="ghost" title="Fäll ihop" onPress={() => setOpenCard(null)} />
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setOpenCard(card.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`${titleOf(card)}${queue.length > 1 ? `, ${queue.length - 1} till väntar` : ''}`}
+            accessibilityHint="Visar kortet"
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Card style={{ paddingVertical: space.m, flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+              {card.kind === 'silence' ? <Dot level="yellow" size={18} /> : null}
+              <View style={{ flex: 1 }}>
+                <Text style={[type.body, { fontWeight: '600' }]}>{titleOf(card)}</Text>
+                {queue.length > 1 ? <Text style={type.small}>{queue.length === 2 ? 'En sak till väntar' : `${queue.length - 1} saker till väntar`}</Text> : null}
+              </View>
+              <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa ›</Text>
+            </Card>
+          </Pressable>
+        )
+      ) : null}
+
+      {/* Kvällens avstämning, folded to the buttons; once done, the evening's level and a way back to it. */}
+      <Card tone="accent" style={{ paddingTop: space.m, paddingBottom: space.xs }}>
+        {todayAssessment ? (
+          <Pressable
+            onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
+            accessibilityRole="button"
+            accessibilityLabel={`I kväll: ${LEVEL_TEXT[todayAssessment.level]}. ${displaySentence(todayAssessment)}`}
+            accessibilityHint="Visar bedömningen"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, minHeight: MIN_TOUCH, marginBottom: space.xs }}
+          >
+            <Dot level={todayAssessment.level} size={20} />
+            <Text style={[type.h2, { color: levelColor(todayAssessment.level), flex: 1 }]}>I kväll: {LEVEL_TEXT[todayAssessment.level]}</Text>
+            <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa ›</Text>
+          </Pressable>
+        ) : null}
         <Button
           title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'}
           kind={todayEntry ? 'secondary' : 'primary'}
           onPress={() => nav.push({ name: 'checkin' })}
         />
-        <Button kind="secondary" title="Orkar bara trycka" hint="Loggar dagen som tung, utan frågor" busy={busy} onPress={onHeavy} />
-        <P muted style={{ marginTop: space.s }}>Du behöver inte skriva något.</P>
-      </Card>
-
-      {card ? (
-        <View style={{ marginTop: space.xl }}>
-          {renderCard(card)}
-          {queue.length > 1 ? (
-            <Text style={[type.small, { textAlign: 'center' }]}>
-              {queue.length === 2 ? 'En sak till väntar.' : `${queue.length - 1} saker till väntar.`}
-            </Text>
-          ) : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Button kind="ghost" title="Orkar bara trycka" hint="Loggar dagen som tung, utan frågor" busy={busy} onPress={onHeavy} />
+          <Button kind="ghost" title="Lågt läge" label="Lågt läge: bara avstämningen" hint="Döljer allt utom avstämningen och Hjälp nu" onPress={() => repo.updateSettings({ lowMode: true })} />
         </View>
-      ) : null}
-
-      <Button kind="ghost" title="Lågt läge: bara avstämningen" hint="Döljer allt utom avstämningen och Hjälp nu" onPress={() => repo.updateSettings({ lowMode: true })} />
+      </Card>
     </Screen>
+  );
+}
+
+/**
+ * The last seven days at the top of Hem: each day's level (a tap opens the day), and one line
+ * with the levels counted, the span of the mood, and the share of routines kept.
+ */
+function WeekSummary({ week, fontScale, today }: { week: { date: string; level: Level | null }[]; fontScale: number; today: string }) {
+  const repo = useRepo();
+  const from = week[0].date;
+  const counts = { green: 0, yellow: 0, red: 0 } as Record<Level, number>;
+  for (const d of week) if (d.level) counts[d.level]++;
+  const missing = week.filter((d) => !d.level).length;
+  const moods = repo.entries().filter((e) => e.date >= from && e.date <= today && e.mood != null).map((e) => e.mood!);
+  const answers = repo.contextOf('routine_done').filter((e) => e.date && e.date >= from && e.date <= today && e.done != null);
+  const kept = answers.length ? Math.round((answers.filter((e) => e.done).length / answers.length) * 100) : null;
+  const signedMood = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
+  const lo = moods.length ? Math.min(...moods) : null;
+  const hi = moods.length ? Math.max(...moods) : null;
+  const parts = [
+    [counts.green ? `${counts.green} gröna` : null, counts.yellow ? `${counts.yellow} gula` : null, counts.red ? `${counts.red} röda` : null, missing ? `${missing} utan` : null].filter(Boolean).join(', '),
+    lo != null ? `stämning ${lo === hi ? signedMood(lo) : `${signedMood(lo)} till ${signedMood(hi!)}`}` : null,
+    kept != null ? `rutiner ${kept}\u00a0%` : null,
+  ].filter(Boolean);
+  return (
+    <Card>
+      <Text style={type.h2} accessibilityRole="header">Senaste veckan</Text>
+      <WeekRow week={week} fontScale={fontScale} />
+      <Text style={[type.small, { marginTop: space.s }]}>{parts.join(' · ')}</Text>
+    </Card>
   );
 }
 
@@ -366,95 +411,5 @@ function WeekRow({ week, fontScale }: { week: { date: string; level: Level | nul
         );
       })}
     </View>
-  );
-}
-
-/** "6 h 40 min" */
-function hoursMinutes(h: number): string {
-  const total = Math.round(h * 60);
-  const m = total % 60;
-  return m ? `${Math.floor(total / 60)} h ${m} min` : `${total / 60} h`;
-}
-
-/** "14:32" today, "i går 21:10", or "8 nov 21:10" from an ISO time. */
-function whenText(iso: string, now = new Date()): string {
-  const d = new Date(iso);
-  const clock = localClock(d);
-  const day = toDateKey(d);
-  if (day === toDateKey(now)) return clock;
-  if (day === addDays(toDateKey(now), -1)) return `i går ${clock}`;
-  return `${formatDateSv(day).replace(/^\S+ /, '')} ${clock}`;
-}
-
-/**
- * Last night's sleep and today's stress, and how current the watch is. The app cannot make the
- * watch sync (Garmin Connect on the phone does that over Bluetooth); it fetches from Garmin when
- * opened, and again on coming back while the watch lags. So the card says when the watch last
- * synced, and what to do when it lags.
- */
-function TodayMeasures() {
-  const repo = useRepo();
-  const [fetching, setFetching] = useState(false);
-  const mode = useColorScheme() === 'dark' ? 'dark' : 'light';
-  const now = new Date();
-  const m = repo.measuredDay(eveningDateKey(now));
-  const status = repo.garminStatus();
-  const watch = repo.garminDay(eveningDateKey(now));
-  if (m?.sleepHours == null && m?.stressAvg == null && !status.connected) return null;
-
-  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-  const sleepFrom = m?.sleepHours != null ? cap(SOURCE_TEXT[sleepSourceOf(m) ?? 'garmin']) : null;
-  const stressFrom = m?.stressAvg != null ? cap(SOURCE_TEXT[stressSourceOf(m) ?? 'garmin']) : null;
-  const behind = watch ? minutesBehind(watch.dataUntil, localClock(now)) : null;
-  const lags = status.connected && (!watch || (behind != null && behind >= STALE_MINUTES));
-  const fetched = status.lastSyncAt ? whenText(status.lastSyncAt, now) : null;
-  const at = watch?.dataUntil ?? fetched;
-  const updated = !watch ? 'Inget från klockan i dag' : at ? `Uppdaterades ${at}` : 'Uppdaterades i dag';
-
-  const fetchAgain = async () => {
-    setFetching(true);
-    try {
-      const r = await syncGarmin(repo, { days: 1 });
-      if (r.ok) await afterSync(repo);
-    } finally {
-      setFetching(false);
-    }
-  };
-
-  const metric = (label: string, value: string | null, from: string | null, spoken: string) => (
-    <View style={{ flex: 1 }} accessible accessibilityLabel={value ? `${label}: ${spoken}, ${from}` : `${label}: saknas`}>
-      <Text style={type.small}>{label}</Text>
-      <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '600', letterSpacing: -0.5, color: value ? colors.text : colors.textMuted }}>{value ?? '–'}</Text>
-      {from ? <Text style={[type.small, { fontSize: 13 }]}>{from}</Text> : null}
-    </View>
-  );
-
-  return (
-    <Card>
-      <View style={{ flexDirection: 'row', gap: space.m }}>
-        {metric('Sömn i natt', m?.sleepHours != null ? hoursMinutes(m.sleepHours) : null, sleepFrom,
-          m?.sleepHours != null ? hoursMinutes(m.sleepHours).replace(' h', ' timmar').replace(' min', ' minuter') : '')}
-        {metric('Stress i dag', m?.stressAvg != null ? `${m.stressAvg}, ${stressWord(m.stressAvg)}` : null,
-          stressFrom ? `${stressFrom}${stressSourceOf(m!) !== 'manual' ? ', hittills' : ''}` : null,
-          m?.stressAvg != null ? `${m.stressAvg} av 100, ${stressWord(m.stressAvg)}` : '')}
-      </View>
-      {status.connected ? (
-        <View style={{ marginTop: space.m, paddingTop: space.s, borderTopWidth: 1, borderColor: colors.border }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }} accessible accessibilityLiveRegion="polite" accessibilityLabel={updated}>
-            <SymbolView
-              name={(lags ? { ios: 'exclamationmark.arrow.triangle.2.circlepath', android: 'sync_problem', web: 'sync_problem' } : { ios: 'arrow.triangle.2.circlepath', android: 'sync', web: 'sync' }) as never}
-              size={16} tintColor={paletteHex(lags ? 'yellow' : 'textMuted', mode)} fallback={null} />
-            <Text style={[type.small, { flex: 1 }, lags && { color: colors.text, fontWeight: '600' }]}>{updated}</Text>
-          </View>
-          {lags ? (
-            <>
-              <P muted style={{ marginTop: space.xs }}>Appen kan inte starta synken från klockan. Öppna Garmin Connect, så hämtar Dagsljus de nya värdena när du kommer tillbaka.</P>
-              <Button kind="secondary" title="Hämta igen" hint="Hämtar dagens värden från Garmin" busy={fetching} onPress={fetchAgain} />
-            </>
-          ) : null}
-          {status.lastError ? <P muted style={{ marginTop: space.xs }}>{status.lastError}</P> : null}
-        </View>
-      ) : null}
-    </Card>
   );
 }

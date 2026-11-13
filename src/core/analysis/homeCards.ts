@@ -1,4 +1,5 @@
-// Startsidan shows one card at a time. Each card that applies today is a candidate; the one
+// Startsidan shows one card at a time, folded to one line under the week and the day's
+// routines (which have their own place). Each card that applies today is a candidate; the one
 // with the highest priority is shown, and the person can put it aside until tomorrow, which
 // brings the next one forward. Safety and things bound to today come first; reminders about
 // the app itself come last.
@@ -16,8 +17,7 @@ export type HomeCardKind =
   | 'sleepSource'
   | 'suggestions'
   | 'review'
-  | 'standardNudge'
-  | 'routines';
+  | 'standardNudge';
 
 /** Highest priority first. */
 export const HOME_PRIORITY: readonly HomeCardKind[] = [
@@ -26,7 +26,6 @@ export const HOME_PRIORITY: readonly HomeCardKind[] = [
   'tomorrow',
   'remeasure',
   'reread',
-  'routines',
   'sleepNotice',
   'weekPicture',
   'sleepSource',

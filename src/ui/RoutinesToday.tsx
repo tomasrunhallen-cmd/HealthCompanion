@@ -47,12 +47,16 @@ function recentDirection(repo: ReturnType<typeof useRepo>, today: string): 'up' 
   return dir === 'up' || dir === 'down' ? dir : null;
 }
 
-/** In the check-in at most this many daily routines show at first; the rest one tap away. */
-const COMPACT_MAX = 5;
-
-export function RoutinesToday({ compact = false }: { compact?: boolean }) {
+/**
+ * The same lists on Hem and in the check-in, from the same answers: the day's suggestion first,
+ * then the other routines due today; routines not planned today, or with the week's goal
+ * reached, are left out. `collapsible` (Hem): folded at first, showing the count and the
+ * suggestion, the rest one tap away. `compact` (the check-in): without the buttons for following
+ * the plan in one direction.
+ */
+export function RoutinesToday({ compact = false, collapsible = false }: { compact?: boolean; collapsible?: boolean }) {
   const repo = useRepo();
-  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState(!collapsible);
   const today = eveningDateKey(new Date());
   const mode = repo.settings().planMode ?? null;
   const entries = repo.contextEntries();
@@ -65,18 +69,16 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
   const suggested = mode ? null : recentDirection(repo, today);
   const empty = !all.length && !hasUp && !hasDown;
 
-  // Hem: the day's suggestion first, then the other routines due today. The hooks come before
-  // any early return, so they run in the same order on every render.
-  const [suggestion, setSuggestion] = useState<DaySuggestion | null>(() => (compact ? null : daySuggestion(repo)));
+  // The hooks come before any early return, so they run in the same order on every render.
+  const [suggestion, setSuggestion] = useState<DaySuggestion | null>(() => daySuggestion(repo));
   useEffect(() => {
-    if (compact || empty || suggestion?.date === today) return;
+    if (empty || suggestion?.date === today) return;
     let live = true;
     makeDaySuggestion(repo, { browser: Platform.OS === 'web' }).then((s) => live && setSuggestion(s)).catch(() => undefined);
     return () => { live = false; };
-  }, [repo, compact, empty, today, suggestion?.date]);
+  }, [repo, empty, today, suggestion?.date]);
   if (empty) return null;
-  const statuses = compact ? [] : routineStatuses(entries, today);
-  const status = new Map(statuses.map((st) => [st.routine.id, st]));
+  const status = new Map(routineStatuses(entries, today).map((st) => [st.routine.id, st]));
   const picked = (suggestion?.date === today ? suggestion.items : [])
     .map((i) => ({ ...i, r: daily.find((d) => d.id === i.routineId) }))
     .filter((i): i is typeof i & { r: ContextEntry } => !!i.r);
@@ -85,21 +87,36 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
     const st = status.get(r.id);
     return !!st && !st.dueToday && !st.doneToday;
   };
-  const rest = compact ? daily : daily.filter((r) => !picked.some((p) => p.r.id === r.id) && !notToday(r));
-  const restingCount = compact ? 0 : daily.filter(notToday).length;
+  const rest = daily.filter((r) => !picked.some((p) => p.r.id === r.id) && !notToday(r));
+  const restingCount = daily.filter(notToday).length;
 
   const set = (r: ContextEntry) => (v: boolean | null) => void setRoutineDone(repo, today, r, v);
-  const counted = compact ? all : [...picked.map((p) => p.r), ...rest, ...(mode ? extra : [])];
+  const counted = [...picked.map((p) => p.r), ...rest, ...(mode ? extra : [])];
   const done = counted.filter((r) => log.get(r.id) === true).length;
   const follow = (direction: 'up' | 'down') => repo.updateSettings({ planMode: { direction, since: today } });
-
+  // Folded: the suggestion, or without one the first two routines.
+  const shownRest = open ? rest : picked.length ? [] : rest.slice(0, 2);
+  const hidden = counted.length - picked.length - shownRest.length;
 
   return (
     <Card>
-      <Text style={type.h2} accessibilityRole="header">Rutiner i dag</Text>
-      <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
-        {all.length ? `${done} av ${counted.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
-      </Text>
+      <Pressable
+        disabled={!collapsible}
+        onPress={() => setOpen(!open)}
+        accessibilityRole={collapsible ? 'button' : 'header'}
+        accessibilityState={collapsible ? { expanded: open } : undefined}
+        accessibilityLabel={`Rutiner i dag, ${done} av ${counted.length} gjorda`}
+        accessibilityHint={collapsible ? (open ? 'Fäller ihop' : 'Visar alla rutiner i dag') : undefined}
+        style={{ flexDirection: 'row', alignItems: 'center', minHeight: collapsible ? MIN_TOUCH : undefined }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={type.h2}>Rutiner i dag</Text>
+          <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
+            {all.length ? `${done} av ${counted.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
+          </Text>
+        </View>
+        {collapsible ? <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{open ? 'Färre ▲' : hidden > 0 ? `Alla ${counted.length} ▼` : '▼'}</Text> : null}
+      </Pressable>
       {picked.length ? (
         <View style={{ marginTop: space.s }}>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -107,20 +124,17 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
             {suggestion?.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
           </Row>
           {picked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
-          {rest.length ? <Text style={[type.label, { marginTop: space.m }]}>ÖVRIGA I DAG</Text> : null}
+          {shownRest.length ? <Text style={[type.label, { marginTop: space.m }]}>ÖVRIGA I DAG</Text> : null}
         </View>
       ) : null}
-      {(compact && !showAll ? rest.slice(0, COMPACT_MAX) : rest).map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
-      {restingCount ? (
+      {shownRest.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+      {open && restingCount ? (
         <Text style={[type.small, { marginTop: space.xs }]}>
           {restingCount === 1 ? 'En rutin' : `${restingCount} rutiner`} är klara för veckan eller inte planerade i dag.
         </Text>
       ) : null}
-      {compact && !showAll && daily.length > COMPACT_MAX ? (
-        <Button kind="ghost" title={`Visa ${daily.length - COMPACT_MAX} till`} onPress={() => setShowAll(true)} />
-      ) : null}
 
-      {mode && extra.length ? (
+      {open && mode && extra.length ? (
         <View style={{ marginTop: space.l }}>
           <Text style={type.label}>VID {polarityWord(mode.direction, ps).toUpperCase()}</Text>
           <Text style={type.small}>Du följer planen för {polarityWord(mode.direction, ps)} sedan {formatDateSv(mode.since)}.</Text>
@@ -128,7 +142,7 @@ export function RoutinesToday({ compact = false }: { compact?: boolean }) {
         </View>
       ) : null}
 
-      {!compact ? (
+      {open && !compact ? (
         mode ? (
           <Button kind="ghost" title={`Sluta följa planen för ${polarityWord(mode.direction, ps)}`} onPress={() => repo.updateSettings({ planMode: null })} />
         ) : suggested && (suggested === 'up' ? hasUp : hasDown) ? (
