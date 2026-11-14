@@ -6,6 +6,8 @@ test('Garmin proxy forwards only the app\'s own calls', async () => {
 const base = 'https://x.netlify.app/api/garmin';
 assert.equal(targetFor('POST', base + '/personalapitoken-service/personal-api/personal-api-key/token'), 'https://personal.connectapi.garmin.com/personalapitoken-service/personal-api/personal-api-key/token');
 assert.equal(targetFor('GET', base + '/sleep-service/sleep/dailySleepSummariesByDate?startDate=2026-10-24&endDate=2026-10-31'), 'https://personal.connectapi.garmin.com/sleep-service/sleep/dailySleepSummariesByDate?startDate=2026-10-24&endDate=2026-10-31');
+assert.equal(targetFor('GET', base + '/wellness-service/wellness/dailyHeartRate?date=2026-11-13'), 'https://personal.connectapi.garmin.com/wellness-service/wellness/dailyHeartRate?date=2026-11-13');
+assert.equal(targetFor('GET', base + '/usersummary-service/stats/steps/daily/2026-11-01/2026-11-13'), null);
 assert.equal(targetFor('GET', base + '/userprofile-service/userprofile/settings'), null);
 assert.equal(targetFor('GET', base + '/personalapitoken-service/personal-api/personal-api-key/token'), null);
 assert.equal(targetFor('GET', base + '/usersummary-service/stats/stress/daily/../../../x'), null);

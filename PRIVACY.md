@@ -40,6 +40,8 @@ Varje bedömning sparar på telefonen det den räknades fram ur: anteckningen so
 
 Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery från användarens eget konto med användarens egen Personal API-nyckel. Hämtningen sker från telefonen direkt till Garmin. Appen skickar bara nyckeln och vilka datum den vill ha. Inget av det användaren skriver skickas till Garmin. Garmins Personal API är avsett för personligt bruk av den egna datan.
 
+**Klockans rytm (experimentell, av som standard).** När den är påslagen hämtar appen också pulsen över dygnet från Garmin, ett anrop per dag och bara för de senaste dagarna, eller 120 dagar bakåt när personen själv trycker på det. Pulsen räknas om på telefonen till aktiva minuter per timme. Själva pulsen sparas inte. Det sparade, appens uppskattning per morgon och de episodstarter personen dokumenterar ligger i appens vanliga lagring, krypterat som allt annat. Inget av det skickas till någon språkmodell. Modellen tar inte emot anteckningar eller avstämningar.
+
 Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
 ## Mina tidigare texter (experimentellt)

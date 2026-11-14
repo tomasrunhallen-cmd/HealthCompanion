@@ -32,6 +32,8 @@ export type Route =
   | { name: 'relatives' }
   | { name: 'references' }
   | { name: 'textPatterns' }
+  | { name: 'rhythm' }
+  | { name: 'episodes' }
   | { name: 'correction'; assessmentId: string }
   | { name: 'crisis' };
 
@@ -55,7 +57,7 @@ export const SHEET_OF: Partial<Record<RouteName, string>> = {
 };
 
 /** Routes pushed onto the current tab's stack. Every tab stack has all of them. */
-export const PUSHED: RouteName[] = ['result', 'settings', 'llm', 'garmin', 'knowledge', 'privacy', 'history', 'importDiary', 'routines', 'recompute', 'visit', 'share', 'relatives', 'references', 'textPatterns'];
+export const PUSHED: RouteName[] = ['result', 'settings', 'llm', 'garmin', 'knowledge', 'privacy', 'history', 'importDiary', 'routines', 'recompute', 'visit', 'share', 'relatives', 'references', 'textPatterns', 'rhythm', 'episodes'];
 
 interface Nav {
   route: Route;

@@ -6,7 +6,8 @@
 import { createLimiter, guard } from '../lib/guard.mjs';
 
 export const GARMIN = 'https://personal.connectapi.garmin.com';
-// A sync is at most four calls; 60 a minute leaves room for retries.
+// A sync is four calls plus one heart-rate call per new day (at most eight); 60 a minute
+// leaves room for retries. A backfill of heart rate pauses between days to stay under it.
 const limiter = createLimiter(60);
 
 const ALLOWED = [
@@ -14,6 +15,7 @@ const ALLOWED = [
   { method: 'GET', prefix: '/sleep-service/sleep/dailySleepSummariesByDate' },
   { method: 'GET', prefix: '/usersummary-service/stats/stress/daily/' },
   { method: 'GET', prefix: '/wellness-service/wellness/bodyBattery/reports/daily' },
+  { method: 'GET', prefix: '/wellness-service/wellness/dailyHeartRate' },
 ];
 
 export function targetFor(method, url) {

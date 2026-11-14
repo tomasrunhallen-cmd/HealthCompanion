@@ -3,9 +3,10 @@
 // the signs that matched then are kept, so only the rules can change the result. Nothing is
 // saved here; the caller shows the difference and saves only when the person agrees.
 
-import type { Assessment, Entry, GarminDay, DateKey, Level, PlanItem, PlanSettings, SignMatch } from '../domain/types';
+import type { Assessment, Entry, GarminDay, DateKey, Level, PlanItem, PlanSettings, RhythmScoreInput, SignMatch } from '../domain/types';
 import { RULES_VERSION } from './rules';
 import { score, type HistoryDay } from './scoring';
+import { assessmentRhythm } from './assess';
 
 export interface RecomputeContext {
   /** For days saved before inputs existed: today's plan, settings, Garmin days and medication answers. */
@@ -13,6 +14,8 @@ export interface RecomputeContext {
   planSettings: PlanSettings;
   garmin: Record<DateKey, GarminDay>;
   medication: Record<DateKey, boolean>;
+  /** Klockans rytm per day, to show the effect of using it or not; defaults to what was saved. */
+  rhythm?: (date: DateKey, saved: RhythmScoreInput | null) => RhythmScoreInput | null;
 }
 
 export interface RecomputedDay {
@@ -38,6 +41,7 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
   const inp = a.inputs;
   const plan = inp?.signs ?? ctx.plan;
   const planSettings = inp ? { ...ctx.planSettings, ...inp.planSettings } : ctx.planSettings;
+  const rhythmIn = ctx.rhythm ? ctx.rhythm(entry.date, inp?.rhythm ?? null) : inp?.rhythm ?? null;
   const scored = score({
     entry,
     matches: matchesOf(a),
@@ -48,6 +52,8 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
     medication: inp?.medication ?? ctx.medication,
     // Observations the person said did not fit are left out (Mina tidigare texter).
     textObservations: (inp?.textObservations ?? []).filter((o) => !a.textPatterns?.observations.some((x) => x.patternId === o.patternId && x.quote === o.quote && x.rejectedAt)),
+    // Klockans rytm as it stood that morning; ctx.rhythm can try another choice (with or without).
+    rhythm: rhythmIn,
   });
   // The emergency rule is decided before any rule and stays as it was.
   if (a.akut) {
@@ -81,6 +87,7 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
         }),
       }
       : a.textPatterns,
+    ...(rhythmIn && scored.rhythm ? { rhythm: assessmentRhythm(rhythmIn, scored.rhythm) } : {}),
     recomputed: { at: now.toISOString(), fromRulesVersion: inp?.rulesVersion ?? null, level: a.level, points: a.points },
   };
 }

@@ -4,7 +4,7 @@ Den här mappen innehåller alla trösklar och poäng som avgör om en dag blir 
 
 Filen har ett versionsnummer. Varje bedömning sparar vilken version den räknades med. Ändras en regel ska versionen höjas, och *Räkna om historiken med nya regler* visar vilka dagar som skulle få en annan nivå innan något sparas. `rules.schema.json` beskriver vilka fält som får finnas och vilka värden de får ha. Appen vägrar starta med en regelfil som inte följer schemat.
 
-Version: **1.4.0**. Version 1.4.0 (personens test 2 november): stress räknas som tecken först när den är 30 eller mer tre dagar i rad, i stället för en enda dag över 1,3 gånger baslinjen. Version 1.3.0 lade till kategorin personliga textmönster (*Mina tidigare texter*, experimentell, se nedan). Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
+Version: **1.5.0**. Version 1.5.0 (13 november) lade till *Klockans rytm*, en experimentell passiv signal ur klockans sömn och puls, som personen själv väljer till (se nedan). Version 1.4.0 (personens test 2 november): stress räknas som tecken först när den är 30 eller mer tre dagar i rad, i stället för en enda dag över 1,3 gånger baslinjen. Version 1.3.0 lade till kategorin personliga textmönster (*Mina tidigare texter*, experimentell, se nedan). Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
 
 ## Dygnet
 
@@ -82,6 +82,40 @@ Kategorin hör till *Mina tidigare texter* och gäller bara mönster som persone
 Ett mönster blir aldrig ett allvarligt tecken. Att inget mönster syns, eller att anteckningen liknar stabila texter, sänker aldrig något. Riktningen visas, och mönster uppåt och nedåt samma dag tar inte ut varandra.
 
 **Prioritet:** akutregeln går före allt och påverkas aldrig av referensmaterialet. Därefter räknas tecken, mätvärden och textmönster, och nivån sätts. Sist gäller spärrarna mot rött i ordningen standardinnehåll, första dagens mätvärden, möjlig förklaring och textmönster ensamma.
+
+## Klockans rytm (experimentellt)
+
+En passiv modell som jämför de senaste nätterna från klockan med personens egna tidigare nätter, utan anteckning och utan avstämning. Koden ligger i `src/core/analysis/rhythm.ts`. Personen väljer *Av*, *Visa* eller *Använd*. Bara med *Använd* kan signalen påverka nivån. Trösklarna sattes innan modellen prövades på riktiga data och är **produktantaganden, inte kliniskt prövade**.
+
+| Fält | Värde | Betydelse |
+| --- | --- | --- |
+| `rhythm.points` | 1 | En förändring med stöd för en riktning i personens egen historik ger 1 poäng, om personen valt *Använd*. En förändring med oklar riktning ger 0. |
+| `rhythm.aloneCanGiveRed` | false | Signalen kan höja en dag men aldrig avgöra rött. Blir dagen röd bara genom den blir den gul med skälet *passive_cap*. Den sänker aldrig en nivå och går aldrig före akutregeln. |
+| `rhythm.baselineDays` | 63 | Det vanliga räknas på nätter upp till 63 dagar bakåt ... |
+| `rhythm.baselineGapDays` | 7 | ... utom den senaste veckan, så att en långsam förskjutning inte blir det nya vanliga. Nätter under dokumenterade episoder räknas inte. |
+| `rhythm.baselineMinNights` | 14 | Färre nätter än så: svaret är *för lite data*. |
+| `rhythm.windowNights` | 3 | En förändring kräver tre nätter i rad ... |
+| `rhythm.windowSpanNights` | 4 | ... bland de fyra senaste. En natt utan data hoppas över, två ger *för lite data*. |
+| `rhythm.shiftZ` | 1,5 | Insomning senare eller tidigare än vanligt: avvikelsen från medianen delad med spridningen (1,4826 × MAD, minst 30 minuter). |
+| `rhythm.durationZ` | 1,5 | Sömnen kortare eller längre än vanligt, på samma sätt (spridning minst 0,5 timmar). |
+| `rhythm.activityZ` | 1,0 | Kvällsaktiviteten senare än vanligt: andelen av dygnets aktiva minuter efter 21, ur pulsen (spridning minst 5 procentenheter). Minst två av de tre kvällarna. |
+| `rhythm.singleShortZ` | 2,0 | En enda så kort natt bland de tre är en enstaka kort natt, inte en förändring. |
+| `rhythm.irregularNights` | 7 | Oregelbundna sovtider räknas på den senaste veckan ... |
+| `rhythm.irregularMinNights` | 5 | ... med minst fem nätter ... |
+| `rhythm.irregularFactor` | 2 | ... när insomningen skiftar från natt till natt minst dubbelt så mycket som vanligt ... |
+| `rhythm.irregularMinMinutes` | 60 | ... och minst 60 minuter. |
+| `rhythm.minActivityWornShare` | 0,7 | Ett dygns aktivitet räknas bara om klockan haft puls minst 70 % av dygnet. |
+| `rhythm.timezoneSettleNights` | 3 | De tre första nätterna efter ett tidszonsbyte jämförs inte. |
+| `rhythm.preEpisodeDays` | 7 | Riktningen: fanns samma mönster någon av de sju dagarna före en dokumenterad episodstart? |
+| `rhythm.episodeDefaultDays` | 28 | En episod utan slutdatum räknas som fyra veckor. |
+| `rhythm.stableMarginDays` | 14 | Stabila dagar ligger minst två veckor från varje episod. |
+| `rhythm.horizonDays` | 3 | Hypotesen som prövas: en episodstart inom tre dygn efter signalen. Används i utvärderingen. |
+
+**Riktningen** har stöd när mönstret fanns före minst en dokumenterad episod av en typ, inte före någon av den andra typen, och aldrig under stabila perioder. Fanns det också under stabila perioder krävs minst två episoder och färre stabila tillfällen än episoder. Annars är riktningen oklar. Ingen procentsats visas.
+
+**Samma korta sömn räknas en gång:** är kortare sömn det enda mönstret och har sömnregeln redan gett poäng i dag, ger signalen 0.
+
+**Missade avstämningar** används aldrig i den passiva modellen, och appens tidigare färger används aldrig som facit.
 
 ## Algoritmen i ordning
 

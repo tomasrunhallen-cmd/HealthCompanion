@@ -9,6 +9,7 @@ import { MEDICAL_REMINDER } from '../../legal';
 import { directionSentence, routinesFor, showValueAnchors, signDirection } from '../../core/plan/guidance';
 import { greenDayLine, routineSummary, routinesToday as routinesTodayList } from '../../core/plan/routines';
 import { SOURCE_TEXT } from '../../core/analysis/sources';
+import { LEVEL_WORD } from '../../core/analysis/levelWords';
 import { Button, Card, Disclosure, LevelLight, P, Screen, Section, Step, Tag } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -66,7 +67,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   // The plan's signs first, then what was measured; nothing that gave no points.
   const seen = [
     ...a.signals.filter((s) => (s.kind === 'early_sign' || s.kind === 'serious_sign') && s.points > 0),
-    ...a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut' && s.points > 0),
+    // Klockans rytm has its own section below, apart from what the note and the night showed.
+    ...a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut' && s.kind !== 'rhythm' && s.points > 0),
   ];
   const first = a.level === 'green' ? null : firstStep(a.level, plan, dir);
   // A serious sign shows the plan's red steps, also when the level is yellow.
@@ -233,6 +235,19 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       ) : null}
 
       <TextPatternResult a={a} />
+
+      {a.rhythm ? (
+        <Section title="Klockans rytm">
+          <Card>
+            <P>{a.rhythm.text}</P>
+            <P muted style={{ marginTop: space.xs }}>
+              Utan signalen: {LEVEL_WORD[a.rhythm.withoutRhythm.level]}. Med signalen: {LEVEL_WORD[a.rhythm.withRhythm.level]}.
+              {!a.rhythm.used ? ' Du har valt att den inte ska räknas.' : a.rhythm.points ? ` Den räknas i din bedömning med ${a.rhythm.points} poäng.` : ' Den räknas i din bedömning, men gav ingen poäng i dag.'}
+            </P>
+            <Button kind="ghost" title="Öppna jämförelsen" onPress={() => nav.push({ name: 'rhythm' })} />
+          </Card>
+        </Section>
+      ) : null}
 
       <Section title="Stämmer bedömningen?">
         <Card>

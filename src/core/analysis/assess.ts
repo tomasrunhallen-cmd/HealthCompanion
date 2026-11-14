@@ -5,6 +5,7 @@ import { buildContext, entriesFromPlan, type PromptContext } from '../context/bu
 import type {
   Assessment, AssessmentInputs, ContextEntry, DateKey, Entry, GarminDay, Level, MatchMethod, PlanItem, PlanSettings, Polarity, Signal, SignMatch,
   TextComparison, TextObservationInput,
+  AssessmentRhythm, RhythmScoreInput,
 } from '../domain/types';
 import { actionsFor } from '../plan/guidance';
 import { matchSigns, tokenize, wordsMatch } from './wordmatch';
@@ -150,6 +151,8 @@ export async function assessEntry(args: {
    * the emergency rule matched, fully or mildly: such a note is never sent to a model.
    */
   textComparer?: () => Promise<TextComparerResult | null>;
+  /** Klockans rytm for the day (experimental): shown with and without, counted only when chosen. */
+  rhythm?: RhythmScoreInput | null;
   now?: Date;
 }): Promise<Assessment> {
   const { entry, plan, planSettings, history, matcher, garmin } = args;
@@ -187,7 +190,7 @@ export async function assessEntry(args: {
   }
   const text = await textRun;
   const textObservations = (text?.check?.observations ?? []).filter((o) => o.eligible).map(toInput);
-  const scored = score({ entry, matches, plan, planSettings, history, garmin, medication, textObservations });
+  const scored = score({ entry, matches, plan, planSettings, history, garmin, medication, textObservations, rhythm: args.rhythm ?? null });
   // Everything needed to compute the level again: the days the rules look back at, the signs and matches.
   const lookback = Math.max(RULES.trendDays, RULES.medicationMissedDays, 2);
   const days = Array.from({ length: lookback + 1 }, (_, i) => addDays(entry.date, -i));
@@ -202,6 +205,7 @@ export async function assessEntry(args: {
     medication: Object.fromEntries(days.filter((d) => medication[d] != null).map((d) => [d, medication[d]])),
     baseline: scored.baseline,
     ...(textObservations.length ? { textObservations } : {}),
+    ...(args.rhythm ? { rhythm: args.rhythm } : {}),
   };
   if (args.akut) {
     // The emergency rule always gives red, whatever the points and also in standard mode.
@@ -242,6 +246,22 @@ export async function assessEntry(args: {
     ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : {}),
     inputs,
     ...(text ? { textPatterns: textComparison(text, scored) } : {}),
+    ...(args.rhythm && scored.rhythm ? { rhythm: assessmentRhythm(args.rhythm, scored.rhythm) } : {}),
+  };
+}
+
+/** The passive estimate as saved with the day: apart from the rated mood, with the level with and without it. */
+export function assessmentRhythm(r: RhythmScoreInput, s: NonNullable<ScoreResult['rhythm']>): AssessmentRhythm {
+  return {
+    date: r.date,
+    computedAt: r.computedAt,
+    status: r.status,
+    direction: r.direction,
+    text: r.text,
+    used: s.used,
+    points: s.used ? s.signal?.points ?? 0 : 0,
+    withRhythm: s.with,
+    withoutRhythm: s.without,
   };
 }
 

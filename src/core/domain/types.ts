@@ -272,6 +272,8 @@ export interface MeasuredDay {
   bodyBatteryWake: number | null;
   /** "HH:MM" of the day's last reading from the watch (Garmin's Body Battery). Shows how far the watch has synced. */
   dataUntil?: string | null;
+  /** The watch's time zone that night, local minus GMT in minutes (Garmin only). */
+  tzOffsetMin?: number | null;
   fetchedAt: string;
 }
 
@@ -294,6 +296,8 @@ export type SignalKind =
   | 'heavy_day'
   | 'late_sleep_no_entry'
   | 'medication_missed'
+  /** Klockans rytm (experimental): a change in sleep timing with support for a direction in the person's own history. */
+  | 'rhythm'
   | 'akut';
 
 export interface Signal {
@@ -338,6 +342,7 @@ export type LevelReason =
   | 'standard_cap' // would be red only through unconfirmed standard rows: yellow
   | 'excused' // would be red only through sleep or stress after alcohol, illness or hard training yesterday: yellow
   | 'text_alone' // would be red, but nothing else than personal text patterns gave points: yellow
+  | 'passive_cap' // would be red only through the watch's rhythm signal: yellow
   | 'akut'; // the note matched the emergency word list
 
 export interface Assessment {
@@ -380,6 +385,25 @@ export interface Assessment {
   remeasureDeclined?: { at: string; level: Level; points: number } | null;
   /** Mina tidigare texter: what the comparison with the person's earlier texts found and changed. */
   textPatterns?: TextComparison | null;
+  /** Klockans rytm: what the passive estimate said that morning, and the level with and without it. */
+  rhythm?: AssessmentRhythm | null;
+}
+
+/** Saved with an assessment: the passive estimate for the day, kept apart from the rated mood. */
+export interface AssessmentRhythm {
+  /** The estimate's date and when it was computed. */
+  date: DateKey;
+  computedAt: string;
+  status: 'insufficient' | 'stable' | 'change';
+  direction: 'up' | 'down' | 'unclear' | null;
+  /** The worded change, as shown. */
+  text: string;
+  /** The person had chosen to use it in the level. */
+  used: boolean;
+  /** Points it gave (0 when not used, no direction, or the same short sleep already counted). */
+  points: number;
+  withRhythm: { level: Level; points: number };
+  withoutRhythm: { level: Level; points: number };
 }
 
 /**
@@ -412,6 +436,23 @@ export interface AssessmentInputs {
   sentenceDropped?: string | null;
   /** Observations of personal text patterns that passed the checks on the phone (Mina tidigare texter). */
   textObservations?: TextObservationInput[];
+  /** Klockans rytm as it stood that morning, so a recomputation counts it the same way. */
+  rhythm?: RhythmScoreInput | null;
+}
+
+/** What the scoring needs from the passive estimate. */
+export interface RhythmScoreInput {
+  date: DateKey;
+  computedAt: string;
+  status: 'insufficient' | 'stable' | 'change';
+  direction: 'up' | 'down' | 'unclear' | null;
+  /** The patterns behind the change, first the one compared with history. */
+  patterns: string[];
+  text: string;
+  /** The person chose to use it in the level. */
+  use: boolean;
+  /** The person said the change has another explanation: shown, never counted. */
+  explained?: boolean;
 }
 
 export interface Baseline {
@@ -468,6 +509,8 @@ export interface AppSettings {
   routineSuggestions?: boolean;
   /** The person's own name in message files, so only their own lines are imported. */
   ownMessageName?: string | null;
+  /** Klockans rytm (experimental): off, shown only, or used in the day's level. Missing: off. */
+  rhythm?: 'off' | 'show' | 'use';
 }
 
 /** direct: as soon as there is one. weekly: on Mondays. visit: only under Inför återbesök. */

@@ -8,6 +8,7 @@ import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
 import { garminBaseUrl } from '../platform/endpoints';
 import { deleteKey, getKey, setKey } from './keys';
 import type { Repository } from '../storage/repository';
+import { fetchActivity, recordSync, rhythmMode, updateRhythm, type SyncTrigger } from './rhythm';
 
 export const GARMIN_KEY_NAME = 'dagsljus.garminkey.v1';
 
@@ -24,6 +25,8 @@ export interface GarminOptions {
   fetch?: GarminFetch;
   now?: Date;
   timeoutMs?: number;
+  /** What started the sync, for the sync log. */
+  trigger?: SyncTrigger;
 }
 
 // One client per key and session, so the access token is reused for up to 24 hours.
@@ -85,12 +88,32 @@ export async function syncGarmin(repo: Repository, opts: GarminOptions & { days?
     const days = await fetchRange(clientFor(key, opts), today, opts.days ?? SYNC_DAYS, now);
     await repo.saveGarminDays(days, today);
     await repo.updateGarminStatus({ lastSyncAt: now.toISOString(), lastError: null });
+    await afterSync(repo, clientFor(key, opts), days, today, now, opts.trigger ?? 'manual');
     return { ok: true, days, error: null };
   } catch (e) {
     const error = e instanceof GarminError ? e.message : 'Något gick fel mot Garmin.';
     await repo.updateGarminStatus({ lastError: error });
+    await recordSync(repo, { at: now.toISOString(), trigger: opts.trigger ?? 'manual', ok: false, newestNight: null, heartRateDays: 0 }).catch(() => {});
     return { ok: false, days: [], error };
   }
+}
+
+/**
+ * Klockans rytm after every successful sync: the heart rate of the latest days, then the
+ * estimate for the morning. A failure here never fails the sync.
+ */
+async function afterSync(repo: Repository, client: GarminClient, days: GarminDay[], today: DateKey, now: Date, trigger: SyncTrigger): Promise<void> {
+  let heartRateDays = 0;
+  try {
+    if (rhythmMode(repo) !== 'off') {
+      heartRateDays = await fetchActivity(repo, client, today, now);
+      await updateRhythm(repo, now);
+    }
+  } catch {
+    // The estimate waits for the next sync.
+  }
+  const newestNight = days.filter((d) => d.sleepHours != null).map((d) => d.date).sort().pop() ?? null;
+  await recordSync(repo, { at: now.toISOString(), trigger, ok: true, newestNight, heartRateDays }).catch(() => {});
 }
 
 /**
@@ -115,7 +138,7 @@ export async function syncOnOpen(repo: Repository, opts: GarminOptions = {}): Pr
   const now = opts.now ?? new Date();
   const interval = watchLags(repo, now) ? LAGGING_SYNC_INTERVAL_MS : MIN_SYNC_INTERVAL_MS;
   if (s.lastSyncAt && now.getTime() - new Date(s.lastSyncAt).getTime() < interval && !s.lastError) return null;
-  return syncGarmin(repo, opts);
+  return syncGarmin(repo, { trigger: 'open', ...opts });
 }
 
 /**
@@ -124,5 +147,5 @@ export async function syncOnOpen(repo: Repository, opts: GarminOptions = {}): Pr
  */
 export async function refreshForCheckin(repo: Repository, opts: GarminOptions = {}): Promise<void> {
   if (!repo.garminStatus().connected) return;
-  await syncGarmin(repo, { ...opts, days: 1, timeoutMs: opts.timeoutMs ?? 10_000 });
+  await syncGarmin(repo, { trigger: 'checkin', ...opts, days: 1, timeoutMs: opts.timeoutMs ?? 10_000 });
 }

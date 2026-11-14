@@ -10,7 +10,11 @@
 //   Sleep:  /sleep-service/sleep/dailySleepSummariesByDate?startDate=&endDate=   (≤31 days)
 //   Stress: /usersummary-service/stats/stress/daily/{start}/{end}               (≤28 days)
 //   Body Battery: /wellness-service/wellness/bodyBattery/reports/daily?startDate=&endDate=
-//   (paths from Garmin's Python client; range limits from third-party clients).
+//   Heart rate:   /wellness-service/wellness/dailyHeartRate?date=                (one day per call)
+//   (paths from Garmin's Python client, garmin-connect-personal-api-python 1.0.0, checked
+//   2026-11-13; range limits from third-party clients). Steps exist only as daily totals
+//   (/usersummary-service/stats/steps/daily), so the day's activity over the hours is read
+//   from the heart rate: minutes above the resting pulse.
 // - Field names are not in Garmin's public pages; they come from two independent
 //   open-source clients of the same API and are parsed defensively.
 
@@ -102,6 +106,16 @@ export interface SleepRow {
   sleepEnd: string | null;
   /** GMT epoch ms of waking, used to find Body Battery after waking. */
   wakeGmtMs: number | null;
+  /** The watch's time zone that night: local minus GMT, in minutes. Changes when travelling. */
+  tzOffsetMin: number | null;
+}
+
+/** Local minus GMT in whole minutes, from a pair of Garmin timestamps for the same moment. */
+export function tzOffsetOf(localMs: unknown, gmtMs: unknown): number | null {
+  const l = num(localMs);
+  const g = num(gmtMs);
+  if (l == null || g == null) return null;
+  return Math.round((l - g) / 60_000 / 15) * 15;
 }
 
 export function parseSleep(data: unknown): SleepRow[] {
@@ -116,6 +130,7 @@ export function parseSleep(data: unknown): SleepRow[] {
       sleepStart: localClock(r.sleepStartTimestampLocal),
       sleepEnd: localClock(r.sleepEndTimestampLocal),
       wakeGmtMs: num(r.sleepEndTimestampGMT),
+      tzOffsetMin: tzOffsetOf(r.sleepStartTimestampLocal, r.sleepStartTimestampGMT),
     }));
 }
 
@@ -158,6 +173,61 @@ export function parseBodyBattery(data: unknown): BodyBatteryRow[] {
     }));
 }
 
+/**
+ * One calendar day of heart rate, reduced on the phone to what the rhythm model needs: per local
+ * hour, the minutes with a pulse at least ACTIVE_ABOVE_RESTING above the day's resting pulse, and
+ * how much of the hour the watch had a reading. The two-minute readings themselves are not kept.
+ */
+export interface HeartRateDay {
+  date: DateKey;
+  /** 24 values, local hours 00–23: minutes above resting + ACTIVE_ABOVE_RESTING. Null: no readings that hour. */
+  activeMinutes: (number | null)[];
+  /** 24 values: share of the hour with a reading, 0–1. */
+  worn: number[];
+  restingHr: number | null;
+  /** Local minus GMT in minutes, from Garmin's start timestamps. */
+  tzOffsetMin: number | null;
+  /** Time of the last reading, "HH:MM" local. Shows how far the day had synced. */
+  lastReading: string | null;
+}
+
+/** Beats per minute above the resting pulse that count as active. */
+export const ACTIVE_ABOVE_RESTING = 25;
+
+export function parseHeartRate(data: unknown, date: DateKey): HeartRateDay | null {
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+  const values = rows(d.heartRateValues).filter(
+    (v): v is [number, number | null] => Array.isArray(v) && num(v[0]) != null,
+  );
+  const offset = tzOffsetOf(d.startTimestampLocal != null ? Date.parse(String(d.startTimestampLocal) + 'Z') : null, d.startTimestampGMT != null ? Date.parse(String(d.startTimestampGMT) + 'Z') : null);
+  const resting = num(d.restingHeartRate) ?? num(d.lastSevenDaysAvgRestingHeartRate);
+  const readings = values.filter((v) => num(v[1]) != null && (v[1] as number) > 0);
+  if (!readings.length) return { date, activeMinutes: Array(24).fill(null), worn: Array(24).fill(0), restingHr: resting, tzOffsetMin: offset, lastReading: null };
+  // Readings are two minutes apart; each stands for the two minutes it starts.
+  const step = 2;
+  const perHour = Array(24).fill(0);
+  const active = Array(24).fill(0);
+  const restRef = resting ?? Math.min(...readings.map((v) => v[1] as number));
+  let lastMs = 0;
+  for (const [ts, bpm] of readings) {
+    const local = ts + (offset ?? 0) * 60_000;
+    const h = new Date(local).getUTCHours();
+    perHour[h] += step;
+    if ((bpm as number) >= restRef + ACTIVE_ABOVE_RESTING) active[h] += step;
+    lastMs = Math.max(lastMs, local);
+  }
+  const t = new Date(lastMs);
+  return {
+    date,
+    activeMinutes: perHour.map((m, h) => (m > 0 ? active[h] : null)),
+    worn: perHour.map((m) => Math.min(1, m / 60)),
+    restingHr: resting,
+    tzOffsetMin: offset,
+    lastReading: `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`,
+  };
+}
+
 /** Combines the three sources into one record per calendar date. */
 export function mergeDays(
   sleep: SleepRow[],
@@ -188,6 +258,7 @@ export function mergeDays(
       stressHighMinutes: st?.stressHighMinutes ?? null,
       bodyBatteryWake,
       ...(last != null ? { dataUntil: clockOf(last) } : {}),
+      ...(sl?.tzOffsetMin != null ? { tzOffsetMin: sl.tzOffsetMin } : {}),
       fetchedAt,
     };
   });
@@ -290,5 +361,10 @@ export class GarminClient {
       if (e instanceof GarminError && e.kind === 'auth') throw e;
     }
     return mergeDays(sleep, stress, bb, fetchedAt);
+  }
+
+  /** The day's heart rate reduced to active minutes per hour. One call per day. */
+  async heartRate(date: DateKey): Promise<HeartRateDay | null> {
+    return parseHeartRate(await this.get('/wellness-service/wellness/dailyHeartRate', { date }), date);
   }
 }

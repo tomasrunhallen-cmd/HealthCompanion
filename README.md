@@ -287,6 +287,22 @@ Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poän
 
 **Dagens förslag** står överst i *Rutiner i dag* på startsidan: en till tre rutiner som passar i dag, med en kort motivering. Koden räknar efterlevnaden: hur ofta rutinen ska göras (*varje dag*, *3 gånger i veckan* eller *mån, ons och fre*), hur många gånger den gjorts den här veckan mot målet, när den gjordes senast och andelen de senaste fyra veckorna (räknat på kvällar med svar). Med en kopplad språkmodell väljer modellen bland de rutiner som är aktuella i dag och skriver motiveringen; den får rutinernas ord, rensade, siffrorna, veckodagen, gårdagens nivå och nattens sömn, men inga anteckningar (`prompts/dagsforslag.md`). Svaret kontrolleras: bara rutiner ur listan, högst tre, korta motiveringar, annars används kodens eget val. Utan modell, eller avstängt under *Rutiner*, väljer koden de rutiner som ligger efter: ett veckomål som inte nåtts, en planerad veckodag, eller en daglig rutin som blivit av mindre än 85 % av gångerna eller inte i går. Förslaget görs en gång per dag och märks *Formulerat av AI* när modellen skrev det. Rutiner som inte är planerade i dag eller redan nått veckomålet visas varken på startsidan eller i avstämningen.
 
+### Klockans rytm (experimentell)
+
+En passiv modell som letar efter tidiga tecken på en möjlig kommande stämningsepisod i sömn och dygnsrytm från klockan. Den fungerar en vecka utan en enda anteckning eller avstämning. Den slås på under *Inställningar → Klockans rytm*, med tre lägen: *Av* (standard), *Visa* och *Använd*.
+
+- **Data:** insomning, uppvakning, sömnlängd och tidszon per natt, och aktivitetens fördelning över dygnet ur pulsen (`dailyHeartRate`, värden varannan minut). Pulsen räknas om till aktiva minuter per timme, och själva pulsen sparas inte.
+- **När:** efter varje lyckad hämtning från Garmin och när appen öppnas. Appen kan inte hämta när den är stängd, och skärmen säger det. Varje hämtning loggas med om appen var öppen.
+- **Två besked:**
+    - vad som ändrats mot dina egna nätter (tre nätter i rad, median och robust spridning)
+    - om din historik ger stöd för en riktning uppåt eller nedåt
+  Svaren kan också vara *förändring upptäckt, riktning oklar* och *för lite data*. Ingen procentsats visas.
+- **Kort på Hem** när något nytt hänt. Ett förlopp ger ett kort, med jämförelsen och ett steg ur planen. En rättelse är frivillig.
+- **Ampeln:** *Visa* visar nivån med och utan signalen. *Använd* ger 1 poäng för en förändring med stöd för en riktning. Den kan aldrig avgöra rött, sänker aldrig något och går aldrig före akutregeln. Samma korta sömn räknas en gång.
+- **Hålls isär:** din skattade stämning (avstämningen), appens uppskattning (`rhythmAssessments`) och de episodstarter du dokumenterar (`episodeStarts`, med källa: du i efterhand eller klinisk bedömning).
+- **Utvärdering:** en uppspelning i tidsordning jämför sömnnotisen, modellen med bara sömn och modellen med sömn och aktivitet, mot dina dokumenterade episodstarter.
+- **Kod och rapport:** koden finns i `src/core/analysis/rhythm.ts`, `rhythmEval.ts` och `rhythmSim.ts`, med reglerna i `rules/README.md`. Vad som faktiskt kunnat utvärderas står i `RYTMRAPPORT.md`. Allt med siffror där är simulerat.
+
 ### Funktionerna från granskningen (fas C)
 
 1. **Inför återbesök** (*Jag*): 14 eller 30 dagar med nivå per dag, sömn och stress, tecken som syntes per riktning, rutiner, svaren efter röda dagar, och listan *Saker jag vill ta upp*. Sparas som PDF som personen själv delar.

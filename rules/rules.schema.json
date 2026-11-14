@@ -27,7 +27,8 @@
     "baselineWindowDays",
     "baselineMinSamples",
     "trendDays",
-    "dayStartHour"
+    "dayStartHour",
+    "rhythm"
   ],
   "properties": {
     "$schema": {
@@ -230,6 +231,118 @@
         },
         "capPerDay": {
           "type": "integer",
+          "minimum": 0
+        },
+        "aloneCanGiveRed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rhythm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "points",
+        "aloneCanGiveRed",
+        "baselineDays",
+        "baselineGapDays",
+        "baselineMinNights",
+        "windowNights",
+        "windowSpanNights",
+        "shiftZ",
+        "durationZ",
+        "activityZ",
+        "singleShortZ",
+        "irregularNights",
+        "irregularMinNights",
+        "irregularFactor",
+        "irregularMinMinutes",
+        "minActivityWornShare",
+        "timezoneSettleNights",
+        "preEpisodeDays",
+        "episodeDefaultDays",
+        "stableMarginDays",
+        "horizonDays"
+      ],
+      "properties": {
+        "points": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselineDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselineGapDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselineMinNights": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "windowNights": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "windowSpanNights": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "irregularNights": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "irregularMinNights": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "irregularFactor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "irregularMinMinutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timezoneSettleNights": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "preEpisodeDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "episodeDefaultDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stableMarginDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "horizonDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shiftZ": {
+          "type": "number",
+          "minimum": 0
+        },
+        "durationZ": {
+          "type": "number",
+          "minimum": 0
+        },
+        "activityZ": {
+          "type": "number",
+          "minimum": 0
+        },
+        "singleShortZ": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minActivityWornShare": {
+          "type": "number",
           "minimum": 0
         },
         "aloneCanGiveRed": {

@@ -277,6 +277,13 @@ export function SettingsScreen() {
         </Card>
       </Section>
 
+      <Section title="Klockans rytm (experimentell)">
+        <Card>
+          <P muted>Letar efter förändringar i sömn och dygnsrytm från klockan, även veckor utan anteckningar. {({ off: 'Av.', show: 'Visas, påverkar inte nivån.', use: 'Används i bedömningen.' } as const)[repo.settings().rhythm ?? 'off']}</P>
+          <Button kind="secondary" title="Klockans rytm" onPress={() => nav.push({ name: 'rhythm' })} />
+        </Card>
+      </Section>
+
       <Section title="Namn att rensa bort">
         <Card>
           <P muted>

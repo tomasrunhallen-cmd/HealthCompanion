@@ -2,7 +2,7 @@
 // compute signals, points and level. Pure and fully testable.
 
 import type {
-  TextObservationInput,
+  TextObservationInput, RhythmScoreInput,
   Assessment, Baseline, DateKey, Entry, GarminDay, Level, LevelReason, MeasureSource, PlanItem, PlanSettings, Signal, SignalKind, SignMatch,
 } from '../domain/types';
 import { addDays, daysBetween, entryClock, weekStart } from './dates';
@@ -28,6 +28,8 @@ export interface ScoreInput {
   medication?: Record<DateKey, boolean>;
   /** Mina tidigare texter: observations of approved personal patterns that passed the checks on the phone. */
   textObservations?: TextObservationInput[];
+  /** Klockans rytm for the day (experimental). Counted only when `use` is set. */
+  rhythm?: RhythmScoreInput | null;
 }
 
 /** What became of one personal text observation in the rules. */
@@ -50,6 +52,8 @@ export interface ScoreResult {
   /** Mina tidigare texter: what each observation did, and the level the day would have had without them. */
   textOutcomes: TextOutcome[];
   withoutText: { level: Level; points: number; reason: LevelReason };
+  /** Klockans rytm: the level with and without the signal, whether or not it was used. Null without an estimate. */
+  rhythm: { signal: Signal | null; with: { level: Level; points: number }; without: { level: Level; points: number }; used: boolean } | null;
 }
 
 function mean(values: number[]): number | null {
@@ -475,11 +479,51 @@ export function score(input: ScoreInput): ScoreResult {
   const measuredAndPlan = adjustMeasured(signals, entry, yesterdaysMeasured(entry.date, history, garmin, planSettings, baseline));
   const withoutText = levelFromSignals(measuredAndPlan, recentNonGreen);
   const { signals: textSignals, outcomes: textOutcomes } = textPatternSignals(input.textObservations ?? [], measuredAndPlan);
-  const adjusted = [...measuredAndPlan, ...textSignals];
-  const { level, points, reason } = levelFromSignals(adjusted, recentNonGreen);
+  const withText = [...measuredAndPlan, ...textSignals];
+  const before = levelFromSignals(withText, recentNonGreen);
+  const rhythmSignal = input.rhythm ? rhythmSignalFor(input.rhythm, withText) : null;
+  const tried = rhythmSignal ? withRhythm([...withText, rhythmSignal], before, recentNonGreen) : before;
+  const used = !!(input.rhythm?.use && rhythmSignal && rhythmSignal.points > 0);
+  const adjusted = used ? [...withText, rhythmSignal!] : rhythmSignal ? [...withText, { ...rhythmSignal, points: 0 }] : withText;
+  const { level, points, reason } = used ? tried : before;
   const trend = trendLines(entry, history, garmin, planSettings, baseline);
-  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText };
+  const rhythm = input.rhythm
+    ? { signal: rhythmSignal, with: { level: tried.level, points: tried.points }, without: { level: before.level, points: before.points }, used }
+    : null;
+  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText, rhythm };
 }
+
+// ---- Klockans rytm (experimental) ----
+
+const SLEEP_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive'];
+
+/**
+ * The passive signal: a change with support for a direction gives RULES.rhythm.points. A change
+ * without a direction, a stable rhythm or too little data gives nothing and never lowers anything.
+ * Short sleep that the sleep rule already counted today is counted once.
+ */
+export function rhythmSignalFor(r: RhythmScoreInput, others: Signal[]): Signal | null {
+  if (r.status !== 'change') return null;
+  const base = { kind: 'rhythm' as const, measured: true, label: `Klockans rytm: ${r.text}` };
+  if (r.explained) return { ...base, points: 0, label: `${base.label} Räknas inte: du har angett en annan förklaring.` };
+  if (r.direction !== 'up' && r.direction !== 'down') return { ...base, points: 0, label: `${base.label} Räknas inte: riktningen är oklar.` };
+  const onlySleepLength = r.patterns.every((p) => p === 'shorter');
+  if (onlySleepLength && others.some((s) => SLEEP_KINDS.includes(s.kind) && s.points > 0)) {
+    return { ...base, points: 0, polarity: r.direction, label: `${base.label} Räknas inte en gång till: den korta sömnen räknas redan.` };
+  }
+  return { ...base, points: RULES.rhythm.points, polarity: r.direction };
+}
+
+/** The level with the passive signal. It may lift a level but never decide red on its own. */
+function withRhythm(signals: Signal[], before: { level: Level; points: number; reason: LevelReason }, recentNonGreen: number): { level: Level; points: number; reason: LevelReason } {
+  const after = levelFromSignals(signals, recentNonGreen);
+  if (after.level === 'red' && before.level !== 'red' && !RULES.rhythm.aloneCanGiveRed) return { level: 'yellow', points: after.points, reason: 'passive_cap' };
+  // Never lower what the other signs gave.
+  if (LEVEL_RANK[after.level] < LEVEL_RANK[before.level]) return before;
+  return after;
+}
+
+const LEVEL_RANK: Record<Level, number> = { green: 0, yellow: 1, red: 2 };
 
 // ---- Mina tidigare texter ----
 

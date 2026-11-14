@@ -8,6 +8,7 @@ import type { DateKey } from '../domain/types';
 
 export type HomeCardKind =
   | 'silence'
+  | 'rhythm'
   | 'start'
   | 'tomorrow'
   | 'remeasure'
@@ -15,6 +16,7 @@ export type HomeCardKind =
   | 'sleepNotice'
   | 'weekPicture'
   | 'sleepSource'
+  | 'rhythmData'
   | 'suggestions'
   | 'review'
   | 'standardNudge';
@@ -22,6 +24,7 @@ export type HomeCardKind =
 /** Highest priority first. */
 export const HOME_PRIORITY: readonly HomeCardKind[] = [
   'silence',
+  'rhythm',
   'start',
   'tomorrow',
   'remeasure',
@@ -29,6 +32,7 @@ export const HOME_PRIORITY: readonly HomeCardKind[] = [
   'sleepNotice',
   'weekPicture',
   'sleepSource',
+  'rhythmData',
   'suggestions',
   'review',
   'standardNudge',

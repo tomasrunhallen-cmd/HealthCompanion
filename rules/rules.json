@@ -1,6 +1,6 @@
 {
   "$schema": "./rules.schema.json",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "points": {
     "earlySign": 1,
     "seriousSign": 2,
@@ -44,5 +44,28 @@
   "baselineWindowDays": 28,
   "baselineMinSamples": 3,
   "trendDays": 3,
-  "dayStartHour": 4
+  "dayStartHour": 4,
+  "rhythm": {
+    "points": 1,
+    "aloneCanGiveRed": false,
+    "baselineDays": 63,
+    "baselineGapDays": 7,
+    "baselineMinNights": 14,
+    "windowNights": 3,
+    "windowSpanNights": 4,
+    "shiftZ": 1.5,
+    "durationZ": 1.5,
+    "activityZ": 1.0,
+    "singleShortZ": 2.0,
+    "irregularNights": 7,
+    "irregularMinNights": 5,
+    "irregularFactor": 2,
+    "irregularMinMinutes": 60,
+    "minActivityWornShare": 0.7,
+    "timezoneSettleNights": 3,
+    "preEpisodeDays": 7,
+    "episodeDefaultDays": 28,
+    "stableMarginDays": 14,
+    "horizonDays": 3
+  }
 }

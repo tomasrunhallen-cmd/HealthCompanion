@@ -9,6 +9,7 @@ import { setRoutineDone } from './routines';
 import { sleepSourceOf, stressSourceOf } from '../core/analysis/sources';
 import type { Repository } from '../storage/repository';
 import { refreshForCheckin, type GarminOptions } from './garmin';
+import { rhythmScoreInput } from './rhythm';
 import { createTextComparer } from './references';
 import { currentMatcher, type AdapterOptions } from './llm';
 
@@ -134,6 +135,8 @@ export async function saveCheckin(
     akut,
     akutMild,
     akutMildBecause: check.mildBecause,
+    // Klockans rytm (experimental): computed after the sync above, for this day.
+    rhythm: rhythmScoreInput(repo, entry.date),
     now,
   };
   // The configured language model when there is one; word matching otherwise, and always
@@ -195,6 +198,7 @@ export async function logHeavyDay(repo: Repository, now = new Date()): Promise<{
     matcher: wordMatcher,
     garmin: repo.measuredDays(),
     context: repo.contextEntries(),
+    rhythm: rhythmScoreInput(repo, entry.date),
     now,
   });
   await repo.saveEntry(entry, assessment);

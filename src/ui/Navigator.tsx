@@ -37,6 +37,8 @@ import { ResultScreen } from './screens/ResultScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ReferencesScreen } from './screens/ReferencesScreen';
 import { TextPatternsScreen } from './screens/TextPatternsScreen';
+import { RhythmScreen } from './screens/RhythmScreen';
+import { EpisodesScreen } from './screens/EpisodesScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { TrendScreen } from './screens/TrendScreen';
 import { useRepo } from './state';
@@ -88,6 +90,8 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   relatives: RelativesScreen,
   references: ReferencesScreen,
   textPatterns: TextPatternsScreen,
+  rhythm: RhythmScreen,
+  episodes: EpisodesScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -116,6 +120,8 @@ const TITLE: Record<RouteName, string> = {
   relatives: 'Anhörigkort',
   references: 'Tidigare texter',
   textPatterns: 'Mönster',
+  rhythm: 'Klockans rytm',
+  episodes: 'Episodstarter',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };
