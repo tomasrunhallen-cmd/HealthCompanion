@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
+import { weekCounts } from '../../core/analysis/levelWords';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
 import { RULES } from '../../core/analysis/rules';
@@ -380,7 +381,7 @@ function WeekSummary({ week, fontScale, today }: { week: { date: string; level: 
   const lo = moods.length ? Math.min(...moods) : null;
   const hi = moods.length ? Math.max(...moods) : null;
   const parts = [
-    [counts.green ? `${counts.green} gröna` : null, counts.yellow ? `${counts.yellow} gula` : null, counts.red ? `${counts.red} röda` : null, missing ? `${missing} utan` : null].filter(Boolean).join(', '),
+    weekCounts(counts, missing),
     lo != null ? `stämning ${lo === hi ? signedMood(lo) : `${signedMood(lo)} till ${signedMood(hi!)}`}` : null,
     kept != null ? `rutiner ${kept}\u00a0%` : null,
   ].filter(Boolean);

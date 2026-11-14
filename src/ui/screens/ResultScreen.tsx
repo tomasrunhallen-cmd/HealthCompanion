@@ -196,16 +196,27 @@ export function ResultScreen({ entryId }: { entryId: string }) {
         </Section>
       )}
 
-      {routines.length > 0 && (
+      {routines.length > 0 || routinesToday ? (
+        // One list: the plan's routines for the day, with a tick for those done today. Ticking never changes the level.
         <Section title="Livsstil och rutiner">
           <Card>
-            {routines.map((e) => <P key={e.id} style={{ marginBottom: space.xs }}>{`• ${e.text}`}</P>)}
+            {routinesToday ? (
+              <P muted style={{ marginBottom: space.xs }}>
+                {routinesToday.done.length ? `Du gjorde ${routinesToday.done.length} av ${routinesToday.answered} i dag.` : 'Ingen av rutinerna blev av i dag. Det påverkar inte nivån.'}
+              </P>
+            ) : null}
+            {routines.map((e) => {
+              const done = routinesToday?.done.includes(e.text);
+              return <Text key={e.id} style={[type.body, { marginBottom: space.xs }]} accessibilityLabel={`${e.text}${done ? ', gjord i dag' : ''}`}>{`${done ? '✓' : '•'} ${e.text}`}</Text>;
+            })}
+            {routinesToday?.done.filter((t) => !routines.some((e) => e.text === t)).map((t) => <P key={t} style={{ marginBottom: space.xs }}>{`✓ ${t}`}</P>)}
           </Card>
         </Section>
-      )}
+      ) : null}
 
-      {/* What the app saw, in plain words. Points and method are under Så räknade appen. */}
-      <Section title="Det här syntes i dag">
+      {/* Why: what the app saw, in plain words, folded under the level that already says the gist.
+          Points and method are further down under Så räknade appen. */}
+      <Disclosure title="Varför?" detail={seen.length ? `${seen.length === 1 ? 'En sak' : `${seen.length} saker`} syntes i dag${a.rhythm ? ', och dygnsrytmen' : ''}` : `Inga av dina tecken syntes${a.rhythm ? ', och dygnsrytmen' : ''}`}>
         <Card>
           {seen.length ? seen.map((s, i) => (
             <View key={s.kind + (s.planItemId ?? '') + i} style={{ paddingVertical: space.s, borderBottomWidth: i < seen.length - 1 ? 1 : 0, borderColor: colors.border }}>
@@ -216,38 +227,23 @@ export function ResultScreen({ entryId }: { entryId: string }) {
             <P muted>Inga av tecknen i din plan syntes i dag.</P>
           )}
         </Card>
-        {canFetch ? (
-          <Button kind="ghost" title="Synkade klockan sent? Hämta värdena igen" hint="Hämtar Garmins värden och visar om dagen ändras" busy={fetching} onPress={fetchAgain} />
-        ) : null}
-      </Section>
-
-      {routinesToday ? (
-        <Section title="Rutiner i dag">
+        {a.rhythm ? (
           <Card>
-            <P>
-              {routinesToday.done.length
-                ? `Du gjorde ${routinesToday.done.length} av ${routinesToday.answered} rutiner i dag.`
-                : 'Ingen av rutinerna blev av i dag. Det påverkar inte nivån.'}
-            </P>
-            {routinesToday.done.map((t) => <P key={t} muted style={{ marginTop: space.xs }}>{`✓ ${t}`}</P>)}
-          </Card>
-        </Section>
-      ) : null}
-
-      <TextPatternResult a={a} />
-
-      {a.rhythm ? (
-        <Section title="Dygnsrytm">
-          <Card>
-            <P>{a.rhythm.text}</P>
+            <Text style={[type.body, { fontWeight: '600' }]}>Dygnsrytm, från klockan</Text>
+            <P style={{ marginTop: space.xs }}>{a.rhythm.text}</P>
             <P muted style={{ marginTop: space.xs }}>
               Utan signalen: {LEVEL_WORD[a.rhythm.withoutRhythm.level]}. Med signalen: {LEVEL_WORD[a.rhythm.withRhythm.level]}.
               {!a.rhythm.used ? ' Du har valt att den inte ska räknas.' : a.rhythm.points ? ` Den räknas i din bedömning med ${a.rhythm.points} poäng.` : ' Den räknas i din bedömning, men gav ingen poäng i dag.'}
             </P>
             <Button kind="ghost" title="Öppna jämförelsen" onPress={() => nav.push({ name: 'rhythm' })} />
           </Card>
-        </Section>
+        ) : null}
+      </Disclosure>
+      {canFetch ? (
+        <Button kind="ghost" title="Synkade klockan sent? Hämta värdena igen" hint="Hämtar Garmins värden och visar om dagen ändras" busy={fetching} onPress={fetchAgain} />
       ) : null}
+
+      <TextPatternResult a={a} />
 
       <Section title="Stämmer bedömningen?">
         <Card>

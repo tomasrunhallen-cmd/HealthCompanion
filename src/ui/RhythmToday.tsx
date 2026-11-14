@@ -14,14 +14,17 @@ import { colors, MIN_TOUCH, space, type } from './theme';
 
 /** The folded line: what the estimate says, in a few words. */
 export function rhythmHeadline(a: RhythmAssessment): { title: string; detail: string } {
-  if (a.status === 'insufficient') return { title: 'För lite data', detail: a.insufficient?.reason === 'baseline' ? 'Appen lär sig ditt vanliga mönster' : a.insufficient?.reason === 'timezone' ? 'Efter ett tidszonsbyte' : 'Klockan saknar några nätter' };
-  if (a.status === 'stable') return { title: 'Ingen förändring', detail: a.singleShort ? 'En enstaka kort natt, inget mer' : 'Sömn och dygnsrytm som vanligt' };
+  if (a.status === 'insufficient') return { title: 'För lite data', detail: a.insufficient?.reason === 'baseline' ? 'Lär sig ditt mönster' : a.insufficient?.reason === 'timezone' ? 'Ny tidszon' : 'Nätter saknas' };
+  if (a.status === 'stable') return { title: 'Ingen förändring', detail: a.singleShort ? 'En enstaka kort natt, inget mer' : '' };
   // At most two patterns in the line, so it stays one or two lines; the rest are under Varför.
   const words = a.changes.slice(0, 2).map((c) => PATTERN_WORD[c.pattern]);
   const what = words.join(' och ') + (a.changes.length > 2 ? ' m.m.' : '');
   const dir = a.direction?.value === 'up' ? 'Riktning uppåt, enligt din historik' : a.direction?.value === 'down' ? 'Riktning nedåt, enligt din historik' : 'Riktning oklar';
   return { title: what, detail: dir };
 }
+
+const MONTH = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+const shortDate = (d: string) => `${Number(d.slice(8, 10))} ${MONTH[Number(d.slice(5, 7)) - 1]}`;
 
 export function RhythmToday() {
   const repo = useRepo();
@@ -32,6 +35,11 @@ export function RhythmToday() {
   if (!a) return null;
   const fresh = rhythmCard(repo);
   const head = rhythmHeadline(a);
+  // How fresh it is, next to the signal: the latest night it rests on, and when the watch's data were last fetched.
+  const lastSync = repo.garminStatus().lastSyncAt;
+  const fetched = lastSync ? (toDateKey(new Date(lastSync)) === toDateKey(new Date()) ? formatTime(lastSync) : `${shortDate(toDateKey(new Date(lastSync)))} ${formatTime(lastSync)}`) : null;
+  const freshness = `natten till ${shortDate(a.covers.to)}${fetched ? `, hämtat ${fetched}` : ''}`;
+  const detail = head.detail ? `${head.detail} · ${freshness}` : freshness.charAt(0).toUpperCase() + freshness.slice(1);
   const step = a.status === 'change' ? planStepFor(repo, a) : null;
   const old = a.date !== toDateKey(new Date());
   const toggle = () => {
@@ -39,21 +47,22 @@ export function RhythmToday() {
     setOpen(!open);
   };
   return (
-    <Card tone={a.status === 'change' ? 'yellow' : undefined} style={{ paddingVertical: space.s }}>
+    // Neutral on purpose: the level's colours belong to the evening's traffic light, not to the watch.
+    <Card style={{ paddingVertical: space.s }}>
       <Pressable
         onPress={toggle}
         accessibilityRole="button"
-        accessibilityLabel={`Dygnsrytm${old ? `, ${formatDateSv(a.date)}` : ' i dag'}: ${head.title}. ${head.detail}.`}
+        accessibilityLabel={`Dygnsrytm${old ? `, ${formatDateSv(a.date)}` : ' i dag'}: ${head.title}. ${detail}.`}
         accessibilityState={{ expanded: open }}
         accessibilityHint={open ? 'Fäller ihop motiveringen' : 'Visar motiveringen'}
         style={{ minHeight: MIN_TOUCH, flexDirection: 'row', alignItems: 'center', gap: space.s }}
       >
         <View style={{ flex: 1 }}>
           <Text style={[type.body, { fontWeight: '600' }]}>Dygnsrytm{old ? ` ${formatDateSv(a.date)}` : ''}: {head.title.charAt(0).toLowerCase() + head.title.slice(1)}</Text>
-          <Text style={type.small}>{head.detail}</Text>
+          <Text style={type.small}>{detail}</Text>
         </View>
         {fresh ? <Tag label="Ny" /> : null}
-        <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]} importantForAccessibility="no">{open ? 'Dölj ▲' : 'Varför ▼'}</Text>
+        <Text style={[type.body, { color: colors.accent, fontWeight: '600' }]} importantForAccessibility="no">{open ? '▲' : '▼'}</Text>
       </Pressable>
       {open ? (
         <View style={{ marginTop: space.xs }}>
