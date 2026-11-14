@@ -81,7 +81,7 @@ function NightsTable({ a }: { a: RhythmAssessment }) {
           </Row>
         );
       })}
-      <P muted style={{ marginTop: space.xs }}>Fet stil: nätterna bedömningen bygger på. Kväll: andel av dagens aktiva minuter efter 21, ur pulsen.</P>
+      <P muted style={{ marginTop: space.xs }}>Fet stil: nätterna bedömningen bygger på. Kväll: andel av dygnets minuter med förhöjd puls (minst 25 slag över vilopuls) som kom efter 21. Det är en uppskattning ur pulsen, inte ett mått på rörelse.</P>
     </View>
   );
 }
@@ -141,7 +141,7 @@ function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpiso
       ))}
       {alarms.length ? (
         <View>
-          <Label>{`Modellens larm, sömn och aktivitet (${alarms.length})`}</Label>
+          <Label>{`Modellens larm, sömn och puls (${alarms.length})`}</Label>
           <P muted>Minns du om en period började något av de här dygnen eller strax efter? Lägg då in starten. Det är så modellen kan prövas.</P>
           {(all ? alarms : alarms.slice(0, 8)).map((r) => (
             <P key={r.from} style={{ marginTop: space.xs }}>
@@ -217,7 +217,7 @@ export function RhythmScreen() {
               <Section title="Vad som har förändrats">
                 <Card tone={a.status === 'change' ? 'yellow' : undefined}>
                   {a.status === 'change' ? a.changes.map((c) => <P key={c.pattern} style={{ marginBottom: space.xs }}>{changeSentence(c)}</P>) : <P>{a.text.change}</P>}
-                  {a.status !== 'insufficient' && !a.activityUsed ? <P muted style={{ marginTop: space.xs }}>Kvällsaktiviteten ingår inte: {a.activityAvailable ? 'för få kvällar med klockan på' : 'ingen puls hämtad'}.</P> : null}
+                  {a.status !== 'insufficient' && !a.activityUsed ? <P muted style={{ marginTop: space.xs }}>Pulsen på kvällen ingår inte: {a.activityAvailable ? 'för få kvällar med klockan på' : 'ingen puls hämtad'}.</P> : null}
                 </Card>
               </Section>
 
@@ -303,7 +303,7 @@ export function RhythmScreen() {
               <P muted>Insomning och uppvakning på minuten, sömnlängd och tidszon per natt. {nights.length ? `${nights.length} nätter, senast ${formatDateSv(nights[nights.length - 1])}.` : 'Inga nätter ännu.'}</P>
               <Text style={[type.body, { fontWeight: '600', marginTop: space.s }]}>Puls över dygnet</Text>
               <P muted>
-                Värden varannan minut, som appen räknar om till aktiva minuter per timme. Själva pulsen sparas inte.{' '}
+                Värden varannan minut, som appen räknar om till minuter med förhöjd puls per timme. Förhöjd puls kan vara rörelse men också stress eller feber. Själva pulsen sparas inte.{' '}
                 {src.status === 'not_exposed' ? src.message : src.status === 'error' ? `Senaste försöket misslyckades: ${src.message}` : act.length ? `${act.length} dagar, senast ${formatDateSv(act[act.length - 1])} till ${activityDays(repo)[act[act.length - 1]].lastReading ?? '–'}.` : 'Ingen hämtad ännu.'}
               </P>
               <Text style={[type.body, { fontWeight: '600', marginTop: space.s }]}>Används inte</Text>
@@ -334,7 +334,7 @@ export function RhythmScreen() {
 
           <Section title="Utvärdering">
             <Card>
-              <P muted>Spelar upp historiken dag för dag med bara det som fanns då, och jämför sömnnotisen, modellen med bara sömn och modellen med sömn och aktivitet.</P>
+              <P muted>Spelar upp historiken dag för dag med bara det som fanns då, och jämför sömnnotisen, modellen med bara sömn och modellen med sömn och puls.</P>
               <Button kind="secondary" title="Utvärdera på mina data" onPress={() => setEv(evaluateOwnData(repo))} />
               <Button kind="ghost" title="Visa ett simulerat exempel" onPress={() => { const y = simulatedYear(today); setEv(evaluateRhythm(y.data, { to: today, simulated: true })); }} />
               {ev ? <EvaluationView ev={ev} onAddEpisode={() => nav.push({ name: 'episodes' })} /> : null}
@@ -345,7 +345,7 @@ export function RhythmScreen() {
             <P>Jämförelsen gäller de tre senaste nätterna med sömn från klockan, mot dina egna nätter 8–63 dagar bakåt. Den senaste veckan är inte med i jämförelsen, så att en långsam förskjutning inte blir det nya vanliga.</P>
             <P style={{ marginTop: space.xs }}>Det vanliga är medianen, och spridningen räknas så att enstaka udda nätter inte styr. Det krävs minst 14 nätter. Nätter under dokumenterade episoder räknas inte.</P>
             <P style={{ marginTop: space.xs }}>En natt utan data hoppas över. Saknas två av de fyra senaste nätterna blir svaret ”för lite data”. Efter ett tidszonsbyte jämförs inte de tre första nätterna.</P>
-            <P style={{ marginTop: space.xs }}>En enstaka kort natt är ingen förändring. En förändring kräver tre nätter i rad. Kvällsaktivitet räknas bara för dygn då klockan burits minst 70 % av tiden.</P>
+            <P style={{ marginTop: space.xs }}>En enstaka kort natt är ingen förändring. En förändring kräver tre nätter i rad. Pulsen räknas bara för dygn då klockan burits minst 70 % av tiden.</P>
             <P style={{ marginTop: space.xs }}>Missade avstämningar används aldrig, och inte heller appens färger.</P>
           </Disclosure>
         </>

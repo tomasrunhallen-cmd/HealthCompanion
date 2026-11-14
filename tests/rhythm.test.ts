@@ -61,7 +61,7 @@ describe('what changed', () => {
     expect(a.status).toBe('change');
     expect(a.changes.map((c) => c.pattern)).toContain('later');
     expect(a.text.change).toMatch(/^Tre nätter i rad har du somnat senare än vanligt: \d\d:\d\d, \d\d:\d\d och \d\d:\d\d mot vanligt 23:\d\d\./);
-    expect(a.text.change).toContain('Även kvällsaktiviteten har förskjutits.');
+    expect(a.text.change).toContain('Även den förhöjda pulsen har flyttats mot kvällen.');
     expect(a.covers).toEqual({ from: d(2), to: END });
     expect(a.text.direction).toBe('Förändring upptäckt, riktning oklar. Det finns inga daterade episodstarter att jämföra med.');
   });

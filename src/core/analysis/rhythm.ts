@@ -214,7 +214,7 @@ export const PATTERN_WORD: Record<RhythmPattern, string> = {
   shorter: 'kortare sömn',
   longer: 'längre sömn',
   irregular: 'oregelbundna sovtider',
-  evening_activity: 'senare kvällsaktivitet',
+  evening_activity: 'förhöjd puls senare på kvällen',
 };
 
 /** The order a change is named in: the first is the pattern compared with history. */
@@ -480,7 +480,7 @@ export function changeSentence(c: RhythmChange): string {
     case 'shorter': return `${n} nätter i rad har du sovit kortare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.`;
     case 'longer': return `${n} nätter i rad har du sovit längre än vanligt: ${list(c.values)} mot vanligt ${c.usual}.`;
     case 'irregular': return `Sovtiderna har varierat mer än vanligt den senaste veckan: insomningen skiftade ${c.values[0]} från natt till natt mot vanligt ${c.usual}.`;
-    case 'evening_activity': return `Kvällsaktiviteten har förskjutits: ${list(c.values)} av dagens aktiva minuter kom efter 21 mot vanligt ${c.usual}.`;
+    case 'evening_activity': return `Den förhöjda pulsen har flyttats mot kvällen: ${list(c.values)} av dygnets minuter med förhöjd puls kom efter 21 mot vanligt ${c.usual}.`;
   }
 }
 
@@ -498,7 +498,7 @@ function changeText(a: Omit<RhythmAssessment, 'text'>): string {
   const later = a.changes.find((c) => c.pattern === 'later');
   const evening = a.changes.find((c) => c.pattern === 'evening_activity');
   const parts = a.changes.filter((c) => !(later && evening && c === evening)).map(changeSentence);
-  if (later && evening) parts.push('Även kvällsaktiviteten har förskjutits.');
+  if (later && evening) parts.push('Även den förhöjda pulsen har flyttats mot kvällen.');
   return parts.join(' ');
 }
 

@@ -133,7 +133,7 @@ export function simulatedYear(end: DateKey = '2026-11-13'): { data: RhythmData; 
     data: simulate({ end, days: 365, seed: 11, events }),
     description: [
       'Ett år av påhittade nätter: insomning kring 23:15 och 7,3 timmars sömn, med slumpmässig variation.',
-      'Tre uppvarvade episoder, där sömnen förskjuts och kortas fem nätter före starten. I en av dem syns ingen kvällsaktivitet.',
+      'Tre uppvarvade episoder, där sömnen förskjuts och kortas fem nätter före starten. I en av dem syns ingen förhöjd puls på kvällen.',
       'Två nedstämda episoder, där sömnen blir längre före starten. Den sista har bara tre nätters förlopp.',
       'Två stabila veckor med sena kvällar och nätter utan någon episod, en enstaka kort natt, nio dygn utan klocka och en resa med tidszonsbyte.',
     ],

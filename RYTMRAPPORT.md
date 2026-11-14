@@ -16,10 +16,10 @@ Avläst från appen. Perioden 8 juni 2024 – 14 november 2026 är 890 dagar, me
 | --- | --- | --- | --- | --- | --- |
 | Utveckling, 8 juni 2024 – 26 augusti 2025 | Sömnnotisen | 23 på 180 bedömda dagar | 3,8 | 1,6 | 265 av 445 dagar |
 | | Modellen, bara sömn | 3 på 174 | 0,5 | 0,2 | 271 av 445 |
-| | Modellen, sömn och aktivitet | 3 på 174 | 0,5 | 0,2 | 271 av 445 |
+| | Modellen, sömn och puls | 3 på 174 | 0,5 | 0,2 | 271 av 445 |
 | Test, 27 augusti 2025 – 14 november 2026 | Sömnnotisen | 48 på 392 | 3,7 | 3,2 | 53 av 445 |
 | | Modellen, bara sömn | 9 på 419 | 0,6 | 0,6 | 26 av 445 |
-| | Modellen, sömn och aktivitet | 9 på 419 | 0,6 | 0,6 | 26 av 445 |
+| | Modellen, sömn och puls | 9 på 419 | 0,6 | 0,6 | 26 av 445 |
 
 Takten per bedömd dag säger hur ofta metoden larmar när den kan bedöma. Takten per kalenderdag säger hur ofta den larmar i vardagen. I appen kallades den första först "per månad", vilket är rättat efter granskningen.
 
@@ -27,7 +27,7 @@ Vad det säger:
 
 - **Larmtakten:** modellen larmar ungefär en sjättedel så ofta som sömnnotisen per bedömd dag. Färre larm är inte samma sak som bättre träffsäkerhet: om larmen var rätt eller fel, och om modellen missar något, går inte att säga utan dokumenterade starter.
 - **Data före hösten 2025:** under utvecklingsdelen saknade klockan data så ofta att alla metoderna avstod på ungefär sex dagar av tio. Från hösten 2025 avstår modellen sällan, på 26 av 445 dagar.
-- **Aktiviteten:** den gjorde ingen skillnad här, eftersom pulsen bara fanns för de senaste månaderna. När pulsen för alla dagar är hämtad går de två modellerna att jämföra.
+- **Pulsen:** den gjorde ingen skillnad här, eftersom pulsen bara fanns för de senaste månaderna. När pulsen för alla dagar är hämtad går de två modellerna att jämföra.
 - **Ordet "falsklarm":** appen kallade larmen falsklarm i den här körningen. Det var fel när inga episoder är dokumenterade, och är rättat. Appen säger nu "larm" och visar en lista med modellens larm, så att du kan pröva dem mot ditt minne.
 
 ## Hypotesen
@@ -41,7 +41,7 @@ Kontrollerat mot Garmins eget Python-paket för Personal API, `garmin-connect-pe
 | Källa | Adress | Tidsupplösning | Används |
 | --- | --- | --- | --- |
 | Sömn per natt | `/sleep-service/sleep/dailySleepSummariesByDate` | Insomning och uppvakning på minuten, lokal tid och GMT. Skillnaden ger tidszonen | Ja: insomning, uppvakning, sömnlängd och variation mellan nätterna |
-| Puls över dygnet | `/wellness-service/wellness/dailyHeartRate?date=` | Ett värde varannan minut, ett anrop per dag | Ja: räknas om till aktiva minuter per timme (puls minst 25 slag över vilopuls). Själva pulsen sparas inte |
+| Puls över dygnet | `/wellness-service/wellness/dailyHeartRate?date=` | Ett värde varannan minut, ett anrop per dag | Ja: räknas om till minuter med förhöjd puls per timme (minst 25 slag över vilopulsen). Själva pulsen sparas inte |
 | Stress per dag | `/usersummary-service/stats/stress/daily/` | Dagssnitt | Nej, inte i rytmmodellen |
 | Body Battery | `/wellness-service/wellness/bodyBattery/reports/daily` | Tidsstämplade värden | Nej, bara för hur långt klockan synkat |
 | Steg | `/usersummary-service/stats/steps/daily/` | Bara dagssumma | Nej: för grov för fördelningen över dygnet |
@@ -64,7 +64,7 @@ Den är enkel, begriplig och körs helt på telefonen. Alla värden finns i `rul
 - **En förändring** kräver tre nätter i rad bland de fyra senaste:
     - insomning senare eller tidigare än vanligt
     - sömn kortare eller längre än vanligt
-    - kvällsaktivitet senare än vanligt (andel av dygnets aktiva minuter efter 21)
+    - förhöjd puls senare på kvällen än vanligt (andel av dygnets minuter med puls minst 25 slag över vilopulsen efter 21). Det är en uppskattning ur pulsen, inte ett mått på rörelse. Garmins Personal API ger steg bara per dag, så en jämförelse med rörelse per timme går inte att göra
     - oregelbundna sovtider den senaste veckan
 - **En enstaka kort natt** är ingen förändring. Appen säger det uttryckligen.
 - **Luckor:** en natt utan data hoppas över. Två av fyra saknade nätter ger *för lite data*. En kväll räknas bara om klockan haft puls minst 70 % av dygnet.
@@ -83,7 +83,7 @@ Den är enkel, begriplig och körs helt på telefonen. Alla värden finns i `rul
 
 - **Uppspelning i tidsordning:** för varje morgon används bara nätterna fram till dess, kvällen innan och episodstarter som låg minst en vecka bakåt. Ett test kontrollerar att svaret för en dag blir detsamma med och utan senare data.
 - **Facit** är de episodstarter du dokumenterar. Varje start anger om datumet är ditt eget i efterhand eller från en klinisk bedömning. Appens tidigare färger används aldrig.
-- **Tre metoder** jämförs: sömnnotisen som finns i dag, modellen med bara sömn och modellen med sömn och aktivitet.
+- **Tre metoder** jämförs: sömnnotisen som finns i dag, modellen med bara sömn och modellen med sömn och puls.
 - **Redovisning per episodtyp:**
     - hur många starter som fångades i förväg (signal någon av de tre dygnen före)
     - förvarningstid
@@ -98,15 +98,15 @@ Den är enkel, begriplig och körs helt på telefonen. Alla värden finns i `rul
 
 <!-- simulerat:start -->
 - Ett år av påhittade nätter: insomning kring 23:15 och 7,3 timmars sömn, med slumpmässig variation.
-- Tre uppvarvade episoder, där sömnen förskjuts och kortas fem nätter före starten. I en av dem syns ingen kvällsaktivitet.
+- Tre uppvarvade episoder, där sömnen förskjuts och kortas fem nätter före starten. I en av dem syns ingen förhöjd puls på kvällen.
 - Två nedstämda episoder, där sömnen blir längre före starten. Den sista har bara tre nätters förlopp.
 - Två stabila veckor med sena kvällar och nätter utan någon episod, en enstaka kort natt, nio dygn utan klocka och en resa med tidszonsbyte.
 
 > **Simulerade testfall.** Resultaten nedan kommer från påhittade data som appen genererar för att testa reglerna. De säger ingenting om hur modellen fungerar för dig.
 
-Period: 5 december 2025 – 13 november 2026 (344 dagar). Nätter med sömn från klockan: 329. Kvällar med tillräcklig puls för aktivitet: 335.
+Period: 5 december 2025 – 13 november 2026 (344 dagar). Nätter med sömn från klockan: 329. Kvällar med tillräcklig puls: 335.
 Episodstarter i perioden: 5 (uppvarvade 3, nedstämda 2, blandade 0). Källa: 3 angivna i efterhand, 2 från klinisk bedömning.
-Uppspelningen antar att varje natts sömn och föregående kvälls puls fanns hämtade på morgonen. Ingen natt hämtades mer än två dygn senare. En episod räknas som känd först en vecka efter starten, och bara den del som passerat. Modellen med sömn och aktivitet gav 7 larm med episoderna utanför sitt vanliga mönster och 7 utan någon episodmärkning.
+Uppspelningen antar att varje natts sömn och föregående kvälls puls fanns hämtade på morgonen. Ingen natt hämtades mer än två dygn senare. En episod räknas som känd först en vecka efter starten, och bara den del som passerat. Modellen med sömn och puls gav 7 larm med episoderna utanför sitt vanliga mönster och 7 utan någon episodmärkning.
 Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från 26 maj 2026 redovisas för sig och får aldrig användas för att justera dem.
 
 ### Utvecklingsdel: 5 december 2025 – 25 maj 2026
@@ -117,14 +117,14 @@ Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från 26 m
 | Sömnnotisen (i dag) | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
 | Modellen, bara sömn | Uppvarvade | 1 | 1 | 1 av 1 (för få för en andel) | 1 dygn |
 | Modellen, bara sömn | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
-| Modellen, sömn och aktivitet | Uppvarvade | 1 | 1 | 1 av 1 (för få för en andel) | 2 dygn |
-| Modellen, sömn och aktivitet | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
+| Modellen, sömn och puls | Uppvarvade | 1 | 1 | 1 av 1 (för få för en andel) | 2 dygn |
+| Modellen, sömn och puls | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
 
 | Metod | Falsklarm | Avstod | 
 | --- | --- | --- |
 | Sömnnotisen (i dag) | 1,4 per 30 bedömda dagar, 1 per 30 kalenderdagar (6 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
 | Modellen, bara sömn | 0,2 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
-| Modellen, sömn och aktivitet | 0,2 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
+| Modellen, sömn och puls | 0,2 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
 
 För få dokumenterade episoder i den här delen (2) för att säga något om hur ofta starter fångas. Falsklarmen och hur ofta modellen avstod går att läsa ändå.
 
@@ -136,14 +136,14 @@ För få dokumenterade episoder i den här delen (2) för att säga något om hu
 | Sömnnotisen (i dag) | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
 | Modellen, bara sömn | Uppvarvade | 2 | 2 | 2 av 2 (för få för en andel) | 1–2 dygn (median 2) |
 | Modellen, bara sömn | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
-| Modellen, sömn och aktivitet | Uppvarvade | 2 | 2 | 2 av 2 (för få för en andel) | 2 dygn för alla 2 |
-| Modellen, sömn och aktivitet | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
+| Modellen, sömn och puls | Uppvarvade | 2 | 2 | 2 av 2 (för få för en andel) | 2 dygn för alla 2 |
+| Modellen, sömn och puls | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
 
 | Metod | Falsklarm | Avstod | 
 | --- | --- | --- |
 | Sömnnotisen (i dag) | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 103 bedömda av 172 dagar) | 11 av 172 dagar |
 | Modellen, bara sömn | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 96 bedömda av 172 dagar) | 18 av 172 dagar |
-| Modellen, sömn och aktivitet | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 96 bedömda av 172 dagar) | 18 av 172 dagar |
+| Modellen, sömn och puls | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 96 bedömda av 172 dagar) | 18 av 172 dagar |
 <!-- simulerat:slut -->
 
 ## Det som återstår

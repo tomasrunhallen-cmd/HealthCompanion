@@ -17,7 +17,7 @@ export type EvalMethod = 'notice' | 'sleep' | 'sleep_activity';
 export const METHOD_NAME: Record<EvalMethod, string> = {
   notice: 'Sömnnotisen (i dag)',
   sleep: 'Modellen, bara sömn',
-  sleep_activity: 'Modellen, sömn och aktivitet',
+  sleep_activity: 'Modellen, sömn och puls',
 };
 
 export interface TypeResult {
@@ -251,7 +251,7 @@ export function assumptions(ev: RhythmEvaluation): string {
     'En episod räknas som känd först en vecka efter starten, och bara den del som passerat.',
   ];
   if (ev.labelEffect.withLabels !== ev.labelEffect.withoutLabels || ev.episodes.total) {
-    parts.push(`Modellen med sömn och aktivitet gav ${ev.labelEffect.withLabels} larm med episoderna utanför sitt vanliga mönster och ${ev.labelEffect.withoutLabels} utan någon episodmärkning.`);
+    parts.push(`Modellen med sömn och puls gav ${ev.labelEffect.withLabels} larm med episoderna utanför sitt vanliga mönster och ${ev.labelEffect.withoutLabels} utan någon episodmärkning.`);
   }
   return parts.join(' ');
 }
@@ -263,7 +263,7 @@ export function evaluationReport(ev: RhythmEvaluation): string {
     ? '> **Simulerade testfall.** Resultaten nedan kommer från påhittade data som appen genererar för att testa reglerna. De säger ingenting om hur modellen fungerar för dig.'
     : '> **Dina egna data.** Uppspelning i tidsordning av dina klockdata och de episodstarter du dokumenterat.');
   out.push('');
-  out.push(`Period: ${formatDateSvYear(ev.from)} – ${formatDateSvYear(ev.to)} (${ev.coverage.days} dagar). Nätter med sömn från klockan: ${ev.coverage.nights}. Kvällar med tillräcklig puls för aktivitet: ${ev.coverage.evenings}.`);
+  out.push(`Period: ${formatDateSvYear(ev.from)} – ${formatDateSvYear(ev.to)} (${ev.coverage.days} dagar). Nätter med sömn från klockan: ${ev.coverage.nights}. Kvällar med tillräcklig puls: ${ev.coverage.evenings}.`);
   out.push(`Episodstarter i perioden: ${ev.episodes.total} (uppvarvade ${ev.episodes.byType.up}, nedstämda ${ev.episodes.byType.down}, blandade ${ev.episodes.byType.mixed}). Källa: ${ev.episodes.bySource.self_retro} angivna i efterhand, ${ev.episodes.bySource.clinical} från klinisk bedömning.`);
   out.push(assumptions(ev));
   out.push(`Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från ${formatDateSvYear(ev.holdoutFrom)} redovisas för sig och får aldrig användas för att justera dem.`);

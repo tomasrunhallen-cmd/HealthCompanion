@@ -291,7 +291,7 @@ Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poän
 
 En passiv modell som letar efter tidiga tecken på en möjlig kommande stämningsepisod i sömn och dygnsrytm från klockan. Den fungerar en vecka utan en enda anteckning eller avstämning. Den slås på under *Inställningar → Dygnsrytm*, med tre lägen: *Av* (standard), *Visa* och *Använd*.
 
-- **Data:** insomning, uppvakning, sömnlängd och tidszon per natt, och aktivitetens fördelning över dygnet ur pulsen (`dailyHeartRate`, värden varannan minut). Pulsen räknas om till aktiva minuter per timme, och själva pulsen sparas inte.
+- **Data:** insomning, uppvakning, sömnlängd och tidszon per natt, och när på dygnet pulsen är förhöjd (`dailyHeartRate`, värden varannan minut). Förhöjd puls betyder minst 25 slag över vilopulsen. Det är en uppskattning, inte ett mått på rörelse: det kan också vara stress eller feber. Pulsen räknas om till minuter med förhöjd puls per timme, och själva pulsen sparas inte.
 - **När:** efter varje lyckad hämtning från Garmin och när appen öppnas. Appen kan inte hämta när den är stängd, och skärmen säger det. Varje hämtning loggas med om appen var öppen.
 - **Äldre puls** hämtas av sig själv för varje dag med sömn från klockan, medan appen är öppen och på vilken skärm som helst. Ett anrop per dag och en paus mellan, så att det tar ungefär en sekund per dag. Hämtningen fortsätter där den slutade. Pulsen sparas en post per månad.
 - **Två besked:**
@@ -301,7 +301,7 @@ En passiv modell som letar efter tidiga tecken på en möjlig kommande stämning
 - **Överst på Hem** står dagens bedömning på en rad. *Varför* fäller ut motiveringen, nätterna den bygger på och ett steg ur planen. En ny förändring märks *Ny* tills raden öppnats. En rättelse är frivillig.
 - **Ampeln:** *Visa* visar nivån med och utan signalen. *Använd* ger 1 poäng för en förändring med stöd för en riktning. Den kan aldrig avgöra rött, sänker aldrig något och går aldrig före akutregeln. Samma korta sömn räknas en gång.
 - **Hålls isär:** din skattade stämning (avstämningen), appens uppskattning (`rhythmAssessments`) och de episodstarter du dokumenterar (`episodeStarts`, med källa: du i efterhand eller klinisk bedömning).
-- **Utvärdering:** en uppspelning i tidsordning jämför sömnnotisen, modellen med bara sömn och modellen med sömn och aktivitet, mot dina dokumenterade episodstarter.
+- **Utvärdering:** en uppspelning i tidsordning jämför sömnnotisen, modellen med bara sömn och modellen med sömn och puls, mot dina dokumenterade episodstarter.
 - **Kod och rapport:** koden finns i `src/core/analysis/rhythm.ts`, `rhythmEval.ts` och `rhythmSim.ts`, med reglerna i `rules/README.md`. Vad som faktiskt kunnat utvärderas står i `RYTMRAPPORT.md`. Allt med siffror där är simulerat.
 
 ### Funktionerna från granskningen (fas C)

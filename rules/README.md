@@ -98,13 +98,13 @@ En passiv modell som jämför de senaste nätterna från klockan med personens e
 | `rhythm.windowSpanNights` | 4 | ... bland de fyra senaste. En natt utan data hoppas över, två ger *för lite data*. |
 | `rhythm.shiftZ` | 1,5 | Insomning senare eller tidigare än vanligt: avvikelsen från medianen delad med spridningen (1,4826 × MAD, minst 30 minuter). |
 | `rhythm.durationZ` | 1,5 | Sömnen kortare eller längre än vanligt, på samma sätt (spridning minst 0,5 timmar). |
-| `rhythm.activityZ` | 1,0 | Kvällsaktiviteten senare än vanligt: andelen av dygnets aktiva minuter efter 21, ur pulsen (spridning minst 5 procentenheter). Minst två av de tre kvällarna. |
+| `rhythm.activityZ` | 1,0 | Förhöjd puls senare på kvällen än vanligt: andelen av dygnets minuter med puls minst 25 slag över vilopulsen som kom efter 21 (spridning minst 5 procentenheter). Det är en uppskattning ur pulsen, inte ett mått på rörelse. Minst två av de tre kvällarna. |
 | `rhythm.singleShortZ` | 2,0 | En enda så kort natt bland de tre är en enstaka kort natt, inte en förändring. |
 | `rhythm.irregularNights` | 7 | Oregelbundna sovtider räknas på den senaste veckan ... |
 | `rhythm.irregularMinNights` | 5 | ... med minst fem nätter ... |
 | `rhythm.irregularFactor` | 2 | ... när insomningen skiftar från natt till natt minst dubbelt så mycket som vanligt ... |
 | `rhythm.irregularMinMinutes` | 60 | ... och minst 60 minuter. |
-| `rhythm.minActivityWornShare` | 0,7 | Ett dygns aktivitet räknas bara om klockan haft puls minst 70 % av dygnet. |
+| `rhythm.minActivityWornShare` | 0,7 | Ett dygns förhöjda puls räknas bara om klockan haft puls minst 70 % av dygnet. |
 | `rhythm.timezoneSettleNights` | 3 | De tre första nätterna efter ett tidszonsbyte jämförs inte. |
 | `rhythm.preEpisodeDays` | 7 | Riktningen: fanns samma mönster någon av de sju dagarna före en dokumenterad episodstart? |
 | `rhythm.episodeDefaultDays` | 28 | En episod utan slutdatum räknas som fyra veckor. |
