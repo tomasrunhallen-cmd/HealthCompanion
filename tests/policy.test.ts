@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { MEDICAL_REMINDER, PRIVACY_POLICY_URL } from '../src/legal';
+import { MEDICAL_REMINDER, PRIVACY_POLICY_URL, siteUrl } from '../src/legal';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { markdownToHtml, page } = require('../scripts/build-policy.js');
@@ -24,7 +24,11 @@ describe('the privacy policy page (App Store Review Guidelines 5.1.1)', () => {
     expect(html).toMatch(/^<!doctype html>/);
     expect(html).toContain('<h1>Integritetspolicy för Dagsljus</h1>');
     expect(html).toContain('prefers-color-scheme: dark');
-    expect(PRIVACY_POLICY_URL).toBe('https://dagsljus.netlify.app/integritet.html');
+    expect(PRIVACY_POLICY_URL).toMatch(/^https?:\/\/[^/]+\/integritet\.html$/);
+    // The web version links to the policy page on the site it was opened from; the phone app to the published site.
+    expect(siteUrl('https://min-sajt.example')).toBe('https://min-sajt.example');
+    expect(siteUrl(undefined)).toBe('https://dagsljus.netlify.app');
+    expect(siteUrl('null')).toBe('https://dagsljus.netlify.app');
   });
 
   it('turns the policy\'s small Markdown into HTML and escapes everything else', () => {
