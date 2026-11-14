@@ -4,12 +4,12 @@
 // signal, the data sources and how fresh they are, and the evaluation on the person's own data.
 // The rated mood, this estimate and documented episode starts are kept apart, here and in storage.
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { addDays, formatDateSv, formatTime, toDateKey } from '../../core/analysis/dates';
+import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
 import { LEVEL_WORD } from '../../core/analysis/levelWords';
-import { changeSentence, clockOfAxis, eveningOf, nightsFrom, type RhythmAssessment, type RhythmMode } from '../../core/analysis/rhythm';
-import { evaluateRhythm, METHOD_NAME, MIN_EPISODES_FOR_RATE, type RhythmEvaluation } from '../../core/analysis/rhythmEval';
+import { changeSentence, clockOfAxis, eveningOf, nightsFrom, PATTERN_WORD, type RhythmAssessment, type RhythmMode } from '../../core/analysis/rhythm';
+import { evaluateRhythm, METHOD_NAME, MIN_EPISODES_FOR_RATE, rate, type RhythmEvaluation } from '../../core/analysis/rhythmEval';
 import { simulatedYear } from '../../core/analysis/rhythmSim';
 import type { DateKey, Level } from '../../core/domain/types';
 import {
@@ -86,7 +86,11 @@ function NightsTable({ a }: { a: RhythmAssessment }) {
   );
 }
 
-function EvaluationView({ ev }: { ev: RhythmEvaluation }) {
+function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpisode: () => void }) {
+  const known = ev.episodes.total > 0;
+  // The model's alarms over the whole period, newest first: dates the person can hold against memory.
+  const alarms = ev.parts.flatMap((p) => p.methods.find((m) => m.method === 'sleep_activity')?.alarms ?? []).reverse();
+  const [all, setAll] = useState(false);
   return (
     <View>
       {ev.simulated ? (
@@ -94,14 +98,20 @@ function EvaluationView({ ev }: { ev: RhythmEvaluation }) {
           <Text style={[type.body, { fontWeight: '600' }]}>Simulerade testfall</Text>
           <P>Påhittade data. Resultaten säger ingenting om hur modellen fungerar för dig.</P>
         </Card>
-      ) : null}
+      ) : <Label>Dina egna data</Label>}
       <P style={{ marginTop: space.s }}>
-        {formatDateSv(ev.from)} – {formatDateSv(ev.to)}: {ev.coverage.days} dagar, {ev.coverage.nights} nätter med sömn, {ev.coverage.evenings} kvällar med puls.
+        {formatDateSvYear(ev.from)} – {formatDateSvYear(ev.to)}: {ev.coverage.days} dagar, {ev.coverage.nights} nätter med sömn från klockan, {ev.coverage.evenings} kvällar med puls.
         {' '}Episodstarter: {ev.episodes.total} ({ev.episodes.bySource.self_retro} angivna i efterhand, {ev.episodes.bySource.clinical} från klinisk bedömning).
       </P>
+      {!known ? (
+        <Card tone="accent" style={{ marginTop: space.s }}>
+          <P>Utan dokumenterade episodstarter går det inte att säga om ett larm var rätt eller fel, eller om något fångades i förväg. Det som går att läsa är hur ofta varje metod larmar och hur ofta den avstår.</P>
+          <Button kind="secondary" title="Lägg in episodstarter" onPress={onAddEpisode} />
+        </Card>
+      ) : null}
       {ev.parts.map((part) => (
         <View key={part.name}>
-          <Label>{part.name === 'test' ? `Testdel, från ${formatDateSv(part.from)}` : `Utvecklingsdel, till ${formatDateSv(part.to)}`}</Label>
+          <Label>{part.name === 'test' ? `Testdel, ${formatDateSvYear(part.from)} – ${formatDateSvYear(part.to)}` : `Utvecklingsdel, ${formatDateSvYear(part.from)} – ${formatDateSvYear(part.to)}`}</Label>
           {part.methods.map((m) => {
             const types = (['up', 'down', 'mixed'] as const).filter((t) => m.perType[t].episodes);
             return (
@@ -117,15 +127,29 @@ function EvaluationView({ ev }: { ev: RhythmEvaluation }) {
                     </P>
                   );
                 })}
-                <P muted>Falsklarm: {m.falseAlarms} på {m.judgedStableDays} stabila dagar. Avstod: {m.abstainDays} av {m.days} dagar.</P>
+                <P muted>
+                  {known ? 'Falsklarm' : 'Larm'}: {rate(m.falseAlarms, m.judgedStableDays)}{known ? ', räknat på dagar utanför episoder' : ''}. Avstod: {m.abstainDays} av {m.days} dagar.
+                </P>
               </View>
             );
           })}
-          {part.methods[0].perType.up.episodes + part.methods[0].perType.down.episodes + part.methods[0].perType.mixed.episodes < MIN_EPISODES_FOR_RATE
+          {known && part.methods[0].perType.up.episodes + part.methods[0].perType.down.episodes + part.methods[0].perType.mixed.episodes < MIN_EPISODES_FOR_RATE
             ? <P muted>För få dokumenterade episoder i den här delen för att säga hur ofta starter fångas.</P>
             : null}
         </View>
       ))}
+      {alarms.length ? (
+        <View>
+          <Label>{`Modellens larm, sömn och aktivitet (${alarms.length})`}</Label>
+          <P muted>Minns du om en period började något av de här dygnen eller strax efter? Lägg då in starten. Det är så modellen kan prövas.</P>
+          {(all ? alarms : alarms.slice(0, 8)).map((r) => (
+            <P key={r.from} style={{ marginTop: space.xs }}>
+              {r.from === r.to ? formatDateSvYear(r.from) : `${formatDateSvYear(r.from)} – ${formatDateSvYear(r.to)}`}: {r.patterns.map((x) => PATTERN_WORD[x]).join(', ') || 'förändring'}{r.startFollowed ? '. En dokumenterad start följde.' : ''}
+            </P>
+          ))}
+          {alarms.length > 8 ? <Button kind="ghost" title={all ? 'Visa färre' : `Visa alla ${alarms.length}`} onPress={() => setAll(!all)} /> : null}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -138,6 +162,7 @@ export function RhythmScreen() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [ev, setEv] = useState<RhythmEvaluation | null>(null);
+  const stop = useRef(false);
   const feedback = a?.courseStart ? rhythmFeedback(repo)[a.courseStart] : undefined;
   const step = a ? planStepFor(repo, a) : null;
   const today = toDateKey(new Date());
@@ -158,7 +183,8 @@ export function RhythmScreen() {
     setBusy(true);
     setProgress('Hämtar puls …');
     try {
-      const r = await backfillActivity(repo, addDays(today, -120), addDays(today, -1), { onProgress: (d, t) => setProgress(`Hämtar puls: ${d} av ${t} dagar`) });
+      stop.current = false;
+      const r = await backfillActivity(repo, addDays(today, -365), addDays(today, -1), { onProgress: (d, t) => setProgress(`Hämtar puls: ${d} av ${t} dagar. Du kan lämna skärmen öppen eller avbryta; nästa gång fortsätter den där den slutade.`), cancelled: () => stop.current });
       setProgress(r.error ?? 'Klart.');
       await updateRhythm(repo);
     } finally { setBusy(false); }
@@ -295,7 +321,8 @@ export function RhythmScreen() {
                 <P key={l.at}>{formatDateSv(l.at.slice(0, 10))} {formatTime(l.at)}: {l.ok ? 'lyckades' : 'misslyckades'}, {TRIGGER[l.trigger] ?? l.trigger}{l.inFront ? ', appen öppen' : ', appen i bakgrunden'}{l.heartRateDays ? `, ${l.heartRateDays} dagar puls` : ''}.</P>
               )) : <P muted>Inga hämtningar sparade ännu.</P>}
               <P muted style={{ marginTop: space.xs }}>Hämtning när appen är stängd: nej. Varje hämtning ovan gjordes med appen öppen.</P>
-              <Button kind="secondary" title="Hämta puls 120 dagar bakåt" busy={busy} onPress={backfill} />
+              <Button kind="secondary" title="Hämta puls ett år bakåt" hint="Ett anrop per dag, ungefär sju minuter för ett år" busy={busy} onPress={backfill} />
+              {busy && progress ? <Button kind="ghost" title="Avbryt" onPress={() => { stop.current = true; }} /> : null}
               {progress ? <P muted>{progress}</P> : null}
             </Card>
           </Section>
@@ -312,7 +339,7 @@ export function RhythmScreen() {
               <P muted>Spelar upp historiken dag för dag med bara det som fanns då, och jämför sömnnotisen, modellen med bara sömn och modellen med sömn och aktivitet.</P>
               <Button kind="secondary" title="Utvärdera på mina data" onPress={() => setEv(evaluateOwnData(repo))} />
               <Button kind="ghost" title="Visa ett simulerat exempel" onPress={() => { const y = simulatedYear(today); setEv(evaluateRhythm(y.data, { to: today, simulated: true })); }} />
-              {ev ? <EvaluationView ev={ev} /> : null}
+              {ev ? <EvaluationView ev={ev} onAddEpisode={() => nav.push({ name: 'episodes' })} /> : null}
             </Card>
           </Section>
 

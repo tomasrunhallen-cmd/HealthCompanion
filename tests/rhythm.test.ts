@@ -270,6 +270,19 @@ describe('the evaluation: played back in time order (simulated)', () => {
     for (const p of ev.parts) for (const m of p.methods) expect(m.abstainDays).toBeLessThanOrEqual(m.days);
   });
 
+  it('without documented episodes, alarms are not called false, and each alarm is listed with what the model saw', () => {
+    const { data } = simulatedYear(END);
+    const ev = evaluateRhythm({ ...data, episodes: [] }, { to: END });
+    const text = evaluationReport(ev);
+    expect(text).not.toContain('Falsklarm');
+    expect(text).toContain('Larm, inga episoder att jämföra med');
+    const m = ev.parts[1].methods.find((x) => x.method === 'sleep_activity')!;
+    expect(m.alarms.length).toBe(m.falseAlarms);
+    expect(m.alarms.every((r) => r.patterns.length > 0 && !r.startFollowed)).toBe(true);
+    const notice = ev.parts[1].methods.find((x) => x.method === 'notice')!;
+    expect(notice.alarms.every((r) => r.patterns.length === 0)).toBe(true);
+  });
+
   it('never takes the app\u2019s colours as truth: the evaluation has no input for them', () => {
     expect(evaluateRhythm.length).toBe(2);
   });

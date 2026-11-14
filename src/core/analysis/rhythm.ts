@@ -207,6 +207,16 @@ export function baselineFor(nights: Map<DateKey, Night>, evenings: Map<DateKey, 
 // ---- detection ----
 
 export type RhythmPattern = 'later' | 'earlier' | 'shorter' | 'longer' | 'irregular' | 'evening_activity';
+/** A pattern in a few words, for lists. */
+export const PATTERN_WORD: Record<RhythmPattern, string> = {
+  later: 'senare insomning',
+  earlier: 'tidigare insomning',
+  shorter: 'kortare sömn',
+  longer: 'längre sömn',
+  irregular: 'oregelbundna sovtider',
+  evening_activity: 'senare kvällsaktivitet',
+};
+
 /** The order a change is named in: the first is the pattern compared with history. */
 export const PATTERN_ORDER: RhythmPattern[] = ['later', 'earlier', 'shorter', 'longer', 'irregular', 'evening_activity'];
 

@@ -4,9 +4,29 @@ Version 1 av den experimentella funktionen, regler 1.5.0, 14 november 2026.
 
 ## Kort svar
 
-- **På dina egna historiska data har ingenting kunnat utvärderas än.** Dina klockdata ligger krypterade i ditt eget Firebase-projekt och dekrypteras bara i din webbläsare. Utvärderingen körs därför i appen: *Jag → Inställningar → Klockans rytm → Utvärdera på mina data*. Resultatet där är det enda som säger något om modellen för dig.
-- **Inga episodstarter är dokumenterade än.** Utan daterade starter går det inte att mäta om något fångas i förväg. Då visar utvärderingen bara falsklarm och hur ofta modellen avstod.
+- **Dina egna data har spelats upp en gång, den 14 november, men inga episodstarter är dokumenterade.** Därför går det ännu inte att säga om modellen fångar något i förväg, eller om dess larm var rätt eller fel. Det som går att läsa är hur ofta varje metod larmar och hur ofta den avstår. Se nästa avsnitt.
+- **Utvärderingen körs i appen,** under *Jag → Inställningar → Klockans rytm → Utvärdera på mina data*. Dina klockdata ligger krypterade i ditt eget Firebase-projekt och dekrypteras bara i din webbläsare.
 - **Allt med siffror nedan kommer från simulerade testfall.** De visar att reglerna och uppspelningen räknar som de ska, inte att modellen fungerar.
+
+## Första körningen på dina data (14 november 2026)
+
+Avläst från appen. Perioden 8 juni 2024 – 14 november 2026 är 890 dagar, med 615 nätter med sömn från klockan och 108 kvällar med puls. Antalet kvällar är litet eftersom pulsen bara hade hämtats 120 dagar bakåt. Inga episodstarter är dokumenterade.
+
+| Del | Metod | Larm | Per månad | Avstod |
+| --- | --- | --- | --- | --- |
+| Utveckling, 8 juni 2024 – 26 augusti 2025 | Sömnnotisen | 23 på 180 bedömda dagar | 3,8 | 265 av 445 dagar |
+| | Modellen, bara sömn | 3 på 174 | 0,5 | 271 av 445 |
+| | Modellen, sömn och aktivitet | 3 på 174 | 0,5 | 271 av 445 |
+| Test, 27 augusti 2025 – 14 november 2026 | Sömnnotisen | 48 på 392 | 3,7 | 53 av 445 |
+| | Modellen, bara sömn | 9 på 419 | 0,6 | 26 av 445 |
+| | Modellen, sömn och aktivitet | 9 på 419 | 0,6 | 26 av 445 |
+
+Vad det säger:
+
+- **Larmtakten:** modellen larmar ungefär en sjättedel så ofta som sömnnotisen, i båda delarna. Om larmen var rätt eller fel går inte att säga utan dokumenterade starter.
+- **Data före hösten 2025:** under utvecklingsdelen saknade klockan data så ofta att alla metoderna avstod på ungefär sex dagar av tio. Från hösten 2025 avstår modellen sällan, på 26 av 445 dagar.
+- **Aktiviteten:** den gjorde ingen skillnad här, eftersom pulsen bara fanns för de senaste månaderna. Efter en hämtning ett år bakåt går de två modellerna att jämföra.
+- **Ordet "falsklarm":** appen kallade larmen falsklarm i den här körningen. Det var fel när inga episoder är dokumenterade, och är rättat. Appen säger nu "larm" och visar en lista med modellens larm, så att du kan pröva dem mot ditt minne.
 
 ## Hypotesen
 
@@ -126,6 +146,6 @@ För få dokumenterade episoder i den här delen (2) för att säga något om hu
 ## Det som återstår
 
 1. **Dokumentera episodstarter** under *Episodstarter*. Ange typ och om datumet kommer från dig i efterhand eller från vården.
-2. **Hämta puls bakåt:** tryck *Hämta puls 120 dagar bakåt*. Hämta sömn för samma period med *Hämta ett år bakåt* under Garmin.
+2. **Hämta puls bakåt:** tryck *Hämta puls ett år bakåt* (ungefär sju minuter, går att avbryta och fortsätta). Hämta sömn för samma period med *Hämta ett år bakåt* under Garmin.
 3. **Kör *Utvärdera på mina data*** och skicka resultatet. Först då finns något att säga om modellen för dig.
 4. **Kontrollera *Datakällor*:** att puls över dygnet går att hämta med din nyckel, och att loggen bara har hämtningar med appen öppen.

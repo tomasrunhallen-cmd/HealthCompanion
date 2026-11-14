@@ -8,7 +8,7 @@
 import type { DateKey, MeasuredDay } from '../domain/types';
 import { addDays, daysBetween, formatDateSvYear } from './dates';
 import { RULES } from './rules';
-import { detect, prepare, type EpisodeStart, type EpisodeType, type RhythmData } from './rhythm';
+import { detect, prepare, type RhythmPattern, type EpisodeStart, type EpisodeType, type RhythmData } from './rhythm';
 import { sleepNotice } from './sleepNotice';
 
 const R = RULES.rhythm;
@@ -36,6 +36,8 @@ export interface MethodResult {
   perType: Record<EpisodeType, TypeResult>;
   /** Alarm runs with no documented start within three days after, outside episodes. */
   falseAlarms: number;
+  /** Every alarm run that started in the part outside documented episodes, oldest first, with what the model saw on its first day. */
+  alarms: { from: DateKey; to: DateKey; patterns: RhythmPattern[]; startFollowed: boolean }[];
   /** Days outside episodes the method could judge: the months for the false-alarm rate. */
   judgedStableDays: number;
   /** Days the method said "för lite data". */
@@ -86,11 +88,16 @@ function inEpisode(d: DateKey, eps: EpisodeStart[]): boolean {
   return eps.some((e) => d >= e.start && d <= (e.end ?? addDays(e.start, R.episodeDefaultDays - 1)));
 }
 
+export type Calls = Record<EvalMethod, Map<DateKey, 'alarm' | 'quiet' | 'abstain'>> & {
+  /** The model's patterns on alarm days, per model method. */
+  patterns: Record<'sleep' | 'sleep_activity', Map<DateKey, RhythmPattern[]>>;
+};
+
 /** Per day and method: 'alarm', 'quiet' or 'abstain'. */
-export function dailyCalls(data: RhythmData, from: DateKey, to: DateKey, sleepWindow: Options['sleepWindow']): Record<EvalMethod, Map<DateKey, 'alarm' | 'quiet' | 'abstain'>> {
+export function dailyCalls(data: RhythmData, from: DateKey, to: DateKey, sleepWindow: Options['sleepWindow']): Calls {
   const first = Object.keys(data.measured).sort()[0] ?? from;
   const p = prepare(data.measured, data.activity, first < from ? first : from, to);
-  const out: Record<EvalMethod, Map<DateKey, 'alarm' | 'quiet' | 'abstain'>> = { notice: new Map(), sleep: new Map(), sleep_activity: new Map() };
+  const out: Calls = { notice: new Map(), sleep: new Map(), sleep_activity: new Map(), patterns: { sleep: new Map(), sleep_activity: new Map() } };
   for (let d = from; d <= to; d = addDays(d, 1)) {
     const known = data.episodes.filter((e) => e.start <= addDays(d, -(R.baselineGapDays + 1)));
     const nights = [0, 1, 2].map((i) => data.measured[addDays(d, -i)]?.sleepHours);
@@ -99,6 +106,7 @@ export function dailyCalls(data: RhythmData, from: DateKey, to: DateKey, sleepWi
     for (const [m, act] of [['sleep', false], ['sleep_activity', true]] as const) {
       const r = detect(p, d, known, act);
       out[m].set(d, r.status === 'insufficient' ? 'abstain' : r.status === 'change' ? 'alarm' : 'quiet');
+      if (r.status === 'change') out.patterns[m].set(d, r.changes.map((c) => c.pattern));
     }
   }
   return out;
@@ -115,7 +123,7 @@ function runsOf(calls: Map<DateKey, string>, from: DateKey, to: DateKey): { from
   return runs;
 }
 
-function scorePart(method: EvalMethod, calls: Map<DateKey, 'alarm' | 'quiet' | 'abstain'>, eps: EpisodeStart[], from: DateKey, to: DateKey): MethodResult {
+function scorePart(method: EvalMethod, calls: Map<DateKey, 'alarm' | 'quiet' | 'abstain'>, eps: EpisodeStart[], from: DateKey, to: DateKey, patterns?: Map<DateKey, RhythmPattern[]>): MethodResult {
   const perType: Record<EpisodeType, TypeResult> = {
     up: { episodes: 0, evaluable: 0, caught: 0, leadDays: [] },
     down: { episodes: 0, evaluable: 0, caught: 0, leadDays: [] },
@@ -135,10 +143,12 @@ function scorePart(method: EvalMethod, calls: Map<DateKey, 'alarm' | 'quiet' | '
     t.leadDays.push(daysBetween(run?.from ?? hit, e.start));
   }
   let falseAlarms = 0;
+  const alarms: MethodResult['alarms'] = [];
   for (const r of runs.filter((x) => x.from >= from && x.from <= to)) {
     if (inEpisode(r.from, eps)) continue;
     const real = eps.some((e) => e.start > r.from && e.start <= addDays(r.to, R.horizonDays));
     if (!real) falseAlarms++;
+    alarms.push({ ...r, patterns: patterns?.get(r.from) ?? [], startFollowed: real });
   }
   let judgedStableDays = 0, abstainDays = 0, days = 0;
   for (let d = from; d <= to; d = addDays(d, 1)) {
@@ -147,7 +157,7 @@ function scorePart(method: EvalMethod, calls: Map<DateKey, 'alarm' | 'quiet' | '
     if (c === 'abstain' || c == null) abstainDays++;
     else if (!inEpisode(d, eps)) judgedStableDays++;
   }
-  return { method, perType, falseAlarms, judgedStableDays, abstainDays, days };
+  return { method, perType, falseAlarms, alarms, judgedStableDays, abstainDays, days };
 }
 
 export function evaluateRhythm(data: RhythmData, opts: Options): RhythmEvaluation {
@@ -160,7 +170,7 @@ export function evaluateRhythm(data: RhythmData, opts: Options): RhythmEvaluatio
   const parts: EvalPart[] = [
     { name: 'utveckling', from, to: addDays(holdoutFrom, -1) },
     { name: 'test', from: holdoutFrom, to },
-  ].map((p) => ({ ...p, name: p.name as EvalPart['name'], methods: (['notice', 'sleep', 'sleep_activity'] as EvalMethod[]).map((m) => scorePart(m, calls[m], data.episodes, p.from, p.to)) }));
+  ].map((p) => ({ ...p, name: p.name as EvalPart['name'], methods: (['notice', 'sleep', 'sleep_activity'] as EvalMethod[]).map((m) => scorePart(m, calls[m], data.episodes, p.from, p.to, m === 'notice' ? undefined : calls.patterns[m])) }));
   const inRange = data.episodes.filter((e) => e.start >= from && e.start <= to);
   let nights = 0, evenings = 0;
   const p = prepare(data.measured, data.activity, from, to);
@@ -182,7 +192,7 @@ export function evaluateRhythm(data: RhythmData, opts: Options): RhythmEvaluatio
 
 const TYPE_LABEL: Record<EpisodeType, string> = { up: 'Uppvarvade', down: 'Nedstämda', mixed: 'Blandade' };
 
-function rate(n: number, days: number): string {
+export function rate(n: number, days: number): string {
   if (days < 30) return `${n} på ${days} dagar`;
   return `${String(Math.round((n / (days / 30)) * 10) / 10).replace('.', ',')} per månad (${n} på ${days} dagar)`;
 }
@@ -219,14 +229,15 @@ export function evaluationReport(ev: RhythmEvaluation): string {
       }
     }
     out.push('');
-    out.push('| Metod | Falsklarm | Avstod | ');
+    const known = ev.episodes.total > 0;
+    out.push(known ? '| Metod | Falsklarm | Avstod | ' : '| Metod | Larm, inga episoder att jämföra med | Avstod | ');
     out.push('| --- | --- | --- |');
     for (const m of part.methods) {
       out.push(`| ${METHOD_NAME[m.method]} | ${rate(m.falseAlarms, m.judgedStableDays)} | ${m.abstainDays} av ${m.days} dagar |`);
     }
     const anyEp = part.methods[0].perType;
     const n = anyEp.up.episodes + anyEp.down.episodes + anyEp.mixed.episodes;
-    if (n < MIN_EPISODES_FOR_RATE) out.push('', `För få dokumenterade episoder i den här delen (${n}) för att säga något om hur ofta starter fångas. Falsklarmen och hur ofta modellen avstod går att läsa ändå.`);
+    if (n < MIN_EPISODES_FOR_RATE) out.push('', `För få dokumenterade episoder i den här delen (${n}) för att säga något om hur ofta starter fångas. ${ev.episodes.total ? 'Falsklarmen' : 'Larmen'} och hur ofta modellen avstod går att läsa ändå.`);
   }
   return out.join('\n');
 }
