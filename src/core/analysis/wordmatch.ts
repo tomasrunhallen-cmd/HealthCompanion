@@ -28,6 +28,11 @@ export function negatedAgainst(text: string, signText: string): boolean {
   return tokenize(text).some((w) => NEGATIONS.has(w) && !sign.has(w));
 }
 
+/** True when the text has a negation of its own ("Svarar inte på sms"). */
+export function hasNegation(text: string): boolean {
+  return tokenize(text).some((w) => NEGATIONS.has(w));
+}
+
 export function normalize(text: string): string {
   return text
     .toLowerCase()

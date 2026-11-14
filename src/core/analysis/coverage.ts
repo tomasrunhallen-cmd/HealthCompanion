@@ -10,6 +10,8 @@ import { LEVEL_WORD } from './levelWords';
 export function thinReasons(entry: Entry, a: Assessment): string[] {
   if (a.akut) return [];
   const out: string[] = [];
+  // A green day says nothing about signs when the plan has none to compare the note with.
+  if (a.inputs && a.inputs.signs.length === 0) out.push('din plan har inga tecken att jämföra med');
   if (entry.kind === 'checkin' && !entry.transcript.trim()) out.push('ingen anteckning');
   if (entry.sleepHours == null) out.push('sömn saknas');
   if (wasStale(entry)) out.push(`klockan hade bara synkat till ${entry.measuredUntil}`);

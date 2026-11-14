@@ -379,7 +379,7 @@ Stämningen skattas på en bipolär skala med sju steg:
 | F02 grönt med tunt underlag | "Underlaget är tunt: …" intill nivån. Baslinjen tar bara fullständiga gröna dagar. En behållen dag säger vad klockans senare värden hade gett |
 | F03 ±3 ger gult | ±3 väger som ett allvarligt tecken: planens steg vid rött, och rött med ett annat tecken |
 | F04 akutregeln | Fem missar täppta. Sammanhang (förr, någon annan, ämne) ger den mildare rutan. 48 formuleringar som test |
-| F05 modellen | Allvarliga tecken från ordmatchningen räknas alltid. Negation kontrolleras på telefonen. Modellens mening bara när den nämner det som gav poäng. Injektionstester |
+| F05 modellen | Tecken från ordmatchningen räknas också när modellen utelämnar dem, även tidiga (regler 1.7.0, före det bara allvarliga), så modellen kan inte sänka nivån. Undantag: tidiga tecken som själva innehåller en negation, där modellen avgör. Negation kontrolleras på telefonen. Modellens mening bara när den nämner det som gav poäng. Injektionstester |
 | F06 hjälp och rensning | *Hjälp nu* på låsskärm, inloggning, kryptering, laddning och vid fel. Rensningen säger vad som försvinner |
 | F07 rensning av text | Skickad text syns under *Så räknade appen*. Samtycket säger rensad, inte anonym |
 | F08 säkerhet | `THREATS.md`. Netlify-funktionerna nekar andra webbplatser och begränsar antal anrop |

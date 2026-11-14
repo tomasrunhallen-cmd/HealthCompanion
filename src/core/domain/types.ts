@@ -428,9 +428,12 @@ export interface AssessmentInputs {
   /** Medication answers per day, as used by the rule. */
   medication: Record<DateKey, boolean>;
   baseline: Baseline;
-  /** With a model: serious signs word matching found and the model left out. They count anyway. */
+  /** With a model: signs word matching found and the model left out. They count anyway (before rules 1.7.0: serious signs only). */
   keptByPhone?: SignMatch[];
-  /** With a model: other signs word matching found and the model did not count. Shown, not counted. */
+  /**
+   * With a model: early signs with a negation of their own ("Svarar inte på sms") that word matching
+   * found and the model did not count. Shown, not counted. Before rules 1.7.0: every early sign.
+   */
   wordOnly?: SignMatch[];
   /** The model's sentence, when it was not used because it did not mention what gave points. */
   sentenceDropped?: string | null;

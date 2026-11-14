@@ -5,7 +5,7 @@ import { addDays, eveningDateKey, localClock, toDateKey } from '../core/analysis
 import { minutesBehind, STALE_MINUTES } from '../core/analysis/remeasure';
 import type { DateKey, GarminDay } from '../core/domain/types';
 import { GarminClient, GarminError, type GarminFetch } from '../garmin/client';
-import { garminBaseUrl } from '../platform/endpoints';
+import { garminBaseUrl, garminFetch } from '../platform/endpoints';
 import { deleteKey, getKey, setKey } from './keys';
 import type { Repository } from '../storage/repository';
 import { fetchActivity, recordSync, rhythmMode, updateRhythm, type SyncTrigger } from './rhythm';
@@ -35,7 +35,7 @@ let cached: { key: string; client: GarminClient } | null = null;
 function clientFor(key: string, opts: GarminOptions): GarminClient {
   const baseUrl = garminBaseUrl();
   if (opts.fetch) return new GarminClient({ apiKey: key, baseUrl, fetch: opts.fetch, timeoutMs: opts.timeoutMs });
-  if (!cached || cached.key !== key) cached = { key, client: new GarminClient({ apiKey: key, baseUrl, timeoutMs: opts.timeoutMs }) };
+  if (!cached || cached.key !== key) cached = { key, client: new GarminClient({ apiKey: key, baseUrl, fetch: garminFetch(), timeoutMs: opts.timeoutMs }) };
   return cached.client;
 }
 

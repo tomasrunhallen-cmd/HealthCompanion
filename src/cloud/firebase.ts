@@ -16,6 +16,10 @@ export function onUserChanged(cb: (u: CloudUser | null) => void): () => void {
 export async function signIn(_email: string, _password: string): Promise<void> {}
 export async function resetPassword(_email: string): Promise<void> {}
 export async function signOutUser(): Promise<void> {}
+/** The signed-in person's Firebase ID token, for the web version's own functions. None on the phone. */
+export async function currentIdToken(): Promise<string | null> {
+  return null;
+}
 
 export function cloudDocsFor(_uid: string): CloudDocs {
   throw new Error('Firebase används bara i webbversionen.');

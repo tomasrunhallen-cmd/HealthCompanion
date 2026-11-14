@@ -65,6 +65,15 @@ export async function signOutUser(): Promise<void> {
   await signOut(init().auth);
 }
 
+/**
+ * The signed-in person's Firebase ID token, renewed by Firebase when it is about to expire.
+ * Sent only to the app's own Netlify function, which checks it before it forwards a Garmin call.
+ */
+export async function currentIdToken(): Promise<string | null> {
+  if (!cloudConfigured) return null;
+  return (await init().auth.currentUser?.getIdToken()) ?? null;
+}
+
 const BATCH_LIMIT = 450;
 
 export function cloudDocsFor(uid: string): CloudDocs {

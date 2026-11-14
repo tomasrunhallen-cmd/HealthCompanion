@@ -15,7 +15,7 @@ import { RULES_VERSION } from '../core/analysis/rules';
 import { evaluateRhythm, type RhythmEvaluation } from '../core/analysis/rhythmEval';
 import type { DateKey, Level, MeasuredDay, RhythmScoreInput } from '../core/domain/types';
 import { GarminClient, GarminError } from '../garmin/client';
-import { garminBaseUrl } from '../platform/endpoints';
+import { garminBaseUrl, garminFetch } from '../platform/endpoints';
 import type { Repository } from '../storage/repository';
 import { firstStep } from '../core/analysis/assess';
 import { sleepRoutineText } from '../core/analysis/sleepNotice';
@@ -266,7 +266,7 @@ export async function fetchAllActivity(
   if (!client) {
     const key = await getKey(repo, 'dagsljus.garminkey.v1');
     if (!key) return;
-    client = new GarminClient({ apiKey: key, baseUrl: garminBaseUrl() });
+    client = new GarminClient({ apiKey: key, baseUrl: garminBaseUrl(), fetch: garminFetch() });
   }
   fetching = true;
   const doneBefore = before && !before.finished ? before.done : 0;

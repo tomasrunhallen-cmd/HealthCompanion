@@ -1,6 +1,6 @@
 // The model reads the note, but it must not be able to hide a serious sign, steer the sentence
 // or count a quote that says the opposite (granskning 2 november 2026, F05).
-import { assessEntry, sentenceFits, type SignMatcher } from '../src/core/analysis/assess';
+import { assessEntry, sentenceFits, wordMatcher, type SignMatcher } from '../src/core/analysis/assess';
 import { matchSigns, negatedAgainst } from '../src/core/analysis/wordmatch';
 import { explainAssessment } from '../src/core/analysis/explain';
 import { DEFAULT_PLAN_SETTINGS, type Entry, type PlanItem } from '../src/core/domain/types';
@@ -8,6 +8,7 @@ import { DEFAULT_PLAN_SETTINGS, type Entry, type PlanItem } from '../src/core/do
 const plan: PlanItem[] = [
   { id: 'e1', kind: 'early', text: 'Handlar saker jag inte behöver', order: 0, approvedAt: null },
   { id: 's1', kind: 'serious', text: 'Slutar äta', order: 1, approvedAt: null },
+  { id: 'e2', kind: 'early', text: 'Pratar fortare', order: 2, approvedAt: null },
   { id: 'r1', kind: 'action_red', text: 'Ringer mottagningen', order: 0, approvedAt: null },
 ];
 const entry = (transcript: string): Entry => ({
@@ -38,11 +39,40 @@ describe('Modellen kan inte gömma ett allvarligt tecken eller styra meningen', 
     expect(why.data).toContain('Modellens mening användes inte, eftersom den inte nämnde det som gav poäng');
   });
 
-  it('an early sign the model did not count is shown, not counted', async () => {
+  it('an early sign found on the phone counts although the model left it out: the model cannot lower the level (rules 1.7.0)', async () => {
+    const note = 'Pratar fortare än vanligt hela dagen.';
+    const a = await run(note, model({ matches: [], sentence: 'En lugn dag.' }));
+    const phone = await run(note, wordMatcher);
+    expect(phone.level).toBe('yellow');
+    expect(a.level).toBe(phone.level);
+    expect(a.points).toBe(phone.points);
+    expect(a.inputs?.keptByPhone?.map((m) => m.planItemId)).toEqual(['e2']);
+    expect(a.inputs?.wordOnly).toBeUndefined();
+    expect(a.inputs?.sentenceDropped).toBe('En lugn dag.');
+    expect(explainAssessment(entry('x'), a, null).data).toContain('Modellen tog inte med tecknet ”Pratar fortare”, som ordmatchningen hittade. Det räknas ändå');
+  });
+
+  it('a negated sentence still gives nothing, with or without a model', async () => {
+    const note = 'Pratar inte fortare än vanligt.';
+    const a = await run(note, model({ matches: [], sentence: 'En lugn dag.' }));
+    expect((await run(note, wordMatcher)).level).toBe('green');
+    expect(a.level).toBe('green');
+    expect(a.inputs?.keptByPhone).toBeUndefined();
+  });
+
+  it('an early sign with a negation of its own is left to the model, and the difference is shown', async () => {
+    // "Handlar saker jag inte behöver": the phone cannot tell it from a sentence that denies it.
     const a = await run('Handlar saker jag inte behöver hela dagen.', model({ matches: [], sentence: 'En lugn dag.' }));
     expect(a.level).toBe('green');
     expect(a.inputs?.wordOnly?.map((m) => m.planItemId)).toEqual(['e1']);
     expect(explainAssessment(entry('x'), a, null).data).toContain('Ordmatchningen hittade också ”Handlar saker jag inte behöver”, men modellen räknade det inte');
+  });
+
+  it('the model can still add a sign that word matching cannot see', async () => {
+    const note = 'Orden bara forsar ur mig i dag.';
+    expect((await run(note, wordMatcher)).level).toBe('green');
+    const a = await run(note, model({ matches: [{ planItemId: 'e2', quote: 'Orden bara forsar ur mig' }], sentence: 'Du pratar fortare i dag.' }));
+    expect(a.level).toBe('yellow');
   });
 
   it('keeps a model sentence that speaks of what gave points, also of a measured sign', async () => {

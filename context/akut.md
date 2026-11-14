@@ -1,6 +1,6 @@
 ---
 id: akut
-version: 0.4.0
+version: 0.5.0
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Akutordlista
@@ -60,6 +60,27 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
 - tabletter för att dö
 - vill inte finnas
 - pallar inte leva
+- ska skada mig
+- vill skada mig
+- tänker skada mig
+- skadat mig själv
+- skurit mig
+- hänga mig
+- dränka mig
+- hoppa från bron
+- hoppa från balkongen
+- ta en överdos
+- samlat tabletter
+- sparat tabletter
+- somna och aldrig vakna
+- aldrig vakna igen
+- aldrig vakna mer
+- inte vakna igen
+- somna in för gott
+- want to die
+- kill myself
+- end my life
+- hurt myself
 
 ## Kärnord
 
@@ -70,6 +91,7 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
 - dödstank
 - dödsönsk
 - livsled
+- avskedsbrev
 
 ## Undantag
 

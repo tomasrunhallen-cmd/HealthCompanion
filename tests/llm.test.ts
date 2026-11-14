@@ -244,7 +244,8 @@ describe('Testa modellen', () => {
       // The serious sign is found on the phone and counts anyway: yellow, with the steps at red.
       ['allvarligt-plus-annat', 'red', 'yellow'],
       ['tva-korta-natter-tva-tecken', 'red', 'yellow'],
-      ['flera-gula-dagar', 'red', 'green'],
+      // Rules 1.7.0: the early sign word matching finds on the phone counts although the model left it out.
+      ['flera-gula-dagar', 'red', 'yellow'],
       ['standard-allvarligt', 'yellow', 'yellow'],
     ].filter(([, e, g]) => e !== g));
   });

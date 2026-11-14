@@ -13,7 +13,7 @@ import { deleteKey } from '../../services/keys';
 import { LLM_KEY_NAME } from '../../services/llm';
 import { GARMIN_KEY_NAME } from '../../services/garmin';
 import { signOutUser } from '../../cloud/firebase';
-import { healthAvailable, healthUnavailableReason } from '../../platform/health';
+import { healthAvailable } from '../../platform/health';
 import { PACE_TEXT } from '../../core/analysis/signals';
 import { DAY_SUGGESTION_KEY, modelSuggestionsOn } from '../../services/daySuggestion';
 import { Button, Segmented, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
@@ -292,7 +292,7 @@ export function SettingsScreen() {
           <P muted>Förändringar i sömn och dygnsrytm från klockan, även veckor utan anteckningar. {({ off: 'Av.', show: 'Visar mönster, påverkar inte nivån.', use: 'Används i bedömningen.' } as const)[s.rhythm ?? 'off']}</P>
           <Button kind="secondary" title="Dygnsrytm" onPress={() => nav.push({ name: 'rhythm' })} />
           <P muted style={{ marginTop: space.m }}>
-            Sömn och stress: din egen uppgift i avstämningen går före klockan, och klockan före Apple Hälsa eller Health Connect{healthAvailable ? '' : ` (${healthUnavailableReason.replace(/\.$/, '').toLowerCase()})`}. Bedömningen visar alltid vilken källa som användes.
+            Sömn och stress: det du själv anger i avstämningen går före klockans värde{healthAvailable ? ', och klockan går före Apple Hälsa' : ''}. Bedömningen visar alltid vilken källa som användes.
           </P>
         </Card>
       </Section>

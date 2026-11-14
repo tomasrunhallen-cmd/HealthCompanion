@@ -113,7 +113,8 @@ export function explainAssessment(entry: Entry, a: Assessment, garmin: GarminDay
 
   // Where the model and word matching on the phone disagreed.
   const signText = (id: string) => a.inputs?.signs.find((x) => x.id === id)?.text ?? id;
-  for (const m of a.inputs?.keptByPhone ?? []) data.push(`Modellen tog inte med det allvarliga tecknet ”${signText(m.planItemId)}”, som ordmatchningen hittade. Det räknas ändå`);
+  const seriousSign = (id: string) => a.inputs?.signs.find((x) => x.id === id)?.kind === 'serious';
+  for (const m of a.inputs?.keptByPhone ?? []) data.push(`Modellen tog inte med ${seriousSign(m.planItemId) ? 'det allvarliga tecknet' : 'tecknet'} ”${signText(m.planItemId)}”, som ordmatchningen hittade. Det räknas ändå`);
   for (const m of a.inputs?.wordOnly ?? []) data.push(`Ordmatchningen hittade också ”${signText(m.planItemId)}”, men modellen räknade det inte`);
   if (a.inputs?.sentenceDropped) data.push('Modellens mening användes inte, eftersom den inte nämnde det som gav poäng');
   if (a.textPatterns) {
