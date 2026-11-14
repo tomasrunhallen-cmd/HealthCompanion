@@ -65,6 +65,8 @@ describe('a plan whose steps at red are a ladder', () => {
       // The clinic and its number stay together, and never in the heading of the steps.
       expect(blocks.some((b) => b.heading.includes('telefonnummer') && b.type === 'ladder')).toBe(false);
       expect(blocks.map((b) => `${b.heading} ${b.text}`).join('\n')).toContain('08-000 00 00');
+      // The document's title is not a block the person has to sort.
+      expect(blocksFromRows(draftFromText(text).rows).some((b) => b.type == null)).toBe(false);
     });
 
     it(`shows the ladder as the plan at red in Hjälp nu, on a red day and in the emergency card (${name})`, async () => {

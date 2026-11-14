@@ -14,7 +14,7 @@ import { simulatedYear } from '../../core/analysis/rhythmSim';
 import type { DateKey, Level } from '../../core/domain/types';
 import {
   activityDays, activityProgress, activitySource, episodeStarts, fetchAllActivity, missingActivityDays, evaluateOwnData, explainCourse, latestRhythm, planStepFor,
-  rhythmEffect, rhythmFeedback, rhythmMode, setRhythmMode, syncLog, undoExplanation, updateRhythm, watchNights,
+  rhythmEffect, rhythmFeedback, rhythmMode, setRhythmMode, syncLog, undoExplanation, watchNights,
 } from '../../services/rhythm';
 import { Button, Card, Chip, Disclosure, Eyebrow, P, Row, Screen, Section, Segmented, Tag } from '../components';
 import { useNav } from '../nav';
@@ -160,7 +160,6 @@ export function RhythmScreen() {
   const nav = useNav();
   const mode = rhythmMode(repo);
   const a = latestRhythm(repo);
-  const [busy, setBusy] = useState(false);
   const [ev, setEv] = useState<RhythmEvaluation | null>(null);
   const feedback = a?.courseStart ? rhythmFeedback(repo)[a.courseStart] : undefined;
   const step = a ? planStepFor(repo, a) : null;
@@ -174,10 +173,6 @@ export function RhythmScreen() {
   const act = Object.keys(activityDays(repo)).sort();
   const episodes = episodeStarts(repo);
 
-  const recompute = async () => {
-    setBusy(true);
-    try { await updateRhythm(repo); } finally { setBusy(false); }
-  };
   const fetchProgress = activityProgress(repo);
   const missing = mode === 'off' ? [] : missingActivityDays(repo, today);
   const fetchNow = () => { fetchAllActivity(repo).catch(() => null); };
@@ -208,7 +203,7 @@ export function RhythmScreen() {
                   <P muted style={{ marginTop: space.xs }}>Beräknas efter varje hämtning från Garmin och när du öppnar appen. Appen kan inte hämta när den är stängd.</P>
                 </>
               ) : <P>Ingen bedömning ännu.</P>}
-              <Button kind="ghost" title="Beräkna nu" busy={busy} onPress={recompute} />
+
             </Card>
           </Section>
 

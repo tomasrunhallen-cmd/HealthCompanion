@@ -162,11 +162,13 @@ export function GarminScreen() {
           <Card>
             <P>Trenden över 6 månader och ett år använder Garmins värden för hela perioden. Appen sparar alla dagar den hämtat.</P>
             <P muted style={{ marginTop: space.xs }}>
-              {history ?? (backfillState(repo)?.oldestWithData ? `Hämtat bakåt till ${formatDateSv(backfillState(repo)!.oldestWithData!)}.` : 'Hämta ett år bakåt en gång. Det tar en minut eller två.')}
+              {history ?? (backfillState(repo)?.nextEnd == null && backfillState(repo)?.oldestWithData
+                ? `Hämtat bakåt till ${formatDateSv(backfillState(repo)!.oldestWithData!)}.`
+                : 'Det senaste året hämtas av sig självt när appen är öppen, och fortsätter där det slutade.')}
             </P>
             {busy === 'history'
               ? <Button kind="ghost" title="Avbryt" onPress={() => { stop.current = true; }} />
-              : <Button kind="secondary" title="Hämta ett år bakåt" hint="Hämtar sömn och stress från Garmin för det senaste året" onPress={fetchYear} />}
+              : backfillState(repo)?.nextEnd !== null ? <Button kind="ghost" title="Hämta nu" hint="Hämtar sömn och stress från Garmin för det senaste året" onPress={fetchYear} /> : null}
           </Card>
         </Section>
       ) : null}

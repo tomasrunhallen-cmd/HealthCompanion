@@ -36,7 +36,9 @@ Normalläge: sover sju timmar, jobbar dagtid`;
     expect(by((r) => f(r).kind === 'action' && f(r).when === 'serious')).toEqual(['Ring mottagningen']);
     expect(by((r) => f(r).kind === 'action' && f(r).who === 'relative')).toEqual(['Fråga hur jag sover']);
     expect(by((r) => r.special === 'normal')).toEqual(['sover sju timmar', 'jobbar dagtid']);
-    expect(by((r) => r.source === 'needs')).toEqual(['Min krisplan']);
+    // The first line names the document: its title, not a row to sort.
+    expect(by((r) => r.source === 'needs')).toEqual([]);
+    expect(d.title).toBe('Min krisplan');
     expect(d.rows.every((r) => !r.approved)).toBe(true);
   });
 });

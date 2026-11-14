@@ -108,3 +108,22 @@ export async function backfillGarmin(
 function daysBetweenInclusive(a: DateKey, b: DateKey): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000) + 1;
 }
+
+let autoRunning = false;
+
+/**
+ * Sleep and stress for the last year, by itself while the app is open, the same way as the heart
+ * rate: started once Garmin is connected, continued where it stopped, and left alone when done.
+ */
+export async function autoBackfillGarmin(repo: Repository, opts: { cancelled?: () => boolean; now?: Date; fetch?: GarminFetch; pauseMs?: number } = {}): Promise<void> {
+  if (autoRunning || !repo.garminStatus().connected) return;
+  const saved = backfillState(repo);
+  if (saved && !saved.nextEnd) return;
+  const today = toDateKey(opts.now ?? new Date());
+  autoRunning = true;
+  try {
+    await backfillGarmin(repo, saved?.from ?? addDays(today, -365), saved?.to ?? addDays(today, -1), opts);
+  } finally {
+    autoRunning = false;
+  }
+}

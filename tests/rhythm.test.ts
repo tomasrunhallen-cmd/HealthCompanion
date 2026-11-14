@@ -473,3 +473,18 @@ describe('no documented episodes: a change, but never support for a direction', 
     expect(s.rhythm).toMatchObject({ used: false, with: { level: 'green' }, without: { level: 'green' } });
   });
 });
+
+describe('sleep and stress for the last year, by themselves', () => {
+  const hist = jest.requireActual('../src/services/garminHistory') as typeof import('../src/services/garminHistory');
+  it('does nothing without Garmin, and nothing more once the year is fetched', async () => {
+    const repo = await Repository.create(memoryBackend());
+    let calls = 0;
+    const fetch = (async () => { calls++; return { ok: true, status: 200, text: async () => '[]' }; }) as never;
+    await hist.autoBackfillGarmin(repo, { fetch, pauseMs: 0 });
+    expect(calls).toBe(0);
+    await repo.updateGarminStatus({ connected: true });
+    await repo.kvSet('garminBackfill', { from: d(365), to: d(1), nextEnd: null, emptyRounds: 0, fetchedDays: 300, oldestWithData: d(300) });
+    await hist.autoBackfillGarmin(repo, { fetch, pauseMs: 0 });
+    expect(calls).toBe(0);
+  });
+});

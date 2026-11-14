@@ -10,6 +10,7 @@ import { clearPin, lockSupport, unlock, usesPin } from '../platform/lock';
 import { cloudConfigured, onUserChanged, signOutUser, type CloudUser } from '../cloud/firebase';
 import { syncOnOpen } from '../services/garmin';
 import { ensureRhythm, fetchAllActivity } from '../services/rhythm';
+import { autoBackfillGarmin } from '../services/garminHistory';
 import { afterSync } from '../services/remeasure';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
@@ -35,6 +36,8 @@ function GarminAutoSync(props: { repo: Repository }) {
       // Dygnsrytm: also without a new sync (offline, or synced a moment ago), today's estimate from what is stored.
       .then(() => ensureRhythm(props.repo))
       // Dygnsrytm: the heart rate of every earlier day, by itself while the app is open.
+      // Sleep and stress for the last year, then the heart rate of every earlier day, by themselves while the app is open.
+      .then(() => autoBackfillGarmin(props.repo, { cancelled: () => AppState.currentState !== 'active' }))
       .then(() => fetchAllActivity(props.repo, { cancelled: () => AppState.currentState !== 'active' }))
       .catch(() => null);
     run();

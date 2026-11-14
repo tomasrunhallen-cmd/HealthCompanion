@@ -179,17 +179,9 @@ export function RoutinesScreen() {
     <Screen title="Rutiner">
       <P muted>{reminderViaCalendar ? 'Påminnelsen läggs i kalendern, utan rutinens ord.' : 'Rutinens ord syns på låsskärmen.'}</P>
       {list.length ? (
-        <Card style={{ marginTop: space.m }}>
-          <Toggle
-            label="Dagens förslag med språkmodellen"
-            value={modelSuggestionsOn(repo)}
-            onChange={async (on) => {
-              await repo.updateSettings({ routineSuggestions: on });
-              await repo.kvSet(DAY_SUGGESTION_KEY, null);
-            }}
-            hint="Hem föreslår varje morgon vilka rutiner som passar i dag. Med en kopplad språkmodell väljer och motiverar den utifrån rutinernas ord, rensade, och hur ofta de gjorts. Inga anteckningar skickas. Avstängt väljer appen själv."
-          />
-        </Card>
+        <P muted style={{ marginTop: space.xs }}>
+          Hem föreslår varje dag vilka rutiner som passar. {modelSuggestionsOn(repo) ? 'Språkmodellen formulerar förslaget.' : 'Appen väljer själv.'} Det ändras under Inställningar, Språkmodell.
+        </P>
       ) : null}
       {list.length === 0 ? (
         <Card style={{ marginTop: space.m }}>

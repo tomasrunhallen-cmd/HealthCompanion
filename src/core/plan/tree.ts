@@ -48,6 +48,12 @@ export function buildTree(lines: SourceLine[]): PlanTree {
       titleIdx = headingIdx[0];
     }
   }
+  // Pasted text has no levels: a first line that names the document ("Krisplan", "Min krisplan för …")
+  // is its title, not a block of its own.
+  if (titleIdx < 0 && lines[0] && !lines[0].list && lines[0].text.length <= 60 && /^(min |mina |personlig |gemensam )?krisplan\b/i.test(lines[0].text)) {
+    title = lines[0].text;
+    titleIdx = 0;
+  }
 
   const rows: PlanRow[] = [];
   const stack: { level: number; text: string }[] = [];

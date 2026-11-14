@@ -15,6 +15,7 @@ import { GARMIN_KEY_NAME } from '../../services/garmin';
 import { signOutUser } from '../../cloud/firebase';
 import { healthAvailable, healthUnavailableReason } from '../../platform/health';
 import { PACE_TEXT } from '../../core/analysis/signals';
+import { DAY_SUGGESTION_KEY, modelSuggestionsOn } from '../../services/daySuggestion';
 import { Button, Segmented, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
@@ -150,7 +151,7 @@ export function SettingsScreen() {
 
   return (
     <Screen title="Inställningar" back>
-      <Section title="Påminnelse">
+      <Section title="Påminnelser">
         <Card>
           {reminderViaCalendar ? (
             <Text style={[type.body, { fontWeight: '600' }]}>Påminn mig på kvällen via telefonens kalender</Text>
@@ -177,11 +178,7 @@ export function SettingsScreen() {
                 ? 'En lokal notis på din telefon. Den skickas aldrig till någon annan.'
                 : 'Påminnelser finns bara i appen på telefonen.')}
           </P>
-        </Card>
-      </Section>
-
-      <Section title="Signaler">
-        <Card>
+          <View style={{ marginTop: space.m }}>
           <Toggle
             label="Tysta timmar"
             hint={s.quietHours ? `${s.quietHours.start}–${s.quietHours.end}. Appen skickar inga egna notiser då. Påminnelser du själv ställt in kommer som vanligt.` : 'Inga egna notiser från appen under natten.'}
@@ -204,16 +201,21 @@ export function SettingsScreen() {
               </Row>
             </>
           ) : null}
+          </View>
+          <P muted style={{ marginTop: space.m }}>Påminnelser för enskilda rutiner ställer du in under Rutiner.</P>
+          <Button kind="ghost" title="Rutinernas påminnelser" onPress={() => nav.push({ name: 'routines' })} />
+        </Card>
+      </Section>
+
+      <Section title="Profilförslag">
+        <Card>
           <Segmented
-            label="Förslag från appen visas"
+            label="Profilförslag visas"
             value={s.suggestionPace ?? 'direct'}
             onChange={(suggestionPace) => repo.updateSettings({ suggestionPace })}
             options={(['direct', 'weekly', 'visit'] as const).map((v) => ({ value: v, label: PACE_TEXT[v] }))}
           />
-          <Text style={[type.small, { marginTop: space.xs }]}>En gång i veckan betyder på måndagar. Bara inför återbesök betyder att förslagen bara visas under Inför återbesök.</Text>
-          <View style={{ marginTop: space.m }}>
-            <Toggle label="Lågt läge" hint="Bara kvällens avstämning och Hjälp nu visas." value={!!s.lowMode} onChange={(lowMode) => repo.updateSettings({ lowMode })} />
-          </View>
+          <Text style={[type.small, { marginTop: space.xs }]}>Förslag till din profil, till exempel nya formuleringar eller tidigare perioder. En gång i veckan betyder på måndagar. Bara inför återbesök betyder att de bara visas under Inför återbesök.</Text>
         </Card>
       </Section>
 
@@ -253,34 +255,43 @@ export function SettingsScreen() {
                 : 'Ingen språkmodell är kopplad. Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen.'}
           </P>
           <Button kind="secondary" title={llm.provider ? 'Ändra språkmodell' : 'Koppla en språkmodell'} onPress={() => nav.push({ name: 'llm' })} />
+          {llm.provider ? (
+            <>
+              <Text style={[type.label, { marginTop: space.m }]}>ANVÄNDS TILL</Text>
+              <P style={{ marginTop: space.xs }}>Kvällens bedömning: letar efter dina tecken i anteckningen.</P>
+              <View style={{ marginTop: space.s }}>
+                <Toggle
+                  label="Dagens rutinförslag"
+                  value={modelSuggestionsOn(repo)}
+                  onChange={async (on) => {
+                    await repo.updateSettings({ routineSuggestions: on });
+                    await repo.kvSet(DAY_SUGGESTION_KEY, null);
+                  }}
+                  hint="Väljer och motiverar dagens rutiner på Hem utifrån rutinernas ord, rensade, och hur ofta de gjorts. Inga anteckningar skickas. Avstängt väljer appen själv."
+                />
+              </View>
+              <P style={{ marginTop: space.s }}>Jämförelse med tidigare texter: {s.textPatterns?.enabled ? 'på' : 'av'}.</P>
+              <Button kind="ghost" title="Mina tidigare texter" onPress={() => nav.push({ name: 'references' })} />
+            </>
+          ) : null}
         </Card>
       </Section>
 
-      <Section title="Sömn och stress">
+      <Section title="Klocka och källor">
         <Card>
-          <P>Tre källor, i den här ordningen när flera har värden samma dag:</P>
-          <P style={{ marginTop: space.xs }}>1. Din egen uppgift i kvällens avstämning.</P>
-          <P style={{ marginTop: space.xs }}>2. Garmin{repo.garminStatus().connected ? ', ansluten.' : ', inte ansluten.'}</P>
-          <P style={{ marginTop: space.xs }}>3. Apple Hälsa eller Health Connect. {healthAvailable ? 'Tillgänglig.' : healthUnavailableReason}</P>
-          <P muted style={{ marginTop: space.s }}>Bedömningen visar alltid vilken källa som användes. Stress jämförs bara med stress från samma källa.</P>
-        </Card>
-      </Section>
-
-      <Section title="Garmin">
-        <Card>
-          <P>
+          <Text style={[type.body, { fontWeight: '600' }]}>Garmin</Text>
+          <P muted>
             {garmin.connected
-              ? `Ansluten. Sömn och stress hämtas från ditt Garmin-konto.${garmin.lastError ? ` Senaste hämtningen misslyckades: ${garmin.lastError}` : ''}`
+              ? `Ansluten. Sömn, stress och puls hämtas när appen öppnas, även bakåt i tiden.${garmin.lastError ? ` Senaste hämtningen misslyckades: ${garmin.lastError}` : ''}`
               : 'Inte ansluten. Sömnen tas ur anteckningen och stress mäts inte.'}
           </P>
-          <Button kind="secondary" title={garmin.connected ? 'Ändra Garmin' : 'Anslut Garmin'} onPress={() => nav.push({ name: 'garmin' })} />
-        </Card>
-      </Section>
-
-      <Section title="Dygnsrytm (experimentell)">
-        <Card>
-          <P muted>Letar efter förändringar i sömn och dygnsrytm från klockan, även veckor utan anteckningar. {({ off: 'Av.', show: 'Visas, påverkar inte nivån.', use: 'Används i bedömningen.' } as const)[repo.settings().rhythm ?? 'off']}</P>
+          <Button kind="secondary" title={garmin.connected ? 'Garmin' : 'Anslut Garmin'} onPress={() => nav.push({ name: 'garmin' })} />
+          <Text style={[type.body, { fontWeight: '600', marginTop: space.m }]}>Dygnsrytm (experimentell)</Text>
+          <P muted>Förändringar i sömn och dygnsrytm från klockan, även veckor utan anteckningar. {({ off: 'Av.', show: 'Visas, påverkar inte nivån.', use: 'Används i bedömningen.' } as const)[s.rhythm ?? 'off']}</P>
           <Button kind="secondary" title="Dygnsrytm" onPress={() => nav.push({ name: 'rhythm' })} />
+          <P muted style={{ marginTop: space.m }}>
+            Sömn och stress: din egen uppgift i avstämningen går före klockan, och klockan före Apple Hälsa eller Health Connect{healthAvailable ? '' : ` (${healthUnavailableReason.replace(/\.$/, '').toLowerCase()})`}. Bedömningen visar alltid vilken källa som användes.
+          </P>
         </Card>
       </Section>
 
