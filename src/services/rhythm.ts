@@ -20,18 +20,22 @@ import { firstStep } from '../core/analysis/assess';
 import { sleepRoutineText } from '../core/analysis/sleepNotice';
 import { getKey } from './keys';
 
+/** Before month documents: one document with every day. Read, and moved on the next save. */
 export const ACTIVITY_KEY = 'rhythmActivity';
+/** Heart-rate days, one document per month ("rhythmActivity:2026-11"), so no document grows too large. */
+export const ACTIVITY_MONTH_PREFIX = 'rhythmActivity:';
+/** Days Garmin had no pulse for: not asked again. */
+const ACTIVITY_EMPTY_KEY = 'rhythmActivityEmpty';
+export const ACTIVITY_PROGRESS_KEY = 'rhythmActivityProgress';
 export const ASSESSMENTS_KEY = 'rhythmAssessments';
 export const EPISODES_KEY = 'episodeStarts';
 export const FEEDBACK_KEY = 'rhythmFeedback';
 export const SYNC_LOG_KEY = 'garminSyncLog';
 export const ACTIVITY_SOURCE_KEY = 'rhythmActivitySource';
-const BACKFILL_KEY = 'rhythmActivityBackfill';
 export const SEEN_KEY = 'rhythmSeen';
 
 /** Heart-rate days fetched per sync at most: one call each. */
 export const ACTIVITY_DAYS_PER_SYNC = 8;
-const KEEP_ACTIVITY_DAYS = 430;
 const KEEP_ASSESSMENTS = 90;
 const KEEP_SYNC_LOG = 40;
 
@@ -67,7 +71,27 @@ export function rhythmMode(repo: Repository): RhythmMode {
 }
 
 export function activityDays(repo: Repository): Record<DateKey, ActivityDay> {
-  return (repo.kvGet(ACTIVITY_KEY) as Record<DateKey, ActivityDay> | undefined) ?? {};
+  const out: Record<DateKey, ActivityDay> = { ...((repo.kvGet(ACTIVITY_KEY) as Record<DateKey, ActivityDay> | undefined) ?? {}) };
+  for (const k of repo.kvKeys(ACTIVITY_MONTH_PREFIX)) Object.assign(out, repo.kvGet(k) as Record<DateKey, ActivityDay>);
+  return out;
+}
+
+/** Saves heart-rate days into their month documents; the old single document is emptied into them. */
+export async function saveActivityDays(repo: Repository, days: ActivityDay[]): Promise<void> {
+  const legacy = (repo.kvGet(ACTIVITY_KEY) as Record<DateKey, ActivityDay> | undefined) ?? null;
+  const all = legacy ? [...Object.values(legacy), ...days] : days;
+  const months = new Map<string, ActivityDay[]>();
+  for (const d of all) {
+    const m = d.date.slice(0, 7);
+    months.set(m, [...(months.get(m) ?? []), d]);
+  }
+  for (const [m, list] of months) {
+    const key = ACTIVITY_MONTH_PREFIX + m;
+    const cur = { ...((repo.kvGet(key) as Record<DateKey, ActivityDay> | undefined) ?? {}) };
+    for (const d of list) cur[d.date] = d;
+    await repo.kvSet(key, cur);
+  }
+  if (legacy) await repo.kvRemove(ACTIVITY_KEY);
 }
 
 export function rhythmAssessments(repo: Repository): Record<DateKey, RhythmAssessment> {
@@ -157,13 +181,13 @@ export function activityDaysToFetch(have: Record<DateKey, ActivityDay>, today: D
 export async function fetchActivity(repo: Repository, client: GarminClient, today: DateKey, now: Date): Promise<number> {
   if (activitySource(repo).status === 'not_exposed') return 0;
   const have = activityDays(repo);
-  const next = { ...have };
+  const got: ActivityDay[] = [];
   let fetched = 0;
   for (const d of activityDaysToFetch(have, today)) {
     try {
       const day = await client.heartRate(d);
       if (day) {
-        next[d] = { ...day, fetchedAt: now.toISOString() };
+        got.push({ ...day, fetchedAt: now.toISOString() });
         fetched++;
       }
     } catch (e) {
@@ -177,7 +201,7 @@ export async function fetchActivity(repo: Repository, client: GarminClient, toda
     }
   }
   if (fetched) {
-    await repo.kvSet(ACTIVITY_KEY, trimDays(next, KEEP_ACTIVITY_DAYS));
+    await saveActivityDays(repo, got);
     await repo.kvSet(ACTIVITY_SOURCE_KEY, { status: 'ok', checkedAt: now.toISOString(), message: null } satisfies ActivitySource);
   }
   return fetched;
@@ -188,46 +212,96 @@ function trimDays<T>(map: Record<DateKey, T>, keep: number): Record<DateKey, T> 
   return Object.fromEntries(keys.slice(-keep).map((k) => [k, map[k]]));
 }
 
-/** Heart rate for a past period, one day per call with a pause, so the Netlify hop's limit holds. Resumable. */
-export async function backfillActivity(
-  repo: Repository,
-  from: DateKey,
-  to: DateKey,
-  opts: { onProgress?: (done: number, total: number) => void; cancelled?: () => boolean; pauseMs?: number; now?: Date; client?: GarminClient } = {},
-): Promise<{ done: boolean; error: string | null }> {
-  const key = await getKey(repo, 'dagsljus.garminkey.v1');
-  if (!key) return { done: false, error: 'Garmin är inte anslutet på den här enheten.' };
-  const client = opts.client ?? new GarminClient({ apiKey: key, baseUrl: garminBaseUrl() });
-  const now = opts.now ?? new Date();
+export interface ActivityProgress {
+  /** Days with sleep from the watch that still lack heart rate when the run started, and how many are done. */
+  total: number;
+  done: number;
+  running: boolean;
+  /** Set when every day is fetched, or Garmin had nothing more. */
+  finished: boolean;
+  error: string | null;
+  at: string;
+}
+
+export function activityProgress(repo: Repository): ActivityProgress | null {
+  return (repo.kvGet(ACTIVITY_PROGRESS_KEY) as ActivityProgress | undefined) ?? null;
+}
+
+/**
+ * The days whose heart rate the model can use and does not have: every day with sleep from the
+ * watch, and the day before it (the evening leading into the night). Newest first. Today and the
+ * latest week are fetched by the sync itself.
+ */
+export function missingActivityDays(repo: Repository, today: DateKey): DateKey[] {
   const have = activityDays(repo);
-  const want: DateKey[] = [];
-  for (let d = to; d >= from; d = addDays(d, -1)) if (!have[d]) want.push(d);
-  const next = { ...have };
-  let done = 0;
-  let emptyInRow = 0;
-  for (const d of want) {
-    if (opts.cancelled?.()) break;
-    try {
-      const day = await client.heartRate(d);
-      if (day && day.activeMinutes.some((m) => m != null)) {
-        next[d] = { ...day, fetchedAt: now.toISOString() };
-        emptyInRow = 0;
-      } else if (++emptyInRow >= 21) {
-        // Three weeks without any pulse: the watch was not in use further back.
-        break;
-      }
-    } catch (e) {
-      await repo.kvSet(ACTIVITY_KEY, trimDays(next, KEEP_ACTIVITY_DAYS));
-      return { done: false, error: e instanceof GarminError ? e.message : 'Pulsen gick inte att hämta.' };
-    }
-    done++;
-    opts.onProgress?.(done, want.length);
-    if (done % 10 === 0) await repo.kvSet(ACTIVITY_KEY, trimDays(next, KEEP_ACTIVITY_DAYS));
-    if (opts.pauseMs !== 0) await new Promise((r) => setTimeout(r, opts.pauseMs ?? 1100));
+  const empty = new Set((repo.kvGet(ACTIVITY_EMPTY_KEY) as DateKey[] | undefined) ?? []);
+  const want = new Set<DateKey>();
+  for (const night of Object.keys(watchNights(repo))) {
+    for (const d of [night, addDays(night, -1)]) if (d < addDays(today, -7) && !have[d] && !empty.has(d)) want.add(d);
   }
-  await repo.kvSet(ACTIVITY_KEY, trimDays(next, KEEP_ACTIVITY_DAYS));
-  await repo.kvSet(BACKFILL_KEY, { from, to, at: now.toISOString() });
-  return { done: true, error: null };
+  return [...want].sort().reverse();
+}
+
+let fetching = false;
+
+/**
+ * Fetches the heart rate of every day the model can use, by itself, whenever the app is open and
+ * Klockans rytm is on. One day per call with a pause, so the Netlify hop's limit holds; saved every
+ * ten days, so a closed app or a stop from Garmin continues where it left off next time.
+ */
+export async function fetchAllActivity(
+  repo: Repository,
+  opts: { cancelled?: () => boolean; pauseMs?: number; now?: Date; client?: GarminClient } = {},
+): Promise<void> {
+  if (fetching || rhythmMode(repo) === 'off' || !repo.garminStatus().connected || activitySource(repo).status === 'not_exposed') return;
+  const now = opts.now ?? new Date();
+  const want = missingActivityDays(repo, toDateKey(now));
+  const before = activityProgress(repo);
+  if (!want.length) {
+    if (before && !before.finished) await repo.kvSet(ACTIVITY_PROGRESS_KEY, { ...before, running: false, finished: true, error: null });
+    return;
+  }
+  let client = opts.client;
+  if (!client) {
+    const key = await getKey(repo, 'dagsljus.garminkey.v1');
+    if (!key) return;
+    client = new GarminClient({ apiKey: key, baseUrl: garminBaseUrl() });
+  }
+  fetching = true;
+  const doneBefore = before && !before.finished ? before.done : 0;
+  let progress: ActivityProgress = { total: doneBefore + want.length, done: doneBefore, running: true, finished: false, error: null, at: now.toISOString() };
+  const got: ActivityDay[] = [];
+  const empty = new Set((repo.kvGet(ACTIVITY_EMPTY_KEY) as DateKey[] | undefined) ?? []);
+  const save = async (extra: Partial<ActivityProgress> = {}) => {
+    if (got.length) await saveActivityDays(repo, got.splice(0));
+    await repo.kvSet(ACTIVITY_EMPTY_KEY, [...empty].sort().slice(-2000));
+    progress = { ...progress, ...extra, at: new Date().toISOString() };
+    await repo.kvSet(ACTIVITY_PROGRESS_KEY, progress);
+  };
+  try {
+    await save();
+    for (const d of want) {
+      if (opts.cancelled?.()) break;
+      try {
+        const day = await client!.heartRate(d);
+        if (day && day.activeMinutes.some((m) => m != null)) got.push({ ...day, fetchedAt: now.toISOString() });
+        else empty.add(d);
+      } catch (e) {
+        const notExposed = e instanceof GarminError && e.kind === 'not_exposed';
+        if (notExposed) await repo.kvSet(ACTIVITY_SOURCE_KEY, { status: 'not_exposed', checkedAt: now.toISOString(), message: 'Garmin lämnar inte ut puls över dygnet via din nyckel.' } satisfies ActivitySource);
+        await save({ running: false, error: e instanceof GarminError && e.kind === 'rate_limit' ? 'Garmin bad om en paus. Hämtningen fortsätter nästa gång appen öppnas.' : e instanceof GarminError ? e.message : 'Pulsen gick inte att hämta. Hämtningen fortsätter nästa gång appen öppnas.' });
+        return;
+      }
+      progress.done++;
+      if (progress.done % 10 === 0) await save();
+      if (opts.pauseMs !== 0) await new Promise((r) => setTimeout(r, opts.pauseMs ?? 1100));
+    }
+    const finished = progress.done >= progress.total;
+    await save({ running: false, finished });
+    if (finished) await updateRhythm(repo, new Date());
+  } finally {
+    fetching = false;
+  }
 }
 
 // ---- the estimate ----

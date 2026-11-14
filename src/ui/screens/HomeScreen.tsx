@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
-import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle, formatTime } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
 import { RULES } from '../../core/analysis/rules';
 import { logHeavyDay } from '../../services/checkin';
@@ -20,7 +20,8 @@ import { GREEN_MEANS } from '../../core/analysis/firstWeek';
 import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { remeasurePending } from '../../services/remeasure';
-import { markRhythmSeen, planStepFor, rhythmCard } from '../../services/rhythm';
+import { latestRhythm, rhythmMode } from '../../services/rhythm';
+import { RhythmToday } from '../RhythmToday';
 import { rereadDays } from '../../core/analysis/recompute';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
@@ -47,10 +48,10 @@ export function HomeScreen() {
   const settings = repo.settings();
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
-  // Klockans rytm (experimental): a card when there is something new. The same course is one card,
-  // and it takes the place of the sleep notice when both are about the same nights.
-  const rhythm = rhythmCard(repo);
-  const sleepNote = rhythm?.kind === 'rhythm' ? null : todaysSleepNotice(repo);
+  // Klockans rytm (experimental) is the line at the top. It takes the place of the sleep notice
+  // when it shows a change, since both are about the same nights.
+  const rhythmNow = rhythmMode(repo) !== 'off' ? latestRhythm(repo) : null;
+  const sleepNote = rhythmNow?.status === 'change' ? null : todaysSleepNotice(repo);
   const fw = firstWeekState(repo);
   const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
@@ -143,7 +144,6 @@ export function HomeScreen() {
   const pending = showSuggestions ? repo.pendingSuggestions().length : 0;
   const candidates: HomeCard[] = ([
     silent >= RULES.silenceDays ? { kind: 'silence' as const, id: `silence_${silent}` } : null,
-    rhythm ? { kind: rhythm.kind, id: rhythm.id } : null,
     !hasSigns ? { kind: 'start' as const, id: 'start' } : null,
     ...tomorrow.map((t) => ({ kind: 'tomorrow' as const, id: `tomorrow_${t.date}_${t.event}` })),
     ...remeasured.map((r) => ({ kind: 'remeasure' as const, id: `remeasure_${r.entry.id}` })),
@@ -218,27 +218,6 @@ export function HomeScreen() {
             {notNow(c.id)}
           </Card>
         );
-      case 'rhythm':
-      case 'rhythmData': {
-        const r = rhythm!.assessment;
-        const step = c.kind === 'rhythm' ? planStepFor(repo, r) : null;
-        return (
-          <Card tone={c.kind === 'rhythm' ? 'yellow' : undefined}>
-            <Text style={type.h2} accessibilityRole="header">Klockans rytm</Text>
-            <P style={{ marginTop: space.xs }}>{r.text.change}</P>
-            {r.text.direction ? <P style={{ marginTop: space.xs }}>{r.text.direction}</P> : null}
-            <P muted style={{ marginTop: space.xs }}>Bedömd {formatTime(r.computedAt)}, nätterna {formatDateSv(r.covers.from)} – {formatDateSv(r.covers.to)}.</P>
-            {step ? (
-              <View style={{ marginTop: space.s }}>
-                <Text style={type.label}>{step.heading.toUpperCase()}</Text>
-                <P>{step.text}</P>
-              </View>
-            ) : null}
-            <Button title="Öppna jämförelsen" onPress={() => nav.push({ name: 'rhythm' })} />
-            <Button kind="ghost" title="Okej" hint="Kortet kommer tillbaka om något nytt händer" onPress={() => markRhythmSeen(repo, c.id)} />
-          </Card>
-        );
-      }
       case 'sleepNotice':
         return (
           <Card>
@@ -308,8 +287,6 @@ export function HomeScreen() {
   const titleOf = (c: HomeCard): string => {
     switch (c.kind) {
       case 'silence': return `${silent} dagar utan avstämning`;
-      case 'rhythm': return 'Klockans rytm har ändrats';
-      case 'rhythmData': return 'Klockans rytm: för lite data';
       case 'start': return 'Lägg in din krisplan';
       case 'tomorrow': return `I morgon: ${tomorrow.find((x) => `tomorrow_${x.date}_${x.event}` === c.id)?.event ?? ''}`;
       case 'remeasure': return 'Nya värden från klockan';
@@ -327,8 +304,9 @@ export function HomeScreen() {
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
+      <RhythmToday />
       <WeekSummary week={week} fontScale={fontScale} today={today} />
-      <RoutinesToday collapsible />
+      <RoutinesToday collapsible foldedMax={rhythmNow ? 1 : undefined} />
 
       {card ? (
         openCard === card.id ? (

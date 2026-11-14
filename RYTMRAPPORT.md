@@ -25,7 +25,7 @@ Vad det säger:
 
 - **Larmtakten:** modellen larmar ungefär en sjättedel så ofta som sömnnotisen, i båda delarna. Om larmen var rätt eller fel går inte att säga utan dokumenterade starter.
 - **Data före hösten 2025:** under utvecklingsdelen saknade klockan data så ofta att alla metoderna avstod på ungefär sex dagar av tio. Från hösten 2025 avstår modellen sällan, på 26 av 445 dagar.
-- **Aktiviteten:** den gjorde ingen skillnad här, eftersom pulsen bara fanns för de senaste månaderna. Efter en hämtning ett år bakåt går de två modellerna att jämföra.
+- **Aktiviteten:** den gjorde ingen skillnad här, eftersom pulsen bara fanns för de senaste månaderna. När pulsen för alla dagar är hämtad går de två modellerna att jämföra.
 - **Ordet "falsklarm":** appen kallade larmen falsklarm i den här körningen. Det var fel när inga episoder är dokumenterade, och är rättat. Appen säger nu "larm" och visar en lista med modellens larm, så att du kan pröva dem mot ditt minne.
 
 ## Hypotesen
@@ -146,6 +146,6 @@ För få dokumenterade episoder i den här delen (2) för att säga något om hu
 ## Det som återstår
 
 1. **Dokumentera episodstarter** under *Episodstarter*. Ange typ och om datumet kommer från dig i efterhand eller från vården.
-2. **Hämta puls bakåt:** tryck *Hämta puls ett år bakåt* (ungefär sju minuter, går att avbryta och fortsätta). Hämta sömn för samma period med *Hämta ett år bakåt* under Garmin.
+2. **Puls bakåt:** hämtas nu av sig själv för alla dagar med sömn, medan appen är öppen. Förloppet syns under *Datakällor*. Hämta sömn för samma period med *Hämta ett år bakåt* under Garmin.
 3. **Kör *Utvärdera på mina data*** och skicka resultatet. Först då finns något att säga om modellen för dig.
 4. **Kontrollera *Datakällor*:** att puls över dygnet går att hämta med din nyckel, och att loggen bara har hämtningar med appen öppen.

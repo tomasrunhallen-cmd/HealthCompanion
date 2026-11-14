@@ -366,3 +366,60 @@ describe('episode dates typed on a number pad', () => {
     expect(isDateKey('2025-3-3')).toBe(false);
   });
 });
+
+describe('heart rate for every earlier day, by itself while the app is open', () => {
+  const svc = jest.requireActual('../src/services/rhythm') as typeof import('../src/services/rhythm');
+  async function setup() {
+    const data = simulate({ end: END, days: 40 });
+    const repo = await Repository.create(memoryBackend());
+    await repo.saveGarminDays(Object.values(data.measured), END);
+    await repo.updateGarminStatus({ connected: true });
+    await repo.updateSettings({ rhythm: 'show' });
+    const asked: string[] = [];
+    const client = {
+      heartRate: async (date: string) => {
+        asked.push(date);
+        // Garmin has no pulse for the oldest ten days.
+        if (date < d(30)) return { date, activeMinutes: Array(24).fill(null), worn: Array(24).fill(0), restingHr: null, tzOffsetMin: 60, lastReading: null };
+        return data.activity[date] ?? null;
+      },
+    } as never;
+    return { repo, client, asked };
+  }
+
+  it('fetches every day with sleep and the day before, saves one document per month, and remembers days without pulse', async () => {
+    const { repo, client, asked } = await setup();
+    const now = new Date(`${END}T08:00:00`);
+    const want = svc.missingActivityDays(repo, END);
+    expect(want[0]).toBe(d(8));
+    await svc.fetchAllActivity(repo, { client, pauseMs: 0, now });
+    expect(asked).toEqual(want);
+    expect(repo.kvKeys(svc.ACTIVITY_MONTH_PREFIX).length).toBeGreaterThanOrEqual(2);
+    expect(svc.activityProgress(repo)).toMatchObject({ done: want.length, total: want.length, running: false, finished: true });
+    // Nothing left: days Garmin had nothing for are not asked again.
+    expect(svc.missingActivityDays(repo, END)).toEqual([]);
+    asked.length = 0;
+    await svc.fetchAllActivity(repo, { client, pauseMs: 0, now });
+    expect(asked).toEqual([]);
+  });
+
+  it('continues where it stopped when the app went to the background', async () => {
+    const { repo, client, asked } = await setup();
+    const now = new Date(`${END}T08:00:00`);
+    const total = svc.missingActivityDays(repo, END).length;
+    let n = 0;
+    await svc.fetchAllActivity(repo, { client, pauseMs: 0, now, cancelled: () => ++n > 12 });
+    expect(svc.activityProgress(repo)).toMatchObject({ done: 12, running: false, finished: false });
+    await svc.fetchAllActivity(repo, { client, pauseMs: 0, now });
+    expect(asked.length).toBe(total);
+    expect(new Set(asked).size).toBe(total);
+    expect(svc.activityProgress(repo)).toMatchObject({ done: total, total, finished: true });
+  });
+
+  it('does nothing when Klockans rytm is off', async () => {
+    const { repo, client, asked } = await setup();
+    await repo.updateSettings({ rhythm: 'off' });
+    await svc.fetchAllActivity(repo, { client, pauseMs: 0 });
+    expect(asked).toEqual([]);
+  });
+});

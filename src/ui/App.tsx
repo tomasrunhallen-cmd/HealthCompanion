@@ -9,7 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { clearPin, lockSupport, unlock, usesPin } from '../platform/lock';
 import { cloudConfigured, onUserChanged, signOutUser, type CloudUser } from '../cloud/firebase';
 import { syncOnOpen } from '../services/garmin';
-import { ensureRhythm } from '../services/rhythm';
+import { ensureRhythm, fetchAllActivity } from '../services/rhythm';
 import { afterSync } from '../services/remeasure';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
@@ -33,7 +33,10 @@ function GarminAutoSync(props: { repo: Repository }) {
       .then((r) => (r?.ok ? afterSync(props.repo) : null))
       .catch(() => null)
       // Klockans rytm: also without a new sync (offline, or synced a moment ago), today's estimate from what is stored.
-      .then(() => ensureRhythm(props.repo));
+      .then(() => ensureRhythm(props.repo))
+      // Klockans rytm: the heart rate of every earlier day, by itself while the app is open.
+      .then(() => fetchAllActivity(props.repo, { cancelled: () => AppState.currentState !== 'active' }))
+      .catch(() => null);
     run();
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') run();

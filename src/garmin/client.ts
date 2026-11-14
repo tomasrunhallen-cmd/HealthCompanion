@@ -221,7 +221,7 @@ export function parseHeartRate(data: unknown, date: DateKey): HeartRateDay | nul
   return {
     date,
     activeMinutes: perHour.map((m, h) => (m > 0 ? active[h] : null)),
-    worn: perHour.map((m) => Math.min(1, m / 60)),
+    worn: perHour.map((m) => Math.round(Math.min(1, m / 60) * 100) / 100),
     restingHr: resting,
     tzOffsetMin: offset,
     lastReading: `${String(t.getUTCHours()).padStart(2, '0')}:${String(t.getUTCMinutes()).padStart(2, '0')}`,

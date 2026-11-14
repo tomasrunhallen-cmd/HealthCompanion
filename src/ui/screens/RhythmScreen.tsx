@@ -4,7 +4,7 @@
 // signal, the data sources and how fresh they are, and the evaluation on the person's own data.
 // The rated mood, this estimate and documented episode starts are kept apart, here and in storage.
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
 import { LEVEL_WORD } from '../../core/analysis/levelWords';
@@ -13,7 +13,7 @@ import { evaluateRhythm, METHOD_NAME, MIN_EPISODES_FOR_RATE, rate, type RhythmEv
 import { simulatedYear } from '../../core/analysis/rhythmSim';
 import type { DateKey, Level } from '../../core/domain/types';
 import {
-  activityDays, activitySource, backfillActivity, episodeStarts, evaluateOwnData, explainCourse, latestRhythm, planStepFor,
+  activityDays, activityProgress, activitySource, episodeStarts, fetchAllActivity, missingActivityDays, evaluateOwnData, explainCourse, latestRhythm, planStepFor,
   rhythmEffect, rhythmFeedback, rhythmMode, setRhythmMode, syncLog, undoExplanation, updateRhythm, watchNights,
 } from '../../services/rhythm';
 import { Button, Card, Chip, Disclosure, Eyebrow, P, Row, Screen, Section, Segmented, Tag } from '../components';
@@ -160,9 +160,7 @@ export function RhythmScreen() {
   const mode = rhythmMode(repo);
   const a = latestRhythm(repo);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
   const [ev, setEv] = useState<RhythmEvaluation | null>(null);
-  const stop = useRef(false);
   const feedback = a?.courseStart ? rhythmFeedback(repo)[a.courseStart] : undefined;
   const step = a ? planStepFor(repo, a) : null;
   const today = toDateKey(new Date());
@@ -179,16 +177,9 @@ export function RhythmScreen() {
     setBusy(true);
     try { await updateRhythm(repo); } finally { setBusy(false); }
   };
-  const backfill = async () => {
-    setBusy(true);
-    setProgress('Hämtar puls …');
-    try {
-      stop.current = false;
-      const r = await backfillActivity(repo, addDays(today, -365), addDays(today, -1), { onProgress: (d, t) => setProgress(`Hämtar puls: ${d} av ${t} dagar. Du kan lämna skärmen öppen eller avbryta; nästa gång fortsätter den där den slutade.`), cancelled: () => stop.current });
-      setProgress(r.error ?? 'Klart.');
-      await updateRhythm(repo);
-    } finally { setBusy(false); }
-  };
+  const fetchProgress = activityProgress(repo);
+  const missing = mode === 'off' ? [] : missingActivityDays(repo, today);
+  const fetchNow = () => { fetchAllActivity(repo).catch(() => null); };
 
   return (
     <Screen title="Klockans rytm">
@@ -321,9 +312,15 @@ export function RhythmScreen() {
                 <P key={l.at}>{formatDateSv(l.at.slice(0, 10))} {formatTime(l.at)}: {l.ok ? 'lyckades' : 'misslyckades'}, {TRIGGER[l.trigger] ?? l.trigger}{l.inFront ? ', appen öppen' : ', appen i bakgrunden'}{l.heartRateDays ? `, ${l.heartRateDays} dagar puls` : ''}.</P>
               )) : <P muted>Inga hämtningar sparade ännu.</P>}
               <P muted style={{ marginTop: space.xs }}>Hämtning när appen är stängd: nej. Varje hämtning ovan gjordes med appen öppen.</P>
-              <Button kind="secondary" title="Hämta puls ett år bakåt" hint="Ett anrop per dag, ungefär sju minuter för ett år" busy={busy} onPress={backfill} />
-              {busy && progress ? <Button kind="ghost" title="Avbryt" onPress={() => { stop.current = true; }} /> : null}
-              {progress ? <P muted>{progress}</P> : null}
+              <Label>Äldre puls</Label>
+              {fetchProgress?.running ? (
+                <P>Hämtar puls för tidigare dagar: {fetchProgress.done} av {fetchProgress.total}. Det sker av sig självt när appen är öppen, på vilken skärm som helst, och fortsätter där det slutade.</P>
+              ) : missing.length ? (
+                <>
+                  <P>{missing.length} dagar med sömn saknar puls. De hämtas av sig själva när appen är öppen, ungefär en dag i sekunden.{fetchProgress?.error ? ` ${fetchProgress.error}` : ''}</P>
+                  <Button kind="ghost" title="Hämta nu" onPress={fetchNow} />
+                </>
+              ) : <P muted>Puls finns för alla dagar med sömn som Garmin har puls för.</P>}
             </Card>
           </Section>
 

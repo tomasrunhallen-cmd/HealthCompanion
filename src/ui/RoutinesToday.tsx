@@ -54,7 +54,7 @@ function recentDirection(repo: ReturnType<typeof useRepo>, today: string): 'up' 
  * suggestion, the rest one tap away. `compact` (the check-in): without the buttons for following
  * the plan in one direction.
  */
-export function RoutinesToday({ compact = false, collapsible = false }: { compact?: boolean; collapsible?: boolean }) {
+export function RoutinesToday({ compact = false, collapsible = false, foldedMax }: { compact?: boolean; collapsible?: boolean; /** Folded, at most this many rows (Hem with more above it). */ foldedMax?: number }) {
   const repo = useRepo();
   const [open, setOpen] = useState(!collapsible);
   const today = eveningDateKey(new Date());
@@ -95,8 +95,9 @@ export function RoutinesToday({ compact = false, collapsible = false }: { compac
   const done = counted.filter((r) => log.get(r.id) === true).length;
   const follow = (direction: 'up' | 'down') => repo.updateSettings({ planMode: { direction, since: today } });
   // Folded: the suggestion, or without one the first two routines.
-  const shownRest = open ? rest : picked.length ? [] : rest.slice(0, 2);
-  const hidden = counted.length - picked.length - shownRest.length;
+  const shownPicked = open ? picked : picked.slice(0, foldedMax ?? picked.length);
+  const shownRest = open ? rest : picked.length ? [] : rest.slice(0, foldedMax ?? 2);
+  const hidden = counted.length - shownPicked.length - shownRest.length;
 
   return (
     <Card>
@@ -123,7 +124,7 @@ export function RoutinesToday({ compact = false, collapsible = false }: { compac
             <Text style={type.label}>FÖRESLAGET I DAG</Text>
             {suggestion?.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
           </Row>
-          {picked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
+          {shownPicked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
           {shownRest.length ? <Text style={[type.label, { marginTop: space.m }]}>ÖVRIGA I DAG</Text> : null}
         </View>
       ) : null}

@@ -465,6 +465,11 @@ export class Repository {
     return this.snap.kv[key];
   }
 
+  /** The kv keys that start with a prefix, for data kept in one document per month. */
+  kvKeys(prefix: string): string[] {
+    return Object.keys(this.snap.kv).filter((k) => k.startsWith(prefix)).sort();
+  }
+
   async kvSet(key: string, value: unknown): Promise<void> {
     this.snap.kv[key] = value;
     await this.backend.put('kv', key, value);

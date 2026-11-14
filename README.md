@@ -165,7 +165,7 @@ Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsni
 
 - **Flikar:** Hem, Avstämning, Trend och Jag. Varje flik har en native stack med stor rubrik.
 - **Trend** har en period för hela sidan: 7 dagar, 30 dagar, 6 månader eller 1 år. Sedan kommer nivå, stämning, rutiner, sömn och stress i den ordningen. 7 och 30 dagar visar varje dag; 6 månader visar en stapel per vecka och ett år en per månad (stämningens spann från lägsta till högsta skattning med snittet som en punkt, snitt för sömn och stress, antal för nivåerna), så staplarna går att läsa och trycka på. En tryckning på en dags symbol öppnar dagens bedömning.
-- **Hem** ryms utan att skrolla. Överst står datumet och *Senaste veckan*: en rad med nivån per dag, där varje dag öppnar sin bedömning, och en rad med antal gröna och gula dagar, stämningens spann och hur stor andel av rutinerna som blev av. Under den kommer *Rutiner i dag*, som är ihopfällt: dagens förslag syns, och *Alla N* visar resten. Sedan kommer ett kort ur kön, ihopfällt till en rad med *Visa ›*. Längst ner finns kvällens avstämning med *Orkar bara trycka* och *Lågt läge*. Klockans värden visas bara i avstämningen.
+- **Hem** ryms utan att skrolla. Överst står datumet och, när *Klockans rytm* är på, en rad med dagens bedömning från klockan, till exempel *Klockans rytm: ingen förändring*. Motiveringen fälls ut med *Varför*. Sedan kommer *Senaste veckan*: en rad med nivån per dag, där varje dag öppnar sin bedömning, och en rad med antal gröna och gula dagar, stämningens spann och hur stor andel av rutinerna som blev av. Under den kommer *Rutiner i dag*, som är ihopfällt: dagens förslag syns, och *Alla N* visar resten. Sedan kommer ett kort ur kön, ihopfällt till en rad med *Visa ›*. Längst ner finns kvällens avstämning med *Orkar bara trycka* och *Lågt läge*. Klockans värden visas bara i avstämningen.
 - **Rutiner på Trend:** andelen hållna rutiner för perioden, andelen per dag, vecka eller månad, och en rad per rutin (till exempel *20 av 24*). Räknat på kvällar då personen bockade av rutiner, så en kväll utan avstämning är inte en miss. Den streckade linjen i stressgrafen är gränsen 30 från reglerna.
 - **Ark:** krisplanen, förslag, rättelser och *Hjälp nu* öppnas som ark.
 - **Utseende:** systemets färger, ljust och mörkt läge, och systemtypsnittet med Dynamic Type och Fet text.
@@ -293,11 +293,12 @@ En passiv modell som letar efter tidiga tecken på en möjlig kommande stämning
 
 - **Data:** insomning, uppvakning, sömnlängd och tidszon per natt, och aktivitetens fördelning över dygnet ur pulsen (`dailyHeartRate`, värden varannan minut). Pulsen räknas om till aktiva minuter per timme, och själva pulsen sparas inte.
 - **När:** efter varje lyckad hämtning från Garmin och när appen öppnas. Appen kan inte hämta när den är stängd, och skärmen säger det. Varje hämtning loggas med om appen var öppen.
+- **Äldre puls** hämtas av sig själv för varje dag med sömn från klockan, medan appen är öppen och på vilken skärm som helst. Ett anrop per dag och en paus mellan, så att det tar ungefär en sekund per dag. Hämtningen fortsätter där den slutade. Pulsen sparas en post per månad.
 - **Två besked:**
     - vad som ändrats mot dina egna nätter (tre nätter i rad, median och robust spridning)
     - om din historik ger stöd för en riktning uppåt eller nedåt
   Svaren kan också vara *förändring upptäckt, riktning oklar* och *för lite data*. Ingen procentsats visas.
-- **Kort på Hem** när något nytt hänt. Ett förlopp ger ett kort, med jämförelsen och ett steg ur planen. En rättelse är frivillig.
+- **Överst på Hem** står dagens bedömning på en rad. *Varför* fäller ut motiveringen, nätterna den bygger på och ett steg ur planen. En ny förändring märks *Ny* tills raden öppnats. En rättelse är frivillig.
 - **Ampeln:** *Visa* visar nivån med och utan signalen. *Använd* ger 1 poäng för en förändring med stöd för en riktning. Den kan aldrig avgöra rött, sänker aldrig något och går aldrig före akutregeln. Samma korta sömn räknas en gång.
 - **Hålls isär:** din skattade stämning (avstämningen), appens uppskattning (`rhythmAssessments`) och de episodstarter du dokumenterar (`episodeStarts`, med källa: du i efterhand eller klinisk bedömning).
 - **Utvärdering:** en uppspelning i tidsordning jämför sömnnotisen, modellen med bara sömn och modellen med sömn och aktivitet, mot dina dokumenterade episodstarter.
