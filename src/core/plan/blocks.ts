@@ -6,7 +6,7 @@
 
 import type { PlanFields, Polarity } from '../domain/types';
 import { akutLevel } from '../context/akut';
-import { hintFromText } from './headingRules';
+import { headingRules, hintFromText, matchHeading } from './headingRules';
 import { normalizeFields } from './fields';
 
 export type BlockType =
@@ -219,6 +219,24 @@ export interface ImportedBlock extends Omit<PlanBlock, 'type'> {
 }
 
 /**
+ * A block's heading from the plan's heading chain ("A > B"). A line that only looked like a
+ * heading above it (a clinic and its phone number) must not become part of the heading of the
+ * plan's steps.
+ */
+export function blockHeading(chain: string): string {
+  if (!chain) return 'Utan rubrik';
+  const parts = chain.split(' > ');
+  const rules = headingRules();
+  const known = (h: string) => matchHeading(h, rules).known;
+  const inner = matchHeading(parts[parts.length - 1], rules);
+  // A known main heading never belongs under another heading: it stands alone. A known
+  // sub-heading keeps the known headings above it, since the same sub-heading ("Vid tecken på
+  // mani") sits under several of them; headings above it that the rules do not know are dropped.
+  if (inner.known && inner.level === 'huvud') return parts[parts.length - 1];
+  return inner.known ? parts.filter(known).join(' – ') : parts.join(' – ');
+}
+
+/**
  * Groups an imported plan's rows by their heading into blocks, in the plan's order. The type
  * comes from the rules table's reading of the heading; rows under an unknown heading make a
  * block without type, for the person to choose.
@@ -229,7 +247,7 @@ export function blocksFromRows(
 ): ImportedBlock[] {
   const out: ImportedBlock[] = [];
   for (const r of rows) {
-    const heading = r.heading ? r.heading.split(' > ').join(' – ') : 'Utan rubrik';
+    const heading = blockHeading(r.heading);
     let b = out.find((x) => x.heading === heading);
     if (!b) {
       const type = r.source === 'needs' ? null : typeFromFields(r.fields, r.special);

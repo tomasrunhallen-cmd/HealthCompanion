@@ -14,7 +14,7 @@ export const MILD_TITLE = 'Om du har tankar på att inte vilja leva finns det hj
 /** `sheet`: the "Hjälp nu" sheet, opened by the person, not by something they wrote. */
 /** `numbersOnly`: before the app is unlocked, or when it failed to start: the plan is not at hand. */
 export function CrisisCard({ plan, mild = false, sheet = false, numbersOnly = false }: { plan: PlanItem[]; mild?: boolean; sheet?: boolean; numbersOnly?: boolean }) {
-  const { steps, ladder, numbers } = crisisInfo(plan);
+  const { steps, stepsFrom, ladder, numbers } = crisisInfo(plan);
   return (
     <Card style={{ borderColor: mild ? colors.border : colors.red, borderWidth: mild ? 1 : 2 }}>
       <Text style={type.h2} accessibilityRole="header">{mild ? MILD_TITLE : 'Du behöver inte vara ensam med det här'}</Text>
@@ -23,6 +23,7 @@ export function CrisisCard({ plan, mild = false, sheet = false, numbersOnly = fa
       {numbersOnly ? null : (
         <>
           <Text style={[type.label, { marginTop: space.m }]}>DIN PLAN VID RÖTT</Text>
+          {stepsFrom ? <P muted style={{ marginTop: 2 }}>{`Steg för steg, ur ${stepsFrom.charAt(0).toLowerCase()}${stepsFrom.slice(1)}.`}</P> : null}
           {steps.length ? (
             steps.map((s, i) => <P key={s + i} style={{ marginTop: space.xs }}>{`${i + 1}. ${s}`}</P>)
           ) : (

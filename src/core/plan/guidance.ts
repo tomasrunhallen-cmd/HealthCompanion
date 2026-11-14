@@ -49,9 +49,18 @@ export function isLadderStep(p: Pick<PlanItem, 'plan'>): boolean {
 export function actionsFor(level: Level, plan: PlanItem[], dir: Polarity | null = null): PlanItem[] {
   const kind = level === 'red' ? 'action_red' : level === 'yellow' ? 'action_yellow' : null;
   if (!kind) return [];
-  return plan
+  const own = plan
     .filter((p) => p.kind === kind && !isLadderStep(p) && p.plan?.who !== 'care' && fits(p.plan?.polarity, dir))
     .sort((a, b) => a.order - b.order);
+  // A plan whose only steps when it is serious are a ladder ("Om jag inte …, då …") has those as
+  // its steps at red. Without this, Hjälp nu and a red day said the plan had no steps at red.
+  if (level === 'red' && !own.length) return ladderOf(plan)?.steps ?? [];
+  return own;
+}
+
+/** True when the steps at red are the plan's ladder, because it has no other steps at red. */
+export function redStepsAreLadder(plan: PlanItem[]): boolean {
+  return !plan.some((p) => p.kind === 'action_red' && !isLadderStep(p) && p.plan?.who !== 'care') && !!ladderOf(plan);
 }
 
 /** Routines, shown with the yellow actions, filtered by direction. */

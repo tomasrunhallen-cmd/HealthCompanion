@@ -64,6 +64,31 @@ function readPages(pages: SourcePages, sourceName: string | null, furniture: str
   return { blocks: blocksFromRows(draft.rows), removed: draft.removed, original, sourceName, polarityWords: draft.polarityWords };
 }
 
+/**
+ * The one thing to check before saving: the steps Hjälp nu and a red day will show. The plan's own
+ * steps at red, or else its ladder; without either, the person is told so and can choose a block.
+ */
+function RedCheck({ blocks }: { blocks: ImportedBlock[] }) {
+  const own = blocks.filter((b) => b.type === 'action_serious' && b.text.trim());
+  const ladder = blocks.find((b) => b.type === 'ladder' && b.text.trim());
+  const from = own.length ? own : ladder ? [ladder] : [];
+  const lines = from.flatMap((b) => blockLines(b.text).map((l) => l.text));
+  return (
+    <Card tone={lines.length ? 'accent' : 'red'} style={{ marginTop: space.s }}>
+      <Text style={type.h2} accessibilityRole="header">Det här visas vid rött</Text>
+      {lines.length ? (
+        <>
+          <P muted>Ur {from.map((b) => `”${b.heading}”`).join(' och ')}. Det är stegen i Hjälp nu och när en dag blir röd.</P>
+          {lines.map((l, i) => <P key={i} style={{ marginTop: space.xs }}>{`${i + 1}. ${l}`}</P>)}
+          <P muted style={{ marginTop: space.s }}>Stämmer det inte, byt vad blocket är nedan.</P>
+        </>
+      ) : (
+        <P>Appen hittade inga steg vid rött. Välj vilket block som har dem med Byt vad blocket är, annars visar Hjälp nu bara krisnumren.</P>
+      )}
+    </Card>
+  );
+}
+
 function BlockReview({ b, onType }: { b: ImportedBlock; onType: (t: BlockType) => void }) {
   const [choosing, setChoosing] = useState(b.type == null);
   const lines = blockLines(b.text);
@@ -177,6 +202,8 @@ export function PlanImportScreen() {
             ))}
           </Section>
         ) : null}
+
+        <RedCheck blocks={read.blocks} />
 
         {read.removed.length ? (
           <Section title="Borttaget sidhuvud">

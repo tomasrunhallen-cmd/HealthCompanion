@@ -51,6 +51,8 @@ function guessHeading(text: string, nextIsList: boolean): number | null {
   if (!t || t.length > 70 || /[.!?]$/.test(t) || PAGE_NUMBER.test(t)) return null;
   // "Tidiga tecken: sover mindre" is a heading with rows on the same line; the tree splits it.
   if (/:\s*\S/.test(t)) return null;
+  // "Mottagningen, telefonnummer:" introduces a contact on the next line; it is not a heading.
+  if (/\b(telefon(nummer)?|tel|tfn|mobil(nummer)?|nummer|växel|e-?post|mejl|adress)\s*:?$/i.test(t)) return null;
   const m = matchHeading(t.replace(/:$/, ''), headingRules());
   // A known heading must be mostly the pattern, so a row like "Pratar om mani" stays a row.
   if (m.known && normalizeHeading(t).split(' ').length <= 9) return m.level === 'under' ? 2 : 1;

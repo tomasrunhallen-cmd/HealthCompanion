@@ -6,7 +6,7 @@ import { CONTEXT_SOURCES } from '../prompts/bundle.generated';
 import { parseFrontmatter } from '../prompts/loader';
 import type { PlanItem } from '../domain/types';
 import { tokenize, wordsMatch } from '../analysis/wordmatch';
-import { actionsFor, ladderOf } from '../plan/guidance';
+import { actionsFor, ladderOf, redStepsAreLadder } from '../plan/guidance';
 
 const NEGATIONS = new Set(['inte', 'aldrig', 'ingen', 'inget', 'inga', 'ej']);
 /** Words allowed between the words of a phrase ("vill verkligen just nu dö"). A negation there makes the hit mild. */
@@ -287,11 +287,14 @@ export const CRISIS_NUMBERS: CrisisNumber[] = [
  * What the crisis card shows: the person's own steps at red, the plan's ladder (numbered,
  * under the plan's own heading), then the numbers.
  */
-export function crisisInfo(plan: PlanItem[]): { steps: string[]; ladder: { heading: string; steps: string[] } | null; numbers: CrisisNumber[] } {
+export function crisisInfo(plan: PlanItem[]): { steps: string[]; stepsFrom: string | null; ladder: { heading: string; steps: string[] } | null; numbers: CrisisNumber[] } {
   const ladder = ladderOf(plan);
+  // When the ladder is the plan's steps at red, it is shown once, as those steps, under its own heading.
+  const fromLadder = redStepsAreLadder(plan);
   return {
     steps: actionsFor('red', plan).map((p) => p.text),
-    ladder: ladder ? { heading: ladder.heading, steps: ladder.steps.map((p) => p.text) } : null,
+    stepsFrom: fromLadder && ladder ? ladder.heading : null,
+    ladder: ladder && !fromLadder ? { heading: ladder.heading, steps: ladder.steps.map((p) => p.text) } : null,
     numbers: CRISIS_NUMBERS,
   };
 }
