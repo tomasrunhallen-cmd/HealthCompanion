@@ -60,7 +60,13 @@ export interface RhythmEvaluation {
   parts: EvalPart[];
   episodes: { total: number; byType: Record<EpisodeType, number>; bySource: { self_retro: number; clinical: number } };
   /** Days with sleep from the watch, and with enough heart rate for activity. */
-  coverage: { days: number; nights: number; evenings: number };
+  coverage: { days: number; nights: number; evenings: number; lateFetched: number };
+  /**
+   * How much the documented episodes change the replay: the model's alarm runs (sleep and
+   * activity) with the episodes left out of its baseline as they were known each day, and with
+   * no episode labels at all. Equal when there are no episodes.
+   */
+  labelEffect: { withLabels: number; withoutLabels: number };
   /** True when the data are simulated test cases, not the person's own. */
   simulated: boolean;
 }
@@ -93,13 +99,27 @@ export type Calls = Record<EvalMethod, Map<DateKey, 'alarm' | 'quiet' | 'abstain
   patterns: Record<'sleep' | 'sleep_activity', Map<DateKey, RhythmPattern[]>>;
 };
 
-/** Per day and method: 'alarm', 'quiet' or 'abstain'. */
-export function dailyCalls(data: RhythmData, from: DateKey, to: DateKey, sleepWindow: Options['sleepWindow']): Calls {
+/**
+ * The episodes as they could be known on morning `d`: only those that started at least a week
+ * before (they are documented afterwards), and only the part of them that had passed by then.
+ * An end date set later never reaches back into an earlier day's baseline.
+ */
+export function episodesKnownOn(episodes: EpisodeStart[], d: DateKey): EpisodeStart[] {
+  return episodes
+    .filter((e) => e.start <= addDays(d, -(R.baselineGapDays + 1)))
+    .map((e) => {
+      const end = e.end ?? addDays(e.start, R.episodeDefaultDays - 1);
+      return { ...e, end: end < d ? end : d };
+    });
+}
+
+/** Per day and method: 'alarm', 'quiet' or 'abstain'. `labels` false: no episode is left out of the baseline. */
+export function dailyCalls(data: RhythmData, from: DateKey, to: DateKey, sleepWindow: Options['sleepWindow'], labels = true): Calls {
   const first = Object.keys(data.measured).sort()[0] ?? from;
   const p = prepare(data.measured, data.activity, first < from ? first : from, to);
   const out: Calls = { notice: new Map(), sleep: new Map(), sleep_activity: new Map(), patterns: { sleep: new Map(), sleep_activity: new Map() } };
   for (let d = from; d <= to; d = addDays(d, 1)) {
-    const known = data.episodes.filter((e) => e.start <= addDays(d, -(R.baselineGapDays + 1)));
+    const known = labels ? episodesKnownOn(data.episodes, d) : [];
     const nights = [0, 1, 2].map((i) => data.measured[addDays(d, -i)]?.sleepHours);
     if (nights.some((h) => h == null)) out.notice.set(d, 'abstain');
     else out.notice.set(d, sleepNotice(upTo(data.measured, d), d, { window: sleepWindow ?? null, sleepRoutine: null }) ? 'alarm' : 'quiet');
@@ -172,10 +192,19 @@ export function evaluateRhythm(data: RhythmData, opts: Options): RhythmEvaluatio
     { name: 'test', from: holdoutFrom, to },
   ].map((p) => ({ ...p, name: p.name as EvalPart['name'], methods: (['notice', 'sleep', 'sleep_activity'] as EvalMethod[]).map((m) => scorePart(m, calls[m], data.episodes, p.from, p.to, m === 'notice' ? undefined : calls.patterns[m])) }));
   const inRange = data.episodes.filter((e) => e.start >= from && e.start <= to);
-  let nights = 0, evenings = 0;
+  let nights = 0, evenings = 0, lateFetched = 0;
   const p = prepare(data.measured, data.activity, from, to);
-  for (const n of p.nights.values()) if (!n.excluded) nights++;
+  for (const n of p.nights.values()) {
+    if (n.excluded) continue;
+    nights++;
+    // Fetched more than two days after the night: in the replay it counts as known that morning.
+    const f = data.measured[n.date]?.fetchedAt?.slice(0, 10);
+    if (f && f > addDays(n.date, 2)) lateFetched++;
+  }
   for (const e of p.evenings.values()) if (e.late != null) evenings++;
+  const runsIn = (c: Calls) => runsOf(c.sleep_activity, from, to).length;
+  const withLabels = runsIn(calls);
+  const withoutLabels = data.episodes.length ? runsIn(dailyCalls(data, from, to, opts.sleepWindow, false)) : withLabels;
   return {
     from, to, holdoutFrom, parts,
     episodes: {
@@ -183,7 +212,8 @@ export function evaluateRhythm(data: RhythmData, opts: Options): RhythmEvaluatio
       byType: { up: inRange.filter((e) => e.type === 'up').length, down: inRange.filter((e) => e.type === 'down').length, mixed: inRange.filter((e) => e.type === 'mixed').length },
       bySource: { self_retro: inRange.filter((e) => e.source === 'self_retro').length, clinical: inRange.filter((e) => e.source === 'clinical').length },
     },
-    coverage: { days: total, nights, evenings },
+    coverage: { days: total, nights, evenings, lateFetched },
+    labelEffect: { withLabels, withoutLabels },
     simulated: !!opts.simulated,
   };
 }
@@ -192,9 +222,16 @@ export function evaluateRhythm(data: RhythmData, opts: Options): RhythmEvaluatio
 
 const TYPE_LABEL: Record<EpisodeType, string> = { up: 'Uppvarvade', down: 'Nedstämda', mixed: 'Blandade' };
 
-export function rate(n: number, days: number): string {
-  if (days < 30) return `${n} på ${days} dagar`;
-  return `${String(Math.round((n / (days / 30)) * 10) / 10).replace('.', ',')} per månad (${n} på ${days} dagar)`;
+const per30 = (n: number, days: number) => String(Math.round((n / (days / 30)) * 10) / 10).replace('.', ',');
+
+/**
+ * Alarms per 30 days the method could judge, and per 30 calendar days: the first says how often it
+ * warns when it can, the second how often it warns in the person's life. Always with the counts.
+ */
+export function rate(n: number, judgedDays: number, calendarDays: number): string {
+  const counts = `${n} på ${judgedDays} bedömda av ${calendarDays} dagar`;
+  if (judgedDays < 30) return counts;
+  return `${per30(n, judgedDays)} per 30 bedömda dagar, ${per30(n, calendarDays)} per 30 kalenderdagar (${counts})`;
 }
 
 function lead(xs: number[]): string {
@@ -202,6 +239,21 @@ function lead(xs: number[]): string {
   const s = [...xs].sort((a, b) => a - b);
   if (s[0] === s[s.length - 1]) return s.length === 1 ? `${s[0]} dygn` : `${s[0]} dygn för alla ${s.length}`;
   return `${s[0]}–${s[s.length - 1]} dygn (median ${s[Math.floor(s.length / 2)]})`;
+}
+
+/** What the replay assumes, in words, with the numbers that show how much it matters. */
+export function assumptions(ev: RhythmEvaluation): string {
+  const parts = [
+    'Uppspelningen antar att varje natts sömn och föregående kvälls puls fanns hämtade på morgonen.',
+    ev.coverage.lateFetched
+      ? `${ev.coverage.lateFetched} av ${ev.coverage.nights} nätter hämtades i själva verket mer än två dygn senare, till exempel vid en hämtning bakåt.`
+      : 'Ingen natt hämtades mer än två dygn senare.',
+    'En episod räknas som känd först en vecka efter starten, och bara den del som passerat.',
+  ];
+  if (ev.labelEffect.withLabels !== ev.labelEffect.withoutLabels || ev.episodes.total) {
+    parts.push(`Modellen med sömn och aktivitet gav ${ev.labelEffect.withLabels} larm med episoderna utanför sitt vanliga mönster och ${ev.labelEffect.withoutLabels} utan någon episodmärkning.`);
+  }
+  return parts.join(' ');
 }
 
 /** The evaluation as markdown, every rate with the counts behind it. */
@@ -213,6 +265,7 @@ export function evaluationReport(ev: RhythmEvaluation): string {
   out.push('');
   out.push(`Period: ${formatDateSvYear(ev.from)} – ${formatDateSvYear(ev.to)} (${ev.coverage.days} dagar). Nätter med sömn från klockan: ${ev.coverage.nights}. Kvällar med tillräcklig puls för aktivitet: ${ev.coverage.evenings}.`);
   out.push(`Episodstarter i perioden: ${ev.episodes.total} (uppvarvade ${ev.episodes.byType.up}, nedstämda ${ev.episodes.byType.down}, blandade ${ev.episodes.byType.mixed}). Källa: ${ev.episodes.bySource.self_retro} angivna i efterhand, ${ev.episodes.bySource.clinical} från klinisk bedömning.`);
+  out.push(assumptions(ev));
   out.push(`Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från ${formatDateSvYear(ev.holdoutFrom)} redovisas för sig och får aldrig användas för att justera dem.`);
   for (const part of ev.parts) {
     out.push('');
@@ -233,7 +286,7 @@ export function evaluationReport(ev: RhythmEvaluation): string {
     out.push(known ? '| Metod | Falsklarm | Avstod | ' : '| Metod | Larm, inga episoder att jämföra med | Avstod | ');
     out.push('| --- | --- | --- |');
     for (const m of part.methods) {
-      out.push(`| ${METHOD_NAME[m.method]} | ${rate(m.falseAlarms, m.judgedStableDays)} | ${m.abstainDays} av ${m.days} dagar |`);
+      out.push(`| ${METHOD_NAME[m.method]} | ${rate(m.falseAlarms, m.judgedStableDays, m.days)} | ${m.abstainDays} av ${m.days} dagar |`);
     }
     const anyEp = part.methods[0].perType;
     const n = anyEp.up.episodes + anyEp.down.episodes + anyEp.mixed.episodes;

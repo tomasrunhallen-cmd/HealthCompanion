@@ -9,7 +9,7 @@ import { Text, View } from 'react-native';
 import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
 import { LEVEL_WORD } from '../../core/analysis/levelWords';
 import { changeSentence, clockOfAxis, eveningOf, nightsFrom, PATTERN_WORD, type RhythmAssessment, type RhythmMode } from '../../core/analysis/rhythm';
-import { evaluateRhythm, METHOD_NAME, MIN_EPISODES_FOR_RATE, rate, type RhythmEvaluation } from '../../core/analysis/rhythmEval';
+import { assumptions, evaluateRhythm, METHOD_NAME, MIN_EPISODES_FOR_RATE, rate, type RhythmEvaluation } from '../../core/analysis/rhythmEval';
 import { simulatedYear } from '../../core/analysis/rhythmSim';
 import type { DateKey, Level } from '../../core/domain/types';
 import {
@@ -103,6 +103,7 @@ function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpiso
         {formatDateSvYear(ev.from)} – {formatDateSvYear(ev.to)}: {ev.coverage.days} dagar, {ev.coverage.nights} nätter med sömn från klockan, {ev.coverage.evenings} kvällar med puls.
         {' '}Episodstarter: {ev.episodes.total} ({ev.episodes.bySource.self_retro} angivna i efterhand, {ev.episodes.bySource.clinical} från klinisk bedömning).
       </P>
+      <P muted style={{ marginTop: space.xs }}>{assumptions(ev)}</P>
       {!known ? (
         <Card tone="accent" style={{ marginTop: space.s }}>
           <P>Utan dokumenterade episodstarter går det inte att säga om ett larm var rätt eller fel, eller om något fångades i förväg. Det som går att läsa är hur ofta varje metod larmar och hur ofta den avstår.</P>
@@ -128,7 +129,7 @@ function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpiso
                   );
                 })}
                 <P muted>
-                  {known ? 'Falsklarm' : 'Larm'}: {rate(m.falseAlarms, m.judgedStableDays)}{known ? ', räknat på dagar utanför episoder' : ''}. Avstod: {m.abstainDays} av {m.days} dagar.
+                  {known ? 'Falsklarm' : 'Larm'}: {rate(m.falseAlarms, m.judgedStableDays, m.days)}{known ? ', räknat på dagar utanför episoder' : ''}. Avstod: {m.abstainDays} av {m.days} dagar.
                 </P>
               </View>
             );

@@ -423,3 +423,53 @@ describe('heart rate for every earlier day, by itself while the app is open', ()
     expect(asked).toEqual([]);
   });
 });
+
+describe('the replay after review: honest rates and no knowledge from later', () => {
+  const ev = jest.requireActual('../src/core/analysis/rhythmEval') as typeof import('../src/core/analysis/rhythmEval');
+
+  it('gives alarms per 30 judged days and per 30 calendar days, with the counts', () => {
+    expect(ev.rate(23, 180, 445)).toBe('3,8 per 30 bedömda dagar, 1,6 per 30 kalenderdagar (23 på 180 bedömda av 445 dagar)');
+    expect(ev.rate(1, 20, 25)).toBe('1 på 20 bedömda av 25 dagar');
+  });
+
+  it('an end date set later never reaches back into an earlier day', () => {
+    const e = { id: 'x', start: d(100), end: d(10), type: 'up' as const, source: 'self_retro' as const, createdAt: '' };
+    expect(ev.episodesKnownOn([e], d(95))).toEqual([]);
+    expect(ev.episodesKnownOn([e], d(70))[0].end).toBe(d(70));
+    const { data } = simulatedYear(END);
+    const day = d(70);
+    const a = ev.dailyCalls({ ...data, episodes: [e] }, day, day, null);
+    const b = ev.dailyCalls({ ...data, episodes: [{ ...e, end: d(60) }] }, day, day, null);
+    for (const m of ['sleep', 'sleep_activity'] as const) expect(a[m].get(day)).toBe(b[m].get(day));
+  });
+
+  it('says what the replay assumes, and how much the episode labels change the alarms', () => {
+    const { data } = simulatedYear(END);
+    const r = ev.evaluateRhythm(data, { to: END, simulated: true });
+    const text = ev.assumptions(r);
+    expect(text).toContain('fanns hämtade på morgonen');
+    expect(text).toMatch(/gav \d+ larm med episoderna utanför sitt vanliga mönster och \d+ utan någon episodmärkning/);
+  });
+});
+
+describe('no documented episodes: a change, but never support for a direction', () => {
+  const svc = jest.requireActual('../src/services/rhythm') as typeof import('../src/services/rhythm');
+  it('shows the change, gives no direction and no points, also when the person chose Använd', async () => {
+    const data = simulate({ end: END, days: 60, events: [{ kind: 'episode', start: addDays(END, 1), type: 'up' }] });
+    const repo = await Repository.create(memoryBackend());
+    await repo.saveGarminDays(Object.values(data.measured), END);
+    await repo.kvSet(ACTIVITY_KEY, data.activity);
+    await repo.updateSettings({ rhythm: 'use' });
+    expect(svc.episodeStarts(repo)).toEqual([]);
+    const a = (await updateRhythm(repo, new Date(`${END}T08:00:00`)))!;
+    expect(a.status).toBe('change');
+    expect(a.direction).toMatchObject({ value: 'unclear', reason: 'no_episodes', matches: [] });
+    const input = rhythmScoreInput(repo, END)!;
+    expect(input).toMatchObject({ use: true, direction: 'unclear' });
+    const e: Entry = { id: 'e', date: END, createdAt: `${END}T21:00:00`, kind: 'checkin', transcript: '', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null };
+    const s = score({ entry: e, matches: [], plan: [], planSettings: { normalState: '', sleepThresholdHours: 5 }, history: [], rhythm: input });
+    expect(s.level).toBe('green');
+    expect(s.signals.find((x) => x.kind === 'rhythm')?.points).toBe(0);
+    expect(s.rhythm).toMatchObject({ used: false, with: { level: 'green' }, without: { level: 'green' } });
+  });
+});
