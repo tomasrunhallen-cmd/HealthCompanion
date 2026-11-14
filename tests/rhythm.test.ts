@@ -344,3 +344,25 @@ describe('on the phone', () => {
     expect(activityDaysToFetch(have, END)).toContain(d(2));
   });
 });
+
+describe('episode dates typed on a number pad', () => {
+  const { formatDateInput, isDateKey } = jest.requireActual('../src/core/analysis/dates') as typeof import('../src/core/analysis/dates');
+  it('puts in the hyphens while typing, so only digits are needed', () => {
+    expect(formatDateInput('2025')).toBe('2025');
+    expect(formatDateInput('20250')).toBe('2025-0');
+    expect(formatDateInput('202503')).toBe('2025-03');
+    expect(formatDateInput('2025030')).toBe('2025-03-0');
+    expect(formatDateInput('20250303')).toBe('2025-03-03');
+    expect(formatDateInput('2025-03-03')).toBe('2025-03-03');
+    expect(formatDateInput('2025 03 03 12')).toBe('2025-03-03');
+    // Deleting the last digit after a hyphen leaves the digits before it.
+    expect(formatDateInput('2025-03-')).toBe('2025-03');
+  });
+  it('knows a real calendar date', () => {
+    expect(isDateKey('2025-03-03')).toBe(true);
+    expect(isDateKey('2024-02-29')).toBe(true);
+    expect(isDateKey('2025-02-29')).toBe(false);
+    expect(isDateKey('2025-13-01')).toBe(false);
+    expect(isDateKey('2025-3-3')).toBe(false);
+  });
+});

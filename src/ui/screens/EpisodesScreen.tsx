@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { formatDateSvYear } from '../../core/analysis/dates';
+import { formatDateInput, formatDateSvYear, isDateKey, toDateKey } from '../../core/analysis/dates';
 import type { EpisodeSource, EpisodeType } from '../../core/analysis/rhythm';
 import { newId } from '../../core/analysis/assess';
 import { episodeStarts, removeEpisode, saveEpisode, updateRhythm } from '../../services/rhythm';
@@ -15,7 +15,6 @@ import { space } from '../theme';
 
 const TYPE: Record<EpisodeType, string> = { up: 'Uppvarvad', down: 'Nedstämd', mixed: 'Blandad' };
 const SOURCE: Record<EpisodeSource, string> = { self_retro: 'Jag, i efterhand', clinical: 'Klinisk bedömning' };
-const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 
 export function EpisodesScreen() {
   const repo = useRepo();
@@ -24,7 +23,12 @@ export function EpisodesScreen() {
   const [end, setEnd] = useState('');
   const [kind, setKind] = useState<EpisodeType>('up');
   const [source, setSource] = useState<EpisodeSource>('self_retro');
-  const ok = isDate(start) && (!end || (isDate(end) && end >= start));
+  const today = toDateKey(new Date());
+  const problem = (s: string, what: string): string | null =>
+    s.length < 10 ? null : !isDateKey(s) ? `${what} finns inte i kalendern.` : s > today ? `${what} ligger i framtiden.` : null;
+  const startProblem = problem(start, 'Startdatumet');
+  const endProblem = problem(end, 'Slutdatumet') ?? (end.length === 10 && start.length === 10 && end < start ? 'Slutdatumet ligger före startdatumet.' : null);
+  const ok = start.length === 10 && !startProblem && (!end || (end.length === 10 && !endProblem));
 
   const add = async () => {
     await saveEpisode(repo, { id: newId('ep'), start, end: end || null, type: kind, source, createdAt: new Date().toISOString() });
@@ -38,8 +42,8 @@ export function EpisodesScreen() {
       <P>Dagar då en period började. De används för att jämföra klockans rytm med din historik, och som facit när modellen utvärderas.</P>
       <Section title="Lägg till">
         <Card>
-          <Field label="Startdatum" placeholder="ÅÅÅÅ-MM-DD" value={start} onChangeText={setStart} autoCapitalize="none" inputMode="numeric" />
-          <Field label="Slutdatum, om du vet" placeholder="ÅÅÅÅ-MM-DD" value={end} onChangeText={setEnd} autoCapitalize="none" inputMode="numeric" hint="Utan slutdatum räknas perioden som fyra veckor." />
+          <Field label="Startdatum" placeholder="ÅÅÅÅMMDD" value={start} onChangeText={(t) => setStart(formatDateInput(t))} autoCapitalize="none" inputMode="numeric" maxLength={10} hint={startProblem ?? 'Bara siffror, till exempel 20250303.'} accessibilityHint="Skriv åtta siffror: år, månad och dag" />
+          <Field label="Slutdatum, om du vet" placeholder="ÅÅÅÅMMDD" value={end} onChangeText={(t) => setEnd(formatDateInput(t))} autoCapitalize="none" inputMode="numeric" maxLength={10} hint={endProblem ?? 'Utan slutdatum räknas perioden som fyra veckor.'} accessibilityHint="Skriv åtta siffror: år, månad och dag" />
           <Segmented<EpisodeType> label="Typ" options={(Object.keys(TYPE) as EpisodeType[]).map((v) => ({ value: v, label: TYPE[v] }))} value={kind} onChange={setKind} />
           <Segmented<EpisodeSource> label="Datumet kommer från" options={(Object.keys(SOURCE) as EpisodeSource[]).map((v) => ({ value: v, label: SOURCE[v] }))} value={source} onChange={setSource} />
           <Button title="Spara" disabled={!ok} onPress={add} />

@@ -97,3 +97,22 @@ export function weekStart(key: DateKey): DateKey {
   const day = new Date(y, m - 1, d, 12).getDay(); // 0 = Sunday
   return addDays(key, -((day + 6) % 7));
 }
+
+/**
+ * A date typed on a number pad, which has no hyphen on an iPhone: only the digits count, and the
+ * hyphens are put in while typing. "20250303" and "2025-03-03" both become "2025-03-03".
+ */
+export function formatDateInput(text: string): string {
+  const d = text.replace(/\D/g, '').slice(0, 8);
+  if (d.length > 6) return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
+  if (d.length > 4) return `${d.slice(0, 4)}-${d.slice(4)}`;
+  return d;
+}
+
+/** A real calendar date "YYYY-MM-DD": not 30 February, not month 13. */
+export function isDateKey(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+}
