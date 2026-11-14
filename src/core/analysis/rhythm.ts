@@ -484,6 +484,33 @@ export function changeSentence(c: RhythmChange): string {
   }
 }
 
+/** What changed, in a few words and without values: "Senare och kortare sömn". For Hem and the headings. */
+export function changeHeadline(changes: RhythmChange[]): string {
+  const has = (p: RhythmPattern) => changes.some((c) => c.pattern === p);
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const timing: RhythmPattern | null = has('later') ? 'later' : has('earlier') ? 'earlier' : null;
+  const length: RhythmPattern | null = has('shorter') ? 'shorter' : has('longer') ? 'longer' : null;
+  if (timing === 'later' && length === 'shorter') return 'Senare och kortare sömn';
+  if (timing === 'earlier' && length === 'longer') return 'Tidigare och längre sömn';
+  if (timing && length) return `${cap(PATTERN_WORD[timing])} och ${PATTERN_WORD[length]}`;
+  if (timing) return cap(PATTERN_WORD[timing]);
+  if (length) return cap(PATTERN_WORD[length]);
+  if (has('irregular')) return 'Oregelbundna sovtider';
+  if (has('evening_activity')) return 'Förhöjd puls senare på kvällen';
+  return 'Förändring';
+}
+
+/** How much it is: "Tre nätter i rad." */
+export function changeScope(changes: RhythmChange[]): string {
+  const c = changes[0];
+  if (!c) return '';
+  if (c.pattern === 'irregular') return 'Den senaste veckan.';
+  const n = NUM[c.nights.length] ?? String(c.nights.length);
+  return c.pattern === 'evening_activity' ? `${n} kvällar i rad.` : `${n} nätter i rad.`;
+}
+
+export const STABLE_TITLE = 'Inget tydligt nytt mönster';
+
 function changeText(a: Omit<RhythmAssessment, 'text'>): string {
   if (a.status === 'insufficient') {
     const i = a.insufficient!;
@@ -492,7 +519,7 @@ function changeText(a: Omit<RhythmAssessment, 'text'>): string {
     return `För lite data. Klockan har sömn för ${i.have} av de ${R.windowSpanNights} senaste nätterna. Har klockan inte burits, eller inte synkat?`;
   }
   if (a.status === 'stable') {
-    const base = 'Ingen förändring i sömn och dygnsrytm de senaste nätterna.';
+    const base = `${STABLE_TITLE} i sömn och dygnsrytm de senaste nätterna.`;
     return a.singleShort ? `${base} En natt var kort (${h1(a.singleShort.hours)} timmar), men det är en enstaka natt, inte en förändring.` : base;
   }
   const later = a.changes.find((c) => c.pattern === 'later');
@@ -503,26 +530,37 @@ function changeText(a: Omit<RhythmAssessment, 'text'>): string {
 }
 
 const typeWord = (t: EpisodeType) => ({ up: 'uppvarvade', down: 'nedstämda', mixed: 'blandade' }[t]);
+const typeWordOne = (t: EpisodeType) => ({ up: 'uppvarvad', down: 'nedstämd', mixed: 'blandad' }[t]);
 
+/** The comparison with history in one line, when the history supports it. Null: nothing it resembles. */
+export function directionHeadline(d: Direction | null): string | null {
+  if (!d || d.reason !== 'supported' || d.value === 'unclear') return null;
+  return `Liknar mönstret före en tidigare ${typeWordOne(d.value)} period`;
+}
+
+/**
+ * The comparison with the person's earlier periods, in words. It says what the pattern resembles,
+ * never that a period is starting.
+ */
 export function directionText(d: Direction): string {
   const m = d.matches[0];
-  const like = m ? `Det liknar perioden före den ${typeWord(m.type)} perioden som började ${formatDateSv(m.start)} (${SOURCE_WORD[m.source]}).` : '';
   const stable = d.stableRuns.length
     ? ` Samma mönster fanns också under ${d.stableRuns.length === 1 ? 'en stabil period' : `${d.stableRuns.length} stabila perioder`} (${formatDateSv(d.stableRuns[0].from)}${d.stableRuns[0].to !== d.stableRuns[0].from ? `–${formatDateSv(d.stableRuns[0].to)}` : ''}).`
     : ' Mönstret fanns inte under stabila perioder.';
+  const like = m ? `Liknar mönstret före en tidigare ${typeWordOne(m.type)} period, som började ${formatDateSv(m.start)} (${SOURCE_WORD[m.source]}).` : '';
   switch (d.reason) {
     case 'supported':
-      return `Din historik ger stöd för riktningen ${d.value === 'up' ? 'uppåt' : 'nedåt'}. ${like}${stable}`;
+      return `${like}${stable}`;
     case 'also_stable':
-      return `Förändring upptäckt, riktning oklar. ${like}${stable}`;
+      return `${like}${stable} Därför går det inte att säga åt vilket håll det pekar.`;
     case 'both':
-      return 'Förändring upptäckt, riktning oklar. Samma mönster fanns före både uppvarvade och nedstämda perioder.';
+      return 'Samma mönster fanns före både uppvarvade och nedstämda perioder. Det går inte att säga åt vilket håll det pekar.';
     case 'no_episodes':
-      return 'Förändring upptäckt, riktning oklar. Det finns inga daterade episodstarter att jämföra med.';
+      return 'Det finns inga tidigare perioder inlagda att jämföra med.';
     case 'no_match': {
       const n = d.compared.up + d.compared.down + d.compared.mixed;
-      const which = n === 1 ? 'den episod' : `någon av de ${n} episoder`;
-      return `Förändring upptäckt, riktning oklar. Mönstret fanns inte före ${which} appen kunde jämföra med.${d.stableRuns.length ? stable : ''}`;
+      const which = n === 1 ? 'den tidigare period' : `någon av de ${n} tidigare perioder`;
+      return `Mönstret fanns inte före ${which} appen kunde jämföra med.${d.stableRuns.length ? stable : ''}`;
     }
   }
 }

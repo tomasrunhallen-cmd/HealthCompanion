@@ -287,7 +287,7 @@ export function SettingsScreen() {
           </P>
           <Button kind="secondary" title={garmin.connected ? 'Garmin' : 'Anslut Garmin'} onPress={() => nav.push({ name: 'garmin' })} />
           <Text style={[type.body, { fontWeight: '600', marginTop: space.m }]}>Dygnsrytm (experimentell)</Text>
-          <P muted>Förändringar i sömn och dygnsrytm från klockan, även veckor utan anteckningar. {({ off: 'Av.', show: 'Visas, påverkar inte nivån.', use: 'Används i bedömningen.' } as const)[s.rhythm ?? 'off']}</P>
+          <P muted>Förändringar i sömn och dygnsrytm från klockan, även veckor utan anteckningar. {({ off: 'Av.', show: 'Visar mönster, påverkar inte nivån.', use: 'Används i bedömningen.' } as const)[s.rhythm ?? 'off']}</P>
           <Button kind="secondary" title="Dygnsrytm" onPress={() => nav.push({ name: 'rhythm' })} />
           <P muted style={{ marginTop: space.m }}>
             Sömn och stress: din egen uppgift i avstämningen går före klockan, och klockan före Apple Hälsa eller Health Connect{healthAvailable ? '' : ` (${healthUnavailableReason.replace(/\.$/, '').toLowerCase()})`}. Bedömningen visar alltid vilken källa som användes.

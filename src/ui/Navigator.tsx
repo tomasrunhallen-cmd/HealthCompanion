@@ -121,7 +121,7 @@ const TITLE: Record<RouteName, string> = {
   references: 'Tidigare texter',
   textPatterns: 'Mönster',
   rhythm: 'Dygnsrytm',
-  episodes: 'Episodstarter',
+  episodes: 'Tidigare perioder',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };

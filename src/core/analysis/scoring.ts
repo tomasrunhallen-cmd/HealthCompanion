@@ -498,15 +498,16 @@ export function score(input: ScoreInput): ScoreResult {
 const SLEEP_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive'];
 
 /**
- * The passive signal: a change with support for a direction gives RULES.rhythm.points. A change
- * without a direction, a stable rhythm or too little data gives nothing and never lowers anything.
+ * The passive signal: a change that resembles the run-up to an earlier period gives
+ * RULES.rhythm.points. A change that resembles nothing, a stable rhythm or too little data gives
+ * nothing and never lowers anything.
  * Short sleep that the sleep rule already counted today is counted once.
  */
 export function rhythmSignalFor(r: RhythmScoreInput, others: Signal[]): Signal | null {
   if (r.status !== 'change') return null;
-  const base = { kind: 'rhythm' as const, measured: true, label: `Dygnsrytm: ${r.text}` };
-  if (r.explained) return { ...base, points: 0, label: `${base.label} Räknas inte: du har angett en annan förklaring.` };
-  if (r.direction !== 'up' && r.direction !== 'down') return { ...base, points: 0, label: `${base.label} Räknas inte: riktningen är oklar.` };
+  // Context the person added is shown, and saved with the day. It does not dismiss the signal (rules 1.6.0).
+  const base = { kind: 'rhythm' as const, measured: true, label: `Dygnsrytm: ${r.text}${r.context ? ` Sammanhang du lagt till: ${r.context}.` : ''}` };
+  if (r.direction !== 'up' && r.direction !== 'down') return { ...base, points: 0, label: `${base.label} Räknas inte: det liknar ingen tidigare period.` };
   const onlySleepLength = r.patterns.every((p) => p === 'shorter');
   if (onlySleepLength && others.some((s) => SLEEP_KINDS.includes(s.kind) && s.points > 0)) {
     return { ...base, points: 0, polarity: r.direction, label: `${base.label} Räknas inte en gång till: den korta sömnen räknas redan.` };

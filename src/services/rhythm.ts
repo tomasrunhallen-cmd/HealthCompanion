@@ -11,6 +11,7 @@
 import { addDays, toDateKey } from '../core/analysis/dates';
 import { assessRhythm, type ActivityDay, type EpisodeStart, type RhythmAssessment, type RhythmMode } from '../core/analysis/rhythm';
 import { recomputeHistory } from '../core/analysis/recompute';
+import { RULES_VERSION } from '../core/analysis/rules';
 import { evaluateRhythm, type RhythmEvaluation } from '../core/analysis/rhythmEval';
 import type { DateKey, Level, MeasuredDay, RhythmScoreInput } from '../core/domain/types';
 import { GarminClient, GarminError } from '../garmin/client';
@@ -59,7 +60,7 @@ export interface ActivitySource {
 }
 
 export interface RhythmFeedback {
-  /** The person's own explanation, optional: travel, illness, guests, a deadline. */
+  /** The person's own context, optional: travel, illness, guests, a deadline. Saved, never used to dismiss a change. */
   reason: string;
   at: string;
 }
@@ -137,7 +138,7 @@ export async function removeEpisode(repo: Repository, id: string): Promise<void>
   await repo.kvSet(EPISODES_KEY, episodeStarts(repo).filter((x) => x.id !== id));
 }
 
-/** An optional correction: the change has another explanation. Never needed for the estimate to work. */
+/** Optional context for a change (a trip, an illness). Saved and shown with it; it never dismisses the signal. */
 export async function explainCourse(repo: Repository, courseStart: DateKey, reason: string, now = new Date()): Promise<void> {
   await repo.kvSet(FEEDBACK_KEY, { ...rhythmFeedback(repo), [courseStart]: { reason: reason.trim(), at: now.toISOString() } });
 }
@@ -329,7 +330,9 @@ export async function updateRhythm(repo: Repository, now = new Date()): Promise<
 /** When the app opens without a new sync: today's estimate from what is stored, if not made yet. */
 export async function ensureRhythm(repo: Repository, now = new Date()): Promise<void> {
   if (rhythmMode(repo) === 'off') return;
-  if (latestRhythm(repo)?.date === toDateKey(now)) return;
+  const latest = latestRhythm(repo);
+  // Made again when the rules (and so the wording) have changed since this morning's estimate.
+  if (latest?.date === toDateKey(now) && latest.rulesVersion === RULES_VERSION) return;
   await updateRhythm(repo, now).catch(() => null);
 }
 
@@ -339,10 +342,10 @@ export function rhythmScoreInput(repo: Repository, date: DateKey): RhythmScoreIn
   if (mode === 'off') return null;
   const a = rhythmAssessments(repo)[date];
   if (!a) return null;
-  return scoreInputOf(a, mode === 'use', !!(a.courseStart && rhythmFeedback(repo)[a.courseStart]));
+  return scoreInputOf(a, mode === 'use', a.courseStart ? rhythmFeedback(repo)[a.courseStart]?.reason ?? null : null);
 }
 
-export function scoreInputOf(a: RhythmAssessment, use: boolean, explained: boolean): RhythmScoreInput {
+export function scoreInputOf(a: RhythmAssessment, use: boolean, context: string | null): RhythmScoreInput {
   return {
     date: a.date,
     computedAt: a.computedAt,
@@ -351,7 +354,7 @@ export function scoreInputOf(a: RhythmAssessment, use: boolean, explained: boole
     patterns: a.changes.map((c) => c.pattern),
     text: a.text.change,
     use,
-    ...(explained ? { explained: true } : {}),
+    ...(context ? { context } : {}),
   };
 }
 
@@ -384,7 +387,7 @@ export function rhythmEffect(repo: Repository, days = 30, now = new Date()): Eff
     ...ctx,
     rhythm: (date: DateKey) => {
       const a = stored[date];
-      return a ? scoreInputOf(a, use, !!(a.courseStart && feedback[a.courseStart])) : null;
+      return a ? scoreInputOf(a, use, a.courseStart ? feedback[a.courseStart]?.reason ?? null : null) : null;
     },
   }, now);
   const withOut = new Map(run(false).map((d) => [d.entryId, d]));
@@ -428,7 +431,7 @@ export function rhythmCard(repo: Repository, now = new Date()): RhythmCard | nul
   if (!a || a.date !== toDateKey(now)) return null;
   const seen = (repo.kvGet(SEEN_KEY) as string[] | undefined) ?? [];
   let card: RhythmCard | null = null;
-  if (a.status === 'change' && a.courseStart && !rhythmFeedback(repo)[a.courseStart]) {
+  if (a.status === 'change' && a.courseStart) {
     card = { kind: 'rhythm', id: `rhythm_${a.courseStart}_${a.changes[0].pattern}_${a.direction?.value ?? 'unclear'}`, assessment: a };
   } else if (a.status === 'insufficient') {
     // Too little data for two mornings in a row, so one gap in syncing is not a card.

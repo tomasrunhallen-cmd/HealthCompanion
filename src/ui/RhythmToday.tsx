@@ -1,83 +1,70 @@
-// Dygnsrytm, today's estimate at the top of Hem: one plain line folded, the model's reasons
-// when opened. Shown only when the person has chosen the function. Opening it marks a new change
-// as read, the same way the card did before.
+// Dygnsrytm, today's estimate at the top of Hem, kept short: what changed, how much, one step
+// from the person's own plan when there is a change, how fresh it is, and a way to the details.
+// No reasons, no values and no pulse share here: those are on the Dygnsrytm screen. Shown only
+// when the person has chosen the function. Opening the details marks a new change as read.
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { formatDateSv, formatTime, toDateKey } from '../core/analysis/dates';
-import { PATTERN_WORD, type RhythmAssessment } from '../core/analysis/rhythm';
+import { changeHeadline, changeScope, STABLE_TITLE, type RhythmAssessment } from '../core/analysis/rhythm';
 import { latestRhythm, markRhythmSeen, planStepFor, rhythmCard, rhythmMode } from '../services/rhythm';
-import { Button, Card, P, Tag } from './components';
+import { Card, Tag } from './components';
 import { useNav } from './nav';
 import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
 
-/** The folded line: what the estimate says, in a few words. */
+/** What the estimate says, in a few words: the heading, and how much it is. */
 export function rhythmHeadline(a: RhythmAssessment): { title: string; detail: string } {
-  if (a.status === 'insufficient') return { title: 'För lite data', detail: a.insufficient?.reason === 'baseline' ? 'Lär sig ditt mönster' : a.insufficient?.reason === 'timezone' ? 'Ny tidszon' : 'Nätter saknas' };
-  if (a.status === 'stable') return { title: 'Ingen förändring', detail: a.singleShort ? 'En enstaka kort natt, inget mer' : '' };
-  // At most two patterns in the line, so it stays one or two lines; the rest are under Varför.
-  const words = a.changes.slice(0, 2).map((c) => PATTERN_WORD[c.pattern]);
-  const what = words.join(' och ') + (a.changes.length > 2 ? ' m.m.' : '');
-  const dir = a.direction?.value === 'up' ? 'Riktning uppåt, enligt din historik' : a.direction?.value === 'down' ? 'Riktning nedåt, enligt din historik' : 'Riktning oklar';
-  return { title: what, detail: dir };
+  if (a.status === 'insufficient') return { title: 'För lite data', detail: a.insufficient?.reason === 'baseline' ? 'Appen lär sig ditt mönster.' : a.insufficient?.reason === 'timezone' ? 'Ny tidszon.' : 'Klockan saknar nätter.' };
+  if (a.status === 'stable') return { title: STABLE_TITLE, detail: a.singleShort ? 'En enstaka kort natt räknas inte.' : '' };
+  return { title: changeHeadline(a.changes), detail: changeScope(a.changes) };
 }
 
 const MONTH = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 const shortDate = (d: string) => `${Number(d.slice(8, 10))} ${MONTH[Number(d.slice(5, 7)) - 1]}`;
 
+/** "Natten till 14 nov · hämtat 08:00": the latest night it rests on, and when the watch's data were last fetched. */
+export function rhythmFreshness(a: RhythmAssessment, lastSyncAt: string | null | undefined, now = new Date()): string {
+  const fetched = lastSyncAt ? (toDateKey(new Date(lastSyncAt)) === toDateKey(now) ? formatTime(lastSyncAt) : `${shortDate(toDateKey(new Date(lastSyncAt)))} ${formatTime(lastSyncAt)}`) : null;
+  return `Natten till ${shortDate(a.covers.to)}${fetched ? ` · hämtat ${fetched}` : ''}`;
+}
+
 export function RhythmToday() {
   const repo = useRepo();
   const nav = useNav();
-  const [open, setOpen] = useState(false);
   if (rhythmMode(repo) === 'off') return null;
   const a = latestRhythm(repo);
   if (!a) return null;
   const fresh = rhythmCard(repo);
   const head = rhythmHeadline(a);
-  // How fresh it is, next to the signal: the latest night it rests on, and when the watch's data were last fetched.
-  const lastSync = repo.garminStatus().lastSyncAt;
-  const fetched = lastSync ? (toDateKey(new Date(lastSync)) === toDateKey(new Date()) ? formatTime(lastSync) : `${shortDate(toDateKey(new Date(lastSync)))} ${formatTime(lastSync)}`) : null;
-  const freshness = `natten till ${shortDate(a.covers.to)}${fetched ? `, hämtat ${fetched}` : ''}`;
-  const detail = head.detail ? `${head.detail} · ${freshness}` : freshness.charAt(0).toUpperCase() + freshness.slice(1);
+  const freshness = rhythmFreshness(a, repo.garminStatus().lastSyncAt);
   const step = a.status === 'change' ? planStepFor(repo, a) : null;
   const old = a.date !== toDateKey(new Date());
-  const toggle = () => {
-    if (!open && fresh) markRhythmSeen(repo, fresh.id);
-    setOpen(!open);
+  const open = () => {
+    if (fresh) markRhythmSeen(repo, fresh.id);
+    nav.push({ name: 'rhythm' });
   };
   return (
     // Neutral on purpose: the level's colours belong to the evening's traffic light, not to the watch.
-    <Card style={{ paddingVertical: space.s }}>
-      <Pressable
-        onPress={toggle}
-        accessibilityRole="button"
-        accessibilityLabel={`Dygnsrytm${old ? `, ${formatDateSv(a.date)}` : ' i dag'}: ${head.title}. ${detail}.`}
-        accessibilityState={{ expanded: open }}
-        accessibilityHint={open ? 'Fäller ihop motiveringen' : 'Visar motiveringen'}
-        style={{ minHeight: MIN_TOUCH, flexDirection: 'row', alignItems: 'center', gap: space.s }}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={[type.body, { fontWeight: '600' }]}>Dygnsrytm{old ? ` ${formatDateSv(a.date)}` : ''}: {head.title.charAt(0).toLowerCase() + head.title.slice(1)}</Text>
-          <Text style={type.small}>{detail}</Text>
+    <Pressable
+      onPress={open}
+      accessibilityRole="button"
+      accessibilityLabel={`Dygnsrytm${old ? `, ${formatDateSv(a.date)}` : ' i dag'}: ${head.title}. ${head.detail}${step ? ` Ur din plan: ${step.text}.` : ''} ${freshness}.`}
+      accessibilityHint="Visar detaljerna"
+      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+    >
+      <Card style={{ paddingVertical: space.s, minHeight: MIN_TOUCH }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+          <Text style={type.label}>{`Dygnsrytm${old ? ` ${formatDateSv(a.date)}` : ''}`.toUpperCase()}</Text>
+          {fresh ? <Tag label="Ny" /> : null}
+          <View style={{ flex: 1 }} />
+          <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa detaljer ›</Text>
         </View>
-        {fresh ? <Tag label="Ny" /> : null}
-        <Text style={[type.body, { color: colors.accent, fontWeight: '600' }]} importantForAccessibility="no">{open ? '▲' : '▼'}</Text>
-      </Pressable>
-      {open ? (
-        <View style={{ marginTop: space.xs }}>
-          <P>{a.text.change}</P>
-          {a.text.direction ? <P style={{ marginTop: space.xs }}>{a.text.direction}</P> : null}
-          <P muted style={{ marginTop: space.xs }}>Bedömd {formatTime(a.computedAt)}, nätterna {formatDateSv(a.covers.from)} – {formatDateSv(a.covers.to)}.</P>
-          {step ? (
-            <View style={{ marginTop: space.s }}>
-              <Text style={type.label}>{step.heading.toUpperCase()}</Text>
-              <P>{step.text}</P>
-            </View>
-          ) : null}
-          <Button kind="ghost" title="Öppna jämförelsen" onPress={() => nav.push({ name: 'rhythm' })} />
-        </View>
-      ) : null}
-    </Card>
+        <Text style={[type.body, { fontWeight: '600' }]}>{head.title}</Text>
+        {head.detail ? <Text style={type.body}>{head.detail}</Text> : null}
+        {step ? <Text style={[type.body, { marginTop: space.xs }]} numberOfLines={2}><Text style={{ fontWeight: '600' }}>Ur din plan: </Text>{step.text}</Text> : null}
+        <Text style={[type.small, { marginTop: space.xs }]}>{freshness}</Text>
+      </Card>
+    </Pressable>
   );
 }

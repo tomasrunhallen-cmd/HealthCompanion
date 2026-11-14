@@ -451,8 +451,8 @@ export interface RhythmScoreInput {
   text: string;
   /** The person chose to use it in the level. */
   use: boolean;
-  /** The person said the change has another explanation: shown, never counted. */
-  explained?: boolean;
+  /** Context the person added to the change (a trip, an illness): shown with the signal, never changes its points. */
+  context?: string | null;
 }
 
 export interface Baseline {

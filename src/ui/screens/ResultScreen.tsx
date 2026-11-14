@@ -235,7 +235,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
               Utan signalen: {LEVEL_WORD[a.rhythm.withoutRhythm.level]}. Med signalen: {LEVEL_WORD[a.rhythm.withRhythm.level]}.
               {!a.rhythm.used ? ' Du har valt att den inte ska räknas.' : a.rhythm.points ? ` Den räknas i din bedömning med ${a.rhythm.points} poäng.` : ' Den räknas i din bedömning, men gav ingen poäng i dag.'}
             </P>
-            <Button kind="ghost" title="Öppna jämförelsen" onPress={() => nav.push({ name: 'rhythm' })} />
+            <Button kind="ghost" title="Visa detaljer" onPress={() => nav.push({ name: 'rhythm' })} />
           </Card>
         ) : null}
       </Disclosure>

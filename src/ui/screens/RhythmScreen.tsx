@@ -1,32 +1,35 @@
-// Dygnsrytm (experimental): the passive estimate from the watch, in two separate answers
-// (what changed, and whether the person's own history supports a direction), the nights behind
-// it, a step that is already in the plan, an optional correction, the level with and without the
-// signal, the data sources and how fresh they are, and the evaluation on the person's own data.
-// The rated mood, this estimate and documented episode starts are kept apart, here and in storage.
+// Dygnsrytm (experimental): the passive estimate from the watch. The page goes from what the
+// watch shows (the observation), to one step from the person's own plan, to what it rests on:
+// the nights as a simple chart, the comparison with earlier periods the person has entered (kept
+// apart from the observation, and never a claim that a period is starting), and optional context.
+// How it is used and its effect on the evening's colour are one folded part; the pulse share, the
+// fetch log, the evaluation and the arithmetic are another (Fördjupning).
+// The rated mood, this estimate and the earlier periods are kept apart, here and in storage.
 
-import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
 import { LEVEL_WORD } from '../../core/analysis/levelWords';
-import { changeSentence, clockOfAxis, eveningOf, nightsFrom, PATTERN_WORD, type RhythmAssessment, type RhythmMode } from '../../core/analysis/rhythm';
+import { axis, changeSentence, clockOfAxis, directionText, eveningOf, nightsFrom, PATTERN_WORD, type RhythmAssessment, type RhythmMode } from '../../core/analysis/rhythm';
 import { assumptions, evaluateRhythm, METHOD_NAME, MIN_EPISODES_FOR_RATE, rate, type RhythmEvaluation } from '../../core/analysis/rhythmEval';
 import { simulatedYear } from '../../core/analysis/rhythmSim';
 import type { DateKey, Level } from '../../core/domain/types';
 import {
-  activityDays, activityProgress, activitySource, episodeStarts, fetchAllActivity, missingActivityDays, evaluateOwnData, explainCourse, latestRhythm, planStepFor,
-  rhythmEffect, rhythmFeedback, rhythmMode, setRhythmMode, syncLog, undoExplanation, watchNights,
+  activityDays, activityProgress, activitySource, episodeStarts, fetchAllActivity, missingActivityDays, evaluateOwnData, explainCourse, latestRhythm, markRhythmSeen, planStepFor,
+  rhythmCard, rhythmEffect, rhythmFeedback, rhythmMode, setRhythmMode, syncLog, undoExplanation, watchNights,
 } from '../../services/rhythm';
-import { Button, Card, Chip, Disclosure, Eyebrow, P, Row, Screen, Section, Segmented, Tag } from '../components';
-import { rhythmHeadline } from '../RhythmToday';
+import { Button, Card, Chip, Disclosure, Eyebrow, P, Row, Screen, Section, Tag } from '../components';
+import { rhythmFreshness, rhythmHeadline } from '../RhythmToday';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
-import { colors, space, type } from '../theme';
+import { colors, MIN_TOUCH, radius, space, type } from '../theme';
 
-const MODE_LABEL: Record<RhythmMode, string> = { off: 'Av', show: 'Visa', use: 'Använd' };
+const MODES: RhythmMode[] = ['off', 'show', 'use'];
+export const MODE_LABEL: Record<RhythmMode, string> = { off: 'Av', show: 'Visa mönster', use: 'Använd i bedömningen' };
 const MODE_TEXT: Record<RhythmMode, string> = {
-  off: 'appen tittar inte på klockans sömn och puls.',
-  show: 'du ser vad klockan visar, men det påverkar aldrig kvällens färg.',
-  use: 'en tydlig förändring som liknar en tidigare period kan göra kvällens färg gul, aldrig röd på egen hand.',
+  off: 'Appen tittar inte på klockans sömn och puls.',
+  show: 'Du ser mönstret. Kvällens färg påverkas aldrig.',
+  use: 'En förändring som liknar tiden före en tidigare period kan göra kvällens färg gul, aldrig röd på egen hand.',
 };
 
 const TRIGGER: Record<string, string> = { open: 'appen öppnades', checkin: 'avstämning', manual: 'Hämta igen', connect: 'anslutning' };
@@ -39,27 +42,134 @@ function Label({ children }: { children: string }) {
   return <Text style={[type.label, { marginTop: space.m, marginBottom: space.xs }]} accessibilityRole="header">{children.toUpperCase()}</Text>;
 }
 
-/** The latest nights against the usual: the night's values, with the window marked. */
-function NightsTable({ a }: { a: RhythmAssessment }) {
+/** One choice per row, with what it means under it: the three names are too long for a segmented control. */
+function ModeChooser({ mode, onChange }: { mode: RhythmMode; onChange: (m: RhythmMode) => void }) {
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel="Hur Dygnsrytm används">
+      {MODES.map((m) => {
+        const on = m === mode;
+        return (
+          <Pressable
+            key={m}
+            onPress={() => onChange(m)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on, checked: on }}
+            accessibilityLabel={`${MODE_LABEL[m]}. ${MODE_TEXT[m]}`}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'flex-start', gap: space.m, minHeight: MIN_TOUCH, paddingVertical: space.s, opacity: pressed ? 0.6 : 1 })}
+          >
+            <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? colors.accent : colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+              {on ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent }} /> : null}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[type.body, { fontWeight: on ? '600' : '400' }]}>{MODE_LABEL[m]}</Text>
+              <Text style={type.small}>{MODE_TEXT[m]}</Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const hoursWord = (h: number) => `${String(h).replace('.', ',')} h`;
+
+/**
+ * The latest seven nights as bars from falling asleep to waking, on a field that shows the usual
+ * night. Later and shorter sleep are both visible at a glance; the exact values are one tap away.
+ */
+function NightsChart({ a }: { a: RhythmAssessment }) {
+  const repo = useRepo();
+  const [exact, setExact] = useState(false);
+  const nights = nightsFrom(watchNights(repo), addDays(a.date, -6), a.date);
+  const inWindow = (d: DateKey) => d >= a.covers.from && d <= a.covers.to;
+  const usualOn = a.baseline ? axis(a.baseline.onset) : null;
+  const usualHours = a.baseline ? Number(a.baseline.hours.replace(' h', '').replace(',', '.')) : null;
+  const usualWake = usualOn != null && usualHours != null ? usualOn + usualHours * 60 : null;
+  const bars = nights.map((n) => (n.excluded ? null : { from: n.onset!, to: n.wake != null && n.wake > n.onset! ? n.wake : n.onset! + n.hours! * 60 }));
+  const starts = [...bars.filter((b) => b).map((b) => b!.from), ...(usualOn != null ? [usualOn] : [])];
+  const ends = [...bars.filter((b) => b).map((b) => b!.to), ...(usualWake != null ? [usualWake] : [])];
+  if (!starts.length) return <P muted>Inga nätter från klockan den senaste veckan.</P>;
+  const lo = Math.floor((Math.min(...starts) - 20) / 60) * 60;
+  const hi = Math.ceil((Math.max(...ends) + 20) / 60) * 60;
+  const pos = (m: number) => `${((m - lo) / (hi - lo)) * 100}%` as const;
+  const width = (from: number, to: number) => `${((to - from) / (hi - lo)) * 100}%` as const;
+  const ticks: number[] = [];
+  for (let m = Math.ceil(lo / 120) * 120; m <= hi; m += 120) ticks.push(m);
+  const LABEL = 62;
+  return (
+    <View>
+      <View accessibilityLabel="De senaste sju nätterna, från insomning till uppvakning, mot hur du brukar sova">
+        {nights.map((n, i) => {
+          const b = bars[i];
+          const strong = inWindow(n.date);
+          return (
+            <View
+              key={n.date}
+              accessible
+              accessibilityLabel={b
+                ? `Natten till ${shortDate(n.date)}: somnade ${clockOfAxis(b.from)}, vaknade ${clockOfAxis(b.to)}, sov ${hoursWord(n.hours!)}${strong ? '. Med i bedömningen' : ''}`
+                : `Natten till ${shortDate(n.date)}: ${n.excluded === 'missing' ? 'ingen sömn från klockan' : n.excluded === 'timezone' ? 'tidszonsbyte, jämförs inte' : 'sov på dagen'}`}
+              style={{ flexDirection: 'row', alignItems: 'center', height: 26 }}
+            >
+              <Text style={[type.small, { width: LABEL }, strong && { fontWeight: '600', color: colors.text }]}>{shortDate(n.date)}</Text>
+              <View style={{ flex: 1, height: 18, justifyContent: 'center' }}>
+                {usualOn != null && usualWake != null ? (
+                  <View style={{ position: 'absolute', left: pos(usualOn), width: width(usualOn, usualWake), top: 0, bottom: 0, backgroundColor: colors.surfaceAlt, borderRadius: radius.xs }} />
+                ) : null}
+                {b ? (
+                  <View style={{ position: 'absolute', left: pos(b.from), width: width(b.from, b.to), height: 10, borderRadius: 5, backgroundColor: strong ? colors.accent : colors.textMuted, opacity: strong ? 1 : 0.45 }} />
+                ) : (
+                  <Text style={[type.small, { fontSize: 13 }]}>{n.excluded === 'missing' ? 'Ingen sömn från klockan' : n.excluded === 'timezone' ? 'Tidszonsbyte' : 'Sov på dagen'}</Text>
+                )}
+              </View>
+            </View>
+          );
+        })}
+        <View style={{ flexDirection: 'row', height: 20 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <View style={{ width: LABEL }} />
+          <View style={{ flex: 1 }}>
+            {ticks.map((m) => (
+              <Text key={m} style={[type.small, { fontSize: 12, position: 'absolute', left: pos(m), width: 30, marginLeft: -15, textAlign: 'center' }]}>{clockOfAxis(m).slice(0, 2)}</Text>
+            ))}
+          </View>
+        </View>
+      </View>
+      <P muted style={{ marginTop: space.xs }}>
+        {a.baseline ? `Fältet bakom staplarna är hur du brukar sova: från ${a.baseline.onset}, ${a.baseline.hours.replace(' h', ' timmar')}. ` : ''}Mörka staplar är nätterna bedömningen bygger på.
+      </P>
+      <Button kind="ghost" title={exact ? 'Dölj exakta värden' : 'Visa exakta värden'} onPress={() => setExact(!exact)} />
+      {exact ? <NightsTable a={a} /> : null}
+    </View>
+  );
+}
+
+/** The latest nights against the usual, as numbers. `pulse`: the evening's share of raised pulse instead of the sleep. */
+function NightsTable({ a, pulse }: { a: RhythmAssessment; pulse?: boolean }) {
   const repo = useRepo();
   const nights = nightsFrom(watchNights(repo), addDays(a.date, -6), a.date);
   const act = activityDays(repo);
   const inWindow = (d: DateKey) => d >= a.covers.from && d <= a.covers.to;
   const cell = { flex: 1, textAlign: 'right' as const };
   return (
-    <View accessibilityLabel="De senaste sju nätterna mot det vanliga">
+    <View accessibilityLabel={pulse ? 'Förhöjd puls på kvällen de senaste sju dygnen' : 'De senaste sju nätterna mot det vanliga'}>
       <Row style={{ paddingVertical: space.xs, borderBottomWidth: 1, borderColor: colors.border }}>
         <Text style={[type.small, { flex: 1.3 }]}>Natten till</Text>
-        <Text style={[type.small, cell]}>Somnade</Text>
-        <Text style={[type.small, cell]}>Sov</Text>
-        <Text style={[type.small, cell]}>Puls kväll</Text>
+        {pulse ? <Text style={[type.small, cell]}>Efter 21</Text> : (
+          <>
+            <Text style={[type.small, cell]}>Somnade</Text>
+            <Text style={[type.small, cell]}>Sov</Text>
+          </>
+        )}
       </Row>
       {a.baseline ? (
         <Row style={{ paddingVertical: space.xs }}>
           <Text style={[type.small, { flex: 1.3, fontStyle: 'italic' }]}>Vanligt</Text>
-          <Text style={[type.small, cell]}>{a.baseline.onset}</Text>
-          <Text style={[type.small, cell]}>{a.baseline.hours}</Text>
-          <Text style={[type.small, cell]}>{a.baseline.late ?? '–'}</Text>
+          {pulse ? <Text style={[type.small, cell]}>{a.baseline.late ?? '–'}</Text> : (
+            <>
+              <Text style={[type.small, cell]}>{a.baseline.onset}</Text>
+              <Text style={[type.small, cell]}>{a.baseline.hours}</Text>
+            </>
+          )}
         </Row>
       ) : null}
       {nights.map((n) => {
@@ -69,21 +179,25 @@ function NightsTable({ a }: { a: RhythmAssessment }) {
         return (
           <Row key={n.date} style={{ paddingVertical: space.xs, borderTopWidth: 1, borderColor: colors.border }}>
             <Text style={[type.body, { flex: 1.3 }, strong && { fontWeight: '600' as const }]}>{shortDate(n.date)}</Text>
-            {n.excluded ? (
-              <Text style={[type.small, { flex: 3, textAlign: 'right' }]}>
-                {n.excluded === 'missing' ? 'Ingen sömn från klockan' : n.excluded === 'timezone' ? 'Tidszonsbyte, jämförs inte' : 'Sov på dagen'}
-              </Text>
-            ) : (
-              <>
-                <Text style={t}>{clockOfAxis(n.onset!)}</Text>
-                <Text style={t}>{String(n.hours).replace('.', ',')} h</Text>
-                <Text style={t}>{e.late != null ? `${Math.round(e.late * 100)} %` : '–'}</Text>
-              </>
-            )}
+            {pulse ? <Text style={t}>{e.late != null ? `${Math.round(e.late * 100)} %` : '–'}</Text>
+              : n.excluded ? (
+                <Text style={[type.small, { flex: 2, textAlign: 'right' }]}>
+                  {n.excluded === 'missing' ? 'Ingen sömn från klockan' : n.excluded === 'timezone' ? 'Tidszonsbyte, jämförs inte' : 'Sov på dagen'}
+                </Text>
+              ) : (
+                <>
+                  <Text style={t}>{clockOfAxis(n.onset!)}</Text>
+                  <Text style={t}>{hoursWord(n.hours!)}</Text>
+                </>
+              )}
           </Row>
         );
       })}
-      <P muted style={{ marginTop: space.xs }}>Fet stil: nätterna bedömningen bygger på. Puls kväll: andel av dygnets minuter med förhöjd puls (minst 25 slag över vilopuls) som kom efter 21. Det är en uppskattning ur pulsen, inte ett mått på rörelse.</P>
+      <P muted style={{ marginTop: space.xs }}>
+        {pulse
+          ? 'Andel av dygnets minuter med förhöjd puls (minst 25 slag över vilopuls) som kom efter 21. Det är en uppskattning ur pulsen, inte ett mått på rörelse. Fet stil: nätterna bedömningen bygger på.'
+          : 'Fet stil: nätterna bedömningen bygger på.'}
+      </P>
     </View>
   );
 }
@@ -103,13 +217,13 @@ function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpiso
       ) : <Label>Dina egna data</Label>}
       <P style={{ marginTop: space.s }}>
         {formatDateSvYear(ev.from)} – {formatDateSvYear(ev.to)}: {ev.coverage.days} dagar, {ev.coverage.nights} nätter med sömn från klockan, {ev.coverage.evenings} kvällar med puls.
-        {' '}Episodstarter: {ev.episodes.total} ({ev.episodes.bySource.self_retro} angivna i efterhand, {ev.episodes.bySource.clinical} från klinisk bedömning).
+        {' '}Tidigare perioder: {ev.episodes.total} ({ev.episodes.bySource.self_retro} angivna i efterhand, {ev.episodes.bySource.clinical} från klinisk bedömning).
       </P>
       <P muted style={{ marginTop: space.xs }}>{assumptions(ev)}</P>
       {!known ? (
         <Card tone="accent" style={{ marginTop: space.s }}>
-          <P>Utan dokumenterade episodstarter går det inte att säga om ett larm var rätt eller fel, eller om något fångades i förväg. Det som går att läsa är hur ofta varje metod larmar och hur ofta den avstår.</P>
-          <Button kind="secondary" title="Lägg in episodstarter" onPress={onAddEpisode} />
+          <P>Utan inlagda tidigare perioder går det inte att säga om ett larm var rätt eller fel, eller om något fångades i förväg. Det som går att läsa är hur ofta varje metod larmar och hur ofta den avstår.</P>
+          <Button kind="secondary" title="Lägg in tidigare perioder" onPress={onAddEpisode} />
         </Card>
       ) : null}
       {ev.parts.map((part) => (
@@ -137,7 +251,7 @@ function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpiso
             );
           })}
           {known && part.methods[0].perType.up.episodes + part.methods[0].perType.down.episodes + part.methods[0].perType.mixed.episodes < MIN_EPISODES_FOR_RATE
-            ? <P muted>För få dokumenterade episoder i den här delen för att säga hur ofta starter fångas.</P>
+            ? <P muted>För få inlagda perioder i den här delen för att säga hur ofta starter fångas.</P>
             : null}
         </View>
       ))}
@@ -147,7 +261,7 @@ function EvaluationView({ ev, onAddEpisode }: { ev: RhythmEvaluation; onAddEpiso
           <P muted>Minns du om en period började något av de här dygnen eller strax efter? Lägg då in starten. Det är så modellen kan prövas.</P>
           {(all ? alarms : alarms.slice(0, 8)).map((r) => (
             <P key={r.from} style={{ marginTop: space.xs }}>
-              {r.from === r.to ? formatDateSvYear(r.from) : `${formatDateSvYear(r.from)} – ${formatDateSvYear(r.to)}`}: {r.patterns.map((x) => PATTERN_WORD[x]).join(', ') || 'förändring'}{r.startFollowed ? '. En dokumenterad start följde.' : ''}
+              {r.from === r.to ? formatDateSvYear(r.from) : `${formatDateSvYear(r.from)} – ${formatDateSvYear(r.to)}`}: {r.patterns.map((x) => PATTERN_WORD[x]).join(', ') || 'förändring'}{r.startFollowed ? '. En inlagd period började efteråt.' : ''}
             </P>
           ))}
           {alarms.length > 8 ? <Button kind="ghost" title={all ? 'Visa färre' : `Visa alla ${alarms.length}`} onPress={() => setAll(!all)} /> : null}
@@ -164,7 +278,7 @@ export function RhythmScreen() {
   const a = latestRhythm(repo);
   const [ev, setEv] = useState<RhythmEvaluation | null>(null);
   const feedback = a?.courseStart ? rhythmFeedback(repo)[a.courseStart] : undefined;
-  const step = a ? planStepFor(repo, a) : null;
+  const step = a?.status === 'change' ? planStepFor(repo, a) : null;
   const today = toDateKey(new Date());
   const todayEntry = repo.entryFor(today);
   const todayAssessment = todayEntry ? repo.assessmentFor(todayEntry.id) : null;
@@ -179,107 +293,110 @@ export function RhythmScreen() {
   const missing = mode === 'off' ? [] : missingActivityDays(repo, today);
   const fetchNow = () => { fetchAllActivity(repo).catch(() => null); };
 
+  // Opening the page is reading the change: the Ny mark on Hem goes away.
+  const unread = rhythmCard(repo)?.id ?? null;
+  useEffect(() => { if (unread) markRhythmSeen(repo, unread).catch(() => null); }, [repo, unread]);
+
   const head = a ? rhythmHeadline(a) : null;
-  const lastSync = repo.garminStatus().lastSyncAt;
   const old = a ? a.date !== today : false;
-  // In plain words: what the latest nights looked like against the usual, for a stable answer.
   const usual = a?.baseline ? `Du brukar somna runt ${a.baseline.onset} och sova ${a.baseline.hours.replace(' h', ' timmar')}.` : null;
   const explanation = !a ? null
     : a.status === 'stable' ? `Dina senaste nätter liknar hur du brukar sova. ${usual ?? ''}${a.singleShort ? ` En natt var kort (${String(a.singleShort.hours).replace('.', ',')} timmar), men en enstaka natt är ingen förändring.` : ''}`.trim()
     : a.status === 'insufficient' ? a.text.change.replace(/^För lite data\. /, '')
     : null;
-
-  const modeChooser = (
-    <>
-      <Segmented<RhythmMode>
-        label="Hur Dygnsrytm används"
-        options={[{ value: 'off', label: 'Av' }, { value: 'show', label: 'Visa' }, { value: 'use', label: 'Använd' }]}
-        value={mode}
-        onChange={(m) => setRhythmMode(repo, m)}
-      />
-      {(['off', 'show', 'use'] as RhythmMode[]).map((m) => (
-        <P key={m} muted={m !== mode} style={{ marginTop: space.xs }}>
-          <Text style={{ fontWeight: m === mode ? '600' : '400' }}>{MODE_LABEL[m]}: </Text>{MODE_TEXT[m]}
-        </P>
-      ))}
-    </>
-  );
+  const sleepChanges = a?.changes.filter((c) => c.pattern !== 'evening_activity') ?? [];
+  const pulseChange = a?.changes.find((c) => c.pattern === 'evening_activity') ?? null;
 
   if (mode === 'off') {
     return (
       <Screen title="Dygnsrytm">
         <Tag label="Experimentell" />
         <P style={{ marginTop: space.s }}>Jämför dina senaste nätter från klockan med hur du brukar sova, och säger till om något ändras. Du behöver inte skriva något.</P>
-        <Card style={{ marginTop: space.m }}>{modeChooser}</Card>
+        <Card style={{ marginTop: space.m }}><ModeChooser mode={mode} onChange={(m) => setRhythmMode(repo, m)} /></Card>
       </Screen>
     );
   }
 
+  const effectSummary = todayAssessment?.rhythm
+    ? `I kväll: ${LEVEL_WORD[todayAssessment.rhythm.withoutRhythm.level]} utan, ${LEVEL_WORD[todayAssessment.rhythm.withRhythm.level]} med`
+    : effect.length ? `${effect.length} ${effect.length === 1 ? 'dag' : 'dagar'} skulle få en annan färg` : 'ingen skillnad de senaste 30 dagarna';
+
   return (
     <Screen title="Dygnsrytm">
-      {/* The answer first, in plain words; everything else is folded below. */}
+      {/* 1. The observation: what the watch shows, and nothing about what it might mean. */}
       <Card>
-        <Text style={type.label}>{old && a ? formatDateSv(a.date).toUpperCase() : 'I DAG'}</Text>
+        <Text style={type.label}>{`Klockan visar · ${old && a ? formatDateSv(a.date) : 'i dag'}`.toUpperCase()}</Text>
         {a && head ? (
           <>
-            <Text style={[type.title, { marginTop: space.xs }]} accessibilityRole="header">{a.status === 'change' ? 'Förändring' : head.title}</Text>
-            {a.status === 'change'
-              ? a.changes.map((c) => <P key={c.pattern} style={{ marginTop: space.s }}>{changeSentence(c)}</P>)
-              : <P style={{ marginTop: space.s }}>{explanation}</P>}
-            <P muted style={{ marginTop: space.s }}>
-              Bygger på nätterna {a.covers.from.slice(0, 7) === a.covers.to.slice(0, 7) ? `${Number(a.covers.from.slice(8, 10))}–${shortDate(a.covers.to)}` : `${shortDate(a.covers.from)}–${shortDate(a.covers.to)}`}.{lastSync ? ` Klockans data hämtades senast ${toDateKey(new Date(lastSync)) === today ? `i dag ${formatTime(lastSync)}` : `${shortDate(toDateKey(new Date(lastSync)))} ${formatTime(lastSync)}`}.` : ''} Appen hämtar bara när den är öppen.
-            </P>
+            <Text style={[type.title, { marginTop: space.xs }]} accessibilityRole="header">{head.title}</Text>
+            {a.status === 'change' ? (
+              <>
+                {sleepChanges.map((c) => <P key={c.pattern} style={{ marginTop: space.s }}>{changeSentence(c)}</P>)}
+                {pulseChange ? <P style={{ marginTop: space.s }}>{sleepChanges.length ? 'Även den förhöjda pulsen har kommit senare på kvällen.' : 'Mer av dygnets förhöjda puls har kommit sent på kvällen. Siffrorna står under Fördjupning.'}</P> : null}
+              </>
+            ) : <P style={{ marginTop: space.s }}>{explanation}</P>}
+            <P muted style={{ marginTop: space.s }}>{rhythmFreshness(a, repo.garminStatus().lastSyncAt)}. Appen hämtar bara när den är öppen.</P>
           </>
         ) : <P style={{ marginTop: space.s }}>Ingen bedömning ännu. Den görs nästa gång appen hämtar från klockan.</P>}
         <Tag label="Experimentell" />
       </Card>
 
-      {a?.status === 'change' ? (
-        <>
-          {a.direction ? (
-            <Section title="Liknar det något tidigare?">
-              <Card><P>{a.text.direction}</P></Card>
-            </Section>
-          ) : null}
-          {step ? (
-            <Section title={step.heading}>
-              <Card tone="accent"><P>{step.text}</P></Card>
-            </Section>
-          ) : null}
-          {a.courseStart ? (
-            <Section title="Finns en annan förklaring?">
-              <Card>
-                {feedback ? (
-                  <>
-                    <P>Du angav: {feedback.reason}. Den här förändringen räknas inte i kvällens färg.</P>
-                    <Button kind="ghost" title="Ångra" onPress={() => undoExplanation(repo, a.courseStart!)} />
-                  </>
-                ) : (
-                  <>
-                    <P muted>Frivilligt. Det fungerar utan svar.</P>
-                    <Row style={{ gap: 6, marginTop: space.s }}>
-                      {REASONS.map((r) => <Chip key={r} label={r} onPress={() => explainCourse(repo, a.courseStart!, r)} />)}
-                    </Row>
-                  </>
-                )}
-              </Card>
-            </Section>
-          ) : null}
-        </>
-      ) : null}
-
-      {a && a.status !== 'insufficient' ? (
-        <Section title="Dina nätter">
-          <Card><NightsTable a={a} /></Card>
+      {/* 2. One step that is already in the person's plan. */}
+      {step ? (
+        <Section title={step.heading}>
+          <Card tone="accent"><P>{step.text}</P></Card>
         </Section>
       ) : null}
 
-      <Disclosure title="Inställning" detail={`${MODE_LABEL[mode]}: ${MODE_TEXT[mode]}`}>
-        <Card>{modeChooser}</Card>
-      </Disclosure>
+      {/* 3. What it rests on: the nights, then the comparison with earlier periods, kept apart from the observation. */}
+      {a && a.status !== 'insufficient' ? (
+        <Section title="Dina nätter">
+          <Card><NightsChart a={a} /></Card>
+        </Section>
+      ) : null}
 
-      <Disclosure title="Påverkan på kvällens färg" detail={todayAssessment?.rhythm ? `I kväll: ${LEVEL_WORD[todayAssessment.rhythm.withoutRhythm.level]} utan, ${LEVEL_WORD[todayAssessment.rhythm.withRhythm.level]} med` : effect.length ? `${effect.length} dagar skulle få en annan färg` : 'Ingen skillnad de senaste 30 dagarna'}>
+      <Section title="Jämfört med tidigare perioder">
         <Card>
+          {a?.status === 'change' && a.direction ? (
+            <>
+              <P>{directionText(a.direction)}</P>
+              <P muted style={{ marginTop: space.s }}>Likhet betyder inte att en ny period börjar. Det är en jämförelse med hur dina nätter såg ut då, inget mer.</P>
+            </>
+          ) : (
+            <P>
+              När något ändras jämför appen med tiden före perioder du själv lagt in. {episodes.length === 0 ? 'Inga är inlagda än, så den kan säga att något ändrats men inte vad det liknar.' : episodes.length === 1 ? 'En period är inlagd.' : `${episodes.length} perioder är inlagda.`}
+            </P>
+          )}
+          <Button kind="secondary" title="Tidigare perioder" onPress={() => nav.push({ name: 'episodes' })} />
+        </Card>
+      </Section>
+
+      {a?.status === 'change' && a.courseStart ? (
+        <Section title="Lägg till sammanhang · frivilligt">
+          <Card>
+            {feedback ? (
+              <>
+                <P>Sparat: {feedback.reason}.</P>
+                <P muted style={{ marginTop: space.xs }}>Det sparas med förändringen och visas i bedömningen. Det ändrar inte analysen och inte kvällens färg.</P>
+                <Button kind="ghost" title="Ångra" onPress={() => undoExplanation(repo, a.courseStart!)} />
+              </>
+            ) : (
+              <>
+                <P muted>Vet du något som kan höra ihop med förändringen? Valet sparas bara som en anteckning. Det ändrar inte analysen och inte kvällens färg.</P>
+                <Row style={{ gap: 6, marginTop: space.s }}>
+                  {REASONS.map((r) => <Chip key={r} label={r} onPress={() => explainCourse(repo, a.courseStart!, r)} />)}
+                </Row>
+              </>
+            )}
+          </Card>
+        </Section>
+      ) : null}
+
+      {/* How it is used, and what that does to the evening's colour: one place. */}
+      <Disclosure title="Användning" detail={`${MODE_LABEL[mode]} · ${effectSummary}`}>
+        <Card>
+          <ModeChooser mode={mode} onChange={(m) => setRhythmMode(repo, m)} />
+          <Label>Påverkan på kvällens färg</Label>
           {todayAssessment?.rhythm ? (
             <P>
               I kväll: {LEVEL_WORD[todayAssessment.rhythm.withoutRhythm.level]} utan Dygnsrytm, {LEVEL_WORD[todayAssessment.rhythm.withRhythm.level]} med.
@@ -288,48 +405,29 @@ export function RhythmScreen() {
           ) : <P>Ingen avstämning i dag. Dygnsrytm påverkar bara dagar med en avstämning.</P>}
           {effect.length ? (
             <>
-              <Label>Dagar som skulle få en annan färg</Label>
+              <P style={{ marginTop: space.s }}>Dagar de senaste 30 som {mode === 'use' ? 'fick' : 'skulle få'} en annan färg:</P>
               {effect.map((d) => (
                 <P key={d.date}>{formatDateSv(d.date)}: {LEVEL_WORD[d.without as Level]} utan, {LEVEL_WORD[d.with as Level]} med{d.direct ? '' : ', genom de gula dagarna före'}.</P>
               ))}
             </>
-          ) : null}
+          ) : <P muted style={{ marginTop: space.xs }}>Ingen dag de senaste 30 skulle få en annan färg.</P>}
           <P muted style={{ marginTop: space.s }}>Dygnsrytm kan göra en dag gul, men aldrig ensam röd, aldrig sänka en färg och aldrig gå före akutregeln. Kort sömn räknas en gång.</P>
         </Card>
       </Disclosure>
 
-      <Disclosure title="Tidigare perioder" detail={episodes.length === 1 ? 'En dokumenterad episodstart' : episodes.length ? `${episodes.length} dokumenterade episodstarter` : 'Inga dokumenterade än'}>
+      {/* Everything behind the estimate, for the one who wants it. */}
+      <Disclosure title="Fördjupning" detail="Puls, klockdata, utvärdering och hur appen räknar">
         <Card>
-          <P>Dygnsrytm jämför med perioder du själv dokumenterat. Utan dem kan den säga att något ändrats, men inte åt vilket håll.</P>
-          {a?.direction ? (
-            <>
-              {a.direction.matches.length ? (
-                <>
-                  <Label>Samma mönster före</Label>
-                  {a.direction.matches.map((m) => (
-                    <P key={m.episodeId}>{{ up: 'Uppvarvad', down: 'Nedstämd', mixed: 'Blandad' }[m.type]} period från {formatDateSv(m.start)} ({m.source === 'clinical' ? 'klinisk bedömning' : 'du i efterhand'}).</P>
-                  ))}
-                </>
-              ) : null}
-              <Label>Under lugna perioder</Label>
-              <P>
-                {a.direction.stableRuns.length
-                  ? `Samma mönster ${a.direction.stableRuns.length === 1 ? 'en gång' : `${a.direction.stableRuns.length} gånger`}: ${a.direction.stableRuns.map((r) => (r.from === r.to ? formatDateSv(r.from) : `${formatDateSv(r.from)} – ${formatDateSv(r.to)}`)).join(', ')}.`
-                  : 'Inte under någon lugn period.'}
-              </P>
-            </>
-          ) : null}
-          <Button kind="secondary" title="Episodstarter" onPress={() => nav.push({ name: 'episodes' })} />
+          <Text style={[type.body, { fontWeight: '600' }]} accessibilityRole="header">Puls på kvällen</Text>
+          {pulseChange ? <P style={{ marginTop: space.xs }}>{changeSentence(pulseChange)}</P> : null}
+          {a && a.status !== 'insufficient' ? <NightsTable a={a} pulse /> : <P muted>Visas när det finns nätter att jämföra.</P>}
         </Card>
-      </Disclosure>
 
-      <Disclosure title="Klockdata och hämtning" detail={fetchProgress?.running ? `Hämtar puls: ${fetchProgress.done} av ${fetchProgress.total}` : `${nights.length} nätter, ${act.length} dagar med puls`}>
         <Card>
-          <Text style={[type.body, { fontWeight: '600' }]}>Sömn från Garmin</Text>
-          <P muted>Insomning och uppvakning på minuten, sömnlängd och tidszon per natt. {nights.length ? `${nights.length} nätter, senast ${formatDateSv(nights[nights.length - 1])}.` : 'Inga nätter ännu.'}</P>
-          <Text style={[type.body, { fontWeight: '600', marginTop: space.s }]}>Puls över dygnet</Text>
-          <P muted>
-            Värden varannan minut, som appen räknar om till minuter med förhöjd puls per timme. Förhöjd puls kan vara rörelse men också stress eller feber. Själva pulsen sparas inte.{' '}
+          <Text style={[type.body, { fontWeight: '600' }]} accessibilityRole="header">Klockdata och hämtning</Text>
+          <P muted style={{ marginTop: space.xs }}>Sömn från Garmin: insomning och uppvakning på minuten, sömnlängd och tidszon per natt. {nights.length ? `${nights.length} nätter, senast ${formatDateSv(nights[nights.length - 1])}.` : 'Inga nätter ännu.'}</P>
+          <P muted style={{ marginTop: space.xs }}>
+            Puls över dygnet: värden varannan minut, som appen räknar om till minuter med förhöjd puls per timme. Förhöjd puls kan vara rörelse men också stress eller feber. Själva pulsen sparas inte.{' '}
             {src.status === 'not_exposed' ? src.message : src.status === 'error' ? `Senaste försöket misslyckades: ${src.message}` : act.length ? `${act.length} dagar, senast ${formatDateSv(act[act.length - 1])} till ${activityDays(repo)[act[act.length - 1]].lastReading ?? '–'}.` : 'Ingen hämtad ännu.'}
           </P>
           {fetchProgress?.running ? (
@@ -346,24 +444,24 @@ export function RhythmScreen() {
           )) : <P muted>Inga hämtningar sparade ännu.</P>}
           <P muted style={{ marginTop: space.xs }}>Appen kan inte hämta när den är stängd. Varje hämtning ovan gjordes med appen öppen.</P>
         </Card>
-      </Disclosure>
 
-      <Disclosure title="Utvärdering" detail="Hade Dygnsrytm varnat i tid förut?">
         <Card>
-          <P muted>Spelar upp din historik dag för dag med bara det som fanns då, och jämför med sömnnotisen. Kräver dokumenterade episodstarter för att säga något om träffsäkerheten.</P>
+          <Text style={[type.body, { fontWeight: '600' }]} accessibilityRole="header">Utvärdering</Text>
+          <P muted style={{ marginTop: space.xs }}>Hade Dygnsrytm sagt till i tid förut? Spelar upp din historik dag för dag med bara det som fanns då, och jämför med sömnnotisen. Kräver inlagda tidigare perioder för att säga något om träffsäkerheten.</P>
           <Button kind="secondary" title="Utvärdera på mina data" onPress={() => setEv(evaluateOwnData(repo))} />
           <Button kind="ghost" title="Visa ett simulerat exempel" onPress={() => { const y = simulatedYear(today); setEv(evaluateRhythm(y.data, { to: today, simulated: true })); }} />
           {ev ? <EvaluationView ev={ev} onAddEpisode={() => nav.push({ name: 'episodes' })} /> : null}
         </Card>
-      </Disclosure>
 
-      <Disclosure title="Så fungerar det">
-        <P>Dygnsrytm är experimentell. Den prövar idén att en förändring i sömn och dygnsrytm kan komma några dygn före en ny period, men det är inte visat att den fungerar för dig.</P>
-        <P style={{ marginTop: space.xs }}>Den jämför de tre senaste nätterna med dina egna nätter 8–63 dagar bakåt. Den senaste veckan är inte med, så att en långsam förskjutning inte blir det nya vanliga. Det krävs minst 14 nätter.</P>
-        <P style={{ marginTop: space.xs }}>En natt utan data hoppas över. Saknas två av de fyra senaste nätterna blir svaret ”för lite data”. Efter ett tidszonsbyte jämförs inte de tre första nätterna.</P>
-        <P style={{ marginTop: space.xs }}>En enstaka kort natt är ingen förändring. En förändring kräver tre nätter i rad. Pulsen räknas bara för dygn då klockan burits minst 70 % av tiden.</P>
-        <P style={{ marginTop: space.xs }}>Missade avstämningar används aldrig, och inte heller appens färger.</P>
-        <Eyebrow style={{ marginTop: space.m }}>{`Regler ${a?.rulesVersion ?? ''}`.trim()}</Eyebrow>
+        <Card>
+          <Text style={[type.body, { fontWeight: '600' }]} accessibilityRole="header">Så räknar appen</Text>
+          <P style={{ marginTop: space.xs }}>Dygnsrytm är experimentell. Den prövar idén att en förändring i sömn och dygnsrytm kan komma några dygn före en ny period, men det är inte visat att den fungerar för dig.</P>
+          <P style={{ marginTop: space.xs }}>Den jämför de tre senaste nätterna med dina egna nätter 8–63 dagar bakåt. Den senaste veckan är inte med, så att en långsam förskjutning inte blir det nya vanliga. Det krävs minst 14 nätter.</P>
+          <P style={{ marginTop: space.xs }}>En natt utan data hoppas över. Saknas två av de fyra senaste nätterna blir svaret ”för lite data”. Efter ett tidszonsbyte jämförs inte de tre första nätterna.</P>
+          <P style={{ marginTop: space.xs }}>En enstaka kort natt är ingen förändring. En förändring kräver tre nätter i rad. Pulsen räknas bara för dygn då klockan burits minst 70 % av tiden.</P>
+          <P style={{ marginTop: space.xs }}>Missade avstämningar används aldrig, och inte heller appens färger.</P>
+          <Eyebrow style={{ marginTop: space.m }}>{`Regler ${a?.rulesVersion ?? ''}`.trim()}</Eyebrow>
+        </Card>
       </Disclosure>
     </Screen>
   );

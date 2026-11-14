@@ -1,7 +1,7 @@
 // Dygnsrytm (experimental): the passive model's rules, on invented watch data. Every case
 // here is simulated; none of it says how the model works for a real person.
 
-import { assessRhythm, axis, clockOfAxis, detect, directionFor, nightsFrom, prepare, type EpisodeStart, type RhythmData } from '../src/core/analysis/rhythm';
+import { assessRhythm, axis, changeHeadline, changeScope, clockOfAxis, detect, directionFor, directionHeadline, nightsFrom, prepare, type EpisodeStart, type RhythmChange, type RhythmData } from '../src/core/analysis/rhythm';
 import { dailyCalls, evaluateRhythm, evaluationReport } from '../src/core/analysis/rhythmEval';
 import { simulate, simulatedYear } from '../src/core/analysis/rhythmSim';
 import { addDays } from '../src/core/analysis/dates';
@@ -63,7 +63,7 @@ describe('what changed', () => {
     expect(a.text.change).toMatch(/^Tre nätter i rad har du somnat senare än vanligt: \d\d:\d\d, \d\d:\d\d och \d\d:\d\d mot vanligt 23:\d\d\./);
     expect(a.text.change).toContain('Även den förhöjda pulsen har flyttats mot kvällen.');
     expect(a.covers).toEqual({ from: d(2), to: END });
-    expect(a.text.direction).toBe('Förändring upptäckt, riktning oklar. Det finns inga daterade episodstarter att jämföra med.');
+    expect(a.text.direction).toBe('Det finns inga tidigare perioder inlagda att jämföra med.');
   });
 
   it('says clearly that the data are too few when the watch was not worn (acceptance)', () => {
@@ -125,6 +125,33 @@ describe('what changed', () => {
   });
 });
 
+describe('the short words for Hem', () => {
+  const c = (pattern: RhythmChange['pattern'], n = 3): RhythmChange => ({ pattern, nights: Array.from({ length: n }, (_, i) => d(n - 1 - i)), values: [], usual: '' });
+
+  it('names what changed without values or a pulse share', () => {
+    expect(changeHeadline([c('later'), c('shorter'), c('evening_activity')])).toBe('Senare och kortare sömn');
+    expect(changeHeadline([c('later')])).toBe('Senare insomning');
+    expect(changeHeadline([c('shorter')])).toBe('Kortare sömn');
+    expect(changeHeadline([c('earlier'), c('longer')])).toBe('Tidigare och längre sömn');
+    expect(changeHeadline([c('later'), c('longer')])).toBe('Senare insomning och längre sömn');
+    expect(changeHeadline([c('irregular', 6)])).toBe('Oregelbundna sovtider');
+    expect(changeHeadline([c('evening_activity', 2)])).toBe('Förhöjd puls senare på kvällen');
+    for (const p of ['later', 'shorter', 'evening_activity'] as const) expect(changeHeadline([c(p)])).not.toMatch(/\d|%/);
+  });
+
+  it('says how much in one short line', () => {
+    expect(changeScope([c('later'), c('shorter')])).toBe('Tre nätter i rad.');
+    expect(changeScope([c('irregular', 6)])).toBe('Den senaste veckan.');
+    expect(changeScope([c('evening_activity', 2)])).toBe('Två kvällar i rad.');
+  });
+
+  it('a stable answer does not claim that nothing changed', () => {
+    const a = assessRhythm(simulate({ end: END, days: 60 }), END, 'x');
+    expect(a.status).toBe('stable');
+    expect(a.text.change).toMatch(/^Inget tydligt nytt mönster/);
+  });
+});
+
 describe('direction from the person\u2019s own history', () => {
   const ep = (start: string, type: EpisodeStart['type']): EpisodeStart => ({ id: start, start, end: addDays(start, 20), type, source: 'self_retro', createdAt: '' });
 
@@ -137,7 +164,8 @@ describe('direction from the person\u2019s own history', () => {
     const a = assessRhythm({ ...data, episodes: data.episodes.filter((e) => e.start < END) }, END, 'x');
     expect(a.direction?.value).toBe('up');
     expect(a.direction?.reason).toBe('supported');
-    expect(a.text.direction).toMatch(/^Din historik ger stöd för riktningen uppåt\. Det liknar perioden före den uppvarvade perioden som började/);
+    expect(a.text.direction).toMatch(/^Liknar mönstret före en tidigare uppvarvad period, som började/);
+    expect(directionHeadline(a.direction)).toBe('Liknar mönstret före en tidigare uppvarvad period');
     expect(a.text.direction).toContain('datum du angav i efterhand');
   });
 
@@ -172,7 +200,7 @@ describe('direction from the person\u2019s own history', () => {
   });
 });
 
-describe('the traffic light (rules 1.5.0)', () => {
+describe('the traffic light (rules 1.6.0)', () => {
   function entry(date: string, partial: Partial<Entry> = {}): Entry {
     return { id: `e_${date}`, date, createdAt: `${date}T21:00:00`, kind: 'checkin', transcript: '', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null, ...partial };
   }
@@ -196,7 +224,14 @@ describe('the traffic light (rules 1.5.0)', () => {
     for (const x of [r({ direction: 'unclear' }), r({ status: 'stable', direction: null }), r({ status: 'insufficient', direction: null })]) {
       expect(score({ entry: entry(END), matches: [], plan, planSettings: ps, history: [], rhythm: x }).level).toBe('green');
     }
-    expect(rhythmSignalFor(r({ explained: true }), [])?.points).toBe(0);
+  });
+
+  it('context the person adds is shown with the signal and does not dismiss it (rules 1.6.0)', () => {
+    const plain = rhythmSignalFor(r(), [])!;
+    const withContext = rhythmSignalFor(r({ context: 'Resa' }), [])!;
+    expect(withContext.points).toBe(plain.points);
+    expect(withContext.points).toBe(1);
+    expect(withContext.label).toContain('Sammanhang du lagt till: Resa.');
   });
 
   it('counts the same short sleep once', () => {
@@ -319,13 +354,14 @@ describe('on the phone', () => {
     expect(card.assessment.text.change).toMatch(/^För lite data\./);
   });
 
-  it('a correction is optional, and an explained course is shown but not counted', async () => {
+  it('context is optional, saved with the course, and the change stays', async () => {
     const repo = await repoWith(simulate({ end: END, days: 60, events: [{ kind: 'episode', start: addDays(END, 1), type: 'up' }] }), 'use');
     const a = (await updateRhythm(repo, new Date(`${END}T08:00:00`)))!;
-    expect(rhythmScoreInput(repo, END)?.explained).toBeUndefined();
+    expect(rhythmScoreInput(repo, END)?.context).toBeUndefined();
     await explainCourse(repo, a.courseStart!, 'Resa');
-    expect(rhythmScoreInput(repo, END)?.explained).toBe(true);
-    expect(rhythmCard(repo, new Date(`${END}T08:00:00`))).toBeNull();
+    expect(rhythmScoreInput(repo, END)?.context).toBe('Resa');
+    expect(rhythmScoreInput(repo, END)?.status).toBe('change');
+    expect(rhythmCard(repo, new Date(`${END}T08:00:00`))?.kind).toBe('rhythm');
   });
 
   it('the episode starts are kept apart and used by the next estimate', async () => {

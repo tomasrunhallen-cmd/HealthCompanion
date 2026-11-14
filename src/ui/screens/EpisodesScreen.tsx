@@ -1,4 +1,4 @@
-// Episodstarter: the dates the person documents for earlier episodes, with their type and where
+// Tidigare perioder: the dates the person documents for earlier episodes, with their type and where
 // the date comes from (the person afterwards, or a clinical assessment). Kept apart from the rated
 // mood and from the app's estimate. They are the comparison for Dygnsrytm and the truth in its
 // evaluation; the app's earlier colours never are.
@@ -38,8 +38,8 @@ export function EpisodesScreen() {
   };
 
   return (
-    <Screen title="Episodstarter">
-      <P>Dagar då en period började. De används för att jämföra din dygnsrytm med din historik, och som facit när modellen utvärderas.</P>
+    <Screen title="Tidigare perioder">
+      <P>Perioder du själv vet om, med dagen de började. Dygnsrytm jämför en förändring med tiden före dem.</P>
       <Section title="Lägg till">
         <Card>
           <Field label="Startdatum" placeholder="ÅÅÅÅMMDD" value={start} onChangeText={(t) => setStart(formatDateInput(t))} autoCapitalize="none" inputMode="numeric" maxLength={10} hint={startProblem ?? 'Bara siffror, till exempel 20250303.'} accessibilityHint="Skriv åtta siffror: år, månad och dag" />
