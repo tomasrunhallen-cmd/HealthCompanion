@@ -48,7 +48,7 @@ export interface Rules {
    */
   textPatterns: { points: number; capPerDay: number; aloneCanGiveRed: boolean };
   /**
-   * Klockans rytm, experimental: the passive model on sleep timing and activity over the day
+   * Dygnsrytm, experimental: the passive model on sleep timing and activity over the day
    * (src/core/analysis/rhythm.ts). Every threshold was set before any evaluation on real data.
    */
   rhythm: RhythmRules;

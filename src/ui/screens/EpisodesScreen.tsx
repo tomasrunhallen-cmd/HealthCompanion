@@ -1,6 +1,6 @@
 // Episodstarter: the dates the person documents for earlier episodes, with their type and where
 // the date comes from (the person afterwards, or a clinical assessment). Kept apart from the rated
-// mood and from the app's estimate. They are the comparison for Klockans rytm and the truth in its
+// mood and from the app's estimate. They are the comparison for Dygnsrytm and the truth in its
 // evaluation; the app's earlier colours never are.
 
 import React, { useState } from 'react';
@@ -39,7 +39,7 @@ export function EpisodesScreen() {
 
   return (
     <Screen title="Episodstarter">
-      <P>Dagar då en period började. De används för att jämföra klockans rytm med din historik, och som facit när modellen utvärderas.</P>
+      <P>Dagar då en period började. De används för att jämföra din dygnsrytm med din historik, och som facit när modellen utvärderas.</P>
       <Section title="Lägg till">
         <Card>
           <Field label="Startdatum" placeholder="ÅÅÅÅMMDD" value={start} onChangeText={(t) => setStart(formatDateInput(t))} autoCapitalize="none" inputMode="numeric" maxLength={10} hint={startProblem ?? 'Bara siffror, till exempel 20250303.'} accessibilityHint="Skriv åtta siffror: år, månad och dag" />

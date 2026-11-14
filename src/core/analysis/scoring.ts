@@ -28,7 +28,7 @@ export interface ScoreInput {
   medication?: Record<DateKey, boolean>;
   /** Mina tidigare texter: observations of approved personal patterns that passed the checks on the phone. */
   textObservations?: TextObservationInput[];
-  /** Klockans rytm for the day (experimental). Counted only when `use` is set. */
+  /** Dygnsrytm for the day (experimental). Counted only when `use` is set. */
   rhythm?: RhythmScoreInput | null;
 }
 
@@ -52,7 +52,7 @@ export interface ScoreResult {
   /** Mina tidigare texter: what each observation did, and the level the day would have had without them. */
   textOutcomes: TextOutcome[];
   withoutText: { level: Level; points: number; reason: LevelReason };
-  /** Klockans rytm: the level with and without the signal, whether or not it was used. Null without an estimate. */
+  /** Dygnsrytm: the level with and without the signal, whether or not it was used. Null without an estimate. */
   rhythm: { signal: Signal | null; with: { level: Level; points: number }; without: { level: Level; points: number }; used: boolean } | null;
 }
 
@@ -493,7 +493,7 @@ export function score(input: ScoreInput): ScoreResult {
   return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText, rhythm };
 }
 
-// ---- Klockans rytm (experimental) ----
+// ---- Dygnsrytm (experimental) ----
 
 const SLEEP_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive'];
 
@@ -504,7 +504,7 @@ const SLEEP_KINDS: SignalKind[] = ['sleep_low', 'sleep_low_consecutive'];
  */
 export function rhythmSignalFor(r: RhythmScoreInput, others: Signal[]): Signal | null {
   if (r.status !== 'change') return null;
-  const base = { kind: 'rhythm' as const, measured: true, label: `Klockans rytm: ${r.text}` };
+  const base = { kind: 'rhythm' as const, measured: true, label: `Dygnsrytm: ${r.text}` };
   if (r.explained) return { ...base, points: 0, label: `${base.label} Räknas inte: du har angett en annan förklaring.` };
   if (r.direction !== 'up' && r.direction !== 'down') return { ...base, points: 0, label: `${base.label} Räknas inte: riktningen är oklar.` };
   const onlySleepLength = r.patterns.every((p) => p === 'shorter');

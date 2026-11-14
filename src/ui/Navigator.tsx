@@ -120,7 +120,7 @@ const TITLE: Record<RouteName, string> = {
   relatives: 'Anhörigkort',
   references: 'Tidigare texter',
   textPatterns: 'Mönster',
-  rhythm: 'Klockans rytm',
+  rhythm: 'Dygnsrytm',
   episodes: 'Episodstarter',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',

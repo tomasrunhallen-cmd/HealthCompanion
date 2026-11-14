@@ -1,11 +1,11 @@
-# Klockans rytm: rapport över vad som kunnat utvärderas
+# Dygnsrytm: rapport över vad som kunnat utvärderas
 
 Version 1 av den experimentella funktionen, regler 1.5.0, 14 november 2026.
 
 ## Kort svar
 
 - **Dina egna data har spelats upp en gång, den 14 november, men inga episodstarter är dokumenterade.** Därför går det ännu inte att säga om modellen fångar något i förväg, eller om dess larm var rätt eller fel. Det som går att läsa är hur ofta varje metod larmar och hur ofta den avstår. Se nästa avsnitt.
-- **Utvärderingen körs i appen,** under *Jag → Inställningar → Klockans rytm → Utvärdera på mina data*. Dina klockdata ligger krypterade i ditt eget Firebase-projekt och dekrypteras bara i din webbläsare.
+- **Utvärderingen körs i appen,** under *Jag → Inställningar → Dygnsrytm → Utvärdera på mina data*. Dina klockdata ligger krypterade i ditt eget Firebase-projekt och dekrypteras bara i din webbläsare.
 - **Allt med siffror nedan kommer från simulerade testfall.** De visar att reglerna och uppspelningen räknar som de ska, inte att modellen fungerar.
 
 ## Första körningen på dina data (14 november 2026)

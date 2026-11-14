@@ -1,4 +1,4 @@
-// Simulated watch data for Klockans rytm: invented nights and evenings with known events, used by
+// Simulated watch data for Dygnsrytm: invented nights and evenings with known events, used by
 // the tests and by the simulated part of the report. Never the person's data, and always marked
 // as simulated where it is shown. Seeded, so every run gives the same days.
 

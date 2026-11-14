@@ -48,7 +48,7 @@ export function HomeScreen() {
   const settings = repo.settings();
   const nudgeWeek = standardNudgeWeek(settings, unconfirmedStandard(repo).length);
   const due = dueNow(repo);
-  // Klockans rytm (experimental) is the line at the top. It takes the place of the sleep notice
+  // Dygnsrytm (experimental) is the line at the top. It takes the place of the sleep notice
   // when it shows a change, since both are about the same nights.
   const rhythmNow = rhythmMode(repo) !== 'off' ? latestRhythm(repo) : null;
   const sleepNote = rhythmNow?.status === 'change' ? null : todaysSleepNotice(repo);

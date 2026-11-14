@@ -4,7 +4,7 @@ Den här mappen innehåller alla trösklar och poäng som avgör om en dag blir 
 
 Filen har ett versionsnummer. Varje bedömning sparar vilken version den räknades med. Ändras en regel ska versionen höjas, och *Räkna om historiken med nya regler* visar vilka dagar som skulle få en annan nivå innan något sparas. `rules.schema.json` beskriver vilka fält som får finnas och vilka värden de får ha. Appen vägrar starta med en regelfil som inte följer schemat.
 
-Version: **1.5.0**. Version 1.5.0 (13 november) lade till *Klockans rytm*, en experimentell passiv signal ur klockans sömn och puls, som personen själv väljer till (se nedan). Version 1.4.0 (personens test 2 november): stress räknas som tecken först när den är 30 eller mer tre dagar i rad, i stället för en enda dag över 1,3 gånger baslinjen. Version 1.3.0 lade till kategorin personliga textmönster (*Mina tidigare texter*, experimentell, se nedan). Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
+Version: **1.5.0**. Version 1.5.0 (13 november) lade till *Dygnsrytm*, en experimentell passiv signal ur klockans sömn och puls, som personen själv väljer till (se nedan). Version 1.4.0 (personens test 2 november): stress räknas som tecken först när den är 30 eller mer tre dagar i rad, i stället för en enda dag över 1,3 gånger baslinjen. Version 1.3.0 lade till kategorin personliga textmönster (*Mina tidigare texter*, experimentell, se nedan). Version 1.2.0 (granskning 2 november): alkoholfrågan räknar värdena mot gult i stället för att nolla dem, stämning ±3 väger som ett allvarligt tecken, nattinlägg slutar 04:00 och ett stämningshopp i samma riktning som en skattning på ±2 eller mer räknas inte en gång till. Version 1.1.0 lade till stämningen på skalan −3 till +3: `points.moodModerate`, `points.moodSevere` och `moodJumpThreshold`. Reglerna har inte granskats av en människa med klinisk kunskap.
 
 ## Dygnet
 
@@ -83,7 +83,7 @@ Ett mönster blir aldrig ett allvarligt tecken. Att inget mönster syns, eller a
 
 **Prioritet:** akutregeln går före allt och påverkas aldrig av referensmaterialet. Därefter räknas tecken, mätvärden och textmönster, och nivån sätts. Sist gäller spärrarna mot rött i ordningen standardinnehåll, första dagens mätvärden, möjlig förklaring och textmönster ensamma.
 
-## Klockans rytm (experimentellt)
+## Dygnsrytm (experimentellt)
 
 En passiv modell som jämför de senaste nätterna från klockan med personens egna tidigare nätter, utan anteckning och utan avstämning. Koden ligger i `src/core/analysis/rhythm.ts`. Personen väljer *Av*, *Visa* eller *Använd*. Bara med *Använd* kan signalen påverka nivån. Trösklarna sattes innan modellen prövades på riktiga data och är **produktantaganden, inte kliniskt prövade**.
 

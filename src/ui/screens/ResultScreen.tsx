@@ -67,7 +67,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
   // The plan's signs first, then what was measured; nothing that gave no points.
   const seen = [
     ...a.signals.filter((s) => (s.kind === 'early_sign' || s.kind === 'serious_sign') && s.points > 0),
-    // Klockans rytm has its own section below, apart from what the note and the night showed.
+    // Dygnsrytm has its own section below, apart from what the note and the night showed.
     ...a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut' && s.kind !== 'rhythm' && s.points > 0),
   ];
   const first = a.level === 'green' ? null : firstStep(a.level, plan, dir);
@@ -237,7 +237,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
       <TextPatternResult a={a} />
 
       {a.rhythm ? (
-        <Section title="Klockans rytm">
+        <Section title="Dygnsrytm">
           <Card>
             <P>{a.rhythm.text}</P>
             <P muted style={{ marginTop: space.xs }}>

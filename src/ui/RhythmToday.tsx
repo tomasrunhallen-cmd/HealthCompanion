@@ -1,4 +1,4 @@
-// Klockans rytm, today's estimate at the top of Hem: one plain line folded, the model's reasons
+// Dygnsrytm, today's estimate at the top of Hem: one plain line folded, the model's reasons
 // when opened. Shown only when the person has chosen the function. Opening it marks a new change
 // as read, the same way the card did before.
 
@@ -43,13 +43,13 @@ export function RhythmToday() {
       <Pressable
         onPress={toggle}
         accessibilityRole="button"
-        accessibilityLabel={`Klockans rytm${old ? `, ${formatDateSv(a.date)}` : ' i dag'}: ${head.title}. ${head.detail}.`}
+        accessibilityLabel={`Dygnsrytm${old ? `, ${formatDateSv(a.date)}` : ' i dag'}: ${head.title}. ${head.detail}.`}
         accessibilityState={{ expanded: open }}
         accessibilityHint={open ? 'Fäller ihop motiveringen' : 'Visar motiveringen'}
         style={{ minHeight: MIN_TOUCH, flexDirection: 'row', alignItems: 'center', gap: space.s }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[type.body, { fontWeight: '600' }]}>Klockans rytm{old ? ` ${formatDateSv(a.date)}` : ''}: {head.title.charAt(0).toLowerCase() + head.title.slice(1)}</Text>
+          <Text style={[type.body, { fontWeight: '600' }]}>Dygnsrytm{old ? ` ${formatDateSv(a.date)}` : ''}: {head.title.charAt(0).toLowerCase() + head.title.slice(1)}</Text>
           <Text style={type.small}>{head.detail}</Text>
         </View>
         {fresh ? <Tag label="Ny" /> : null}

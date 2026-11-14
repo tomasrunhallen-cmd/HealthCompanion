@@ -135,7 +135,7 @@ export async function saveCheckin(
     akut,
     akutMild,
     akutMildBecause: check.mildBecause,
-    // Klockans rytm (experimental): computed after the sync above, for this day.
+    // Dygnsrytm (experimental): computed after the sync above, for this day.
     rhythm: rhythmScoreInput(repo, entry.date),
     now,
   };

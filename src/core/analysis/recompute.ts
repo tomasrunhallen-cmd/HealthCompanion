@@ -14,7 +14,7 @@ export interface RecomputeContext {
   planSettings: PlanSettings;
   garmin: Record<DateKey, GarminDay>;
   medication: Record<DateKey, boolean>;
-  /** Klockans rytm per day, to show the effect of using it or not; defaults to what was saved. */
+  /** Dygnsrytm per day, to show the effect of using it or not; defaults to what was saved. */
   rhythm?: (date: DateKey, saved: RhythmScoreInput | null) => RhythmScoreInput | null;
 }
 
@@ -52,7 +52,7 @@ export function recomputeAssessment(a: Assessment, entry: Entry, history: Histor
     medication: inp?.medication ?? ctx.medication,
     // Observations the person said did not fit are left out (Mina tidigare texter).
     textObservations: (inp?.textObservations ?? []).filter((o) => !a.textPatterns?.observations.some((x) => x.patternId === o.patternId && x.quote === o.quote && x.rejectedAt)),
-    // Klockans rytm as it stood that morning; ctx.rhythm can try another choice (with or without).
+    // Dygnsrytm as it stood that morning; ctx.rhythm can try another choice (with or without).
     rhythm: rhythmIn,
   });
   // The emergency rule is decided before any rule and stays as it was.

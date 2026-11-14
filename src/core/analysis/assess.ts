@@ -151,7 +151,7 @@ export async function assessEntry(args: {
    * the emergency rule matched, fully or mildly: such a note is never sent to a model.
    */
   textComparer?: () => Promise<TextComparerResult | null>;
-  /** Klockans rytm for the day (experimental): shown with and without, counted only when chosen. */
+  /** Dygnsrytm for the day (experimental): shown with and without, counted only when chosen. */
   rhythm?: RhythmScoreInput | null;
   now?: Date;
 }): Promise<Assessment> {

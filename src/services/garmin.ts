@@ -99,7 +99,7 @@ export async function syncGarmin(repo: Repository, opts: GarminOptions & { days?
 }
 
 /**
- * Klockans rytm after every successful sync: the heart rate of the latest days, then the
+ * Dygnsrytm after every successful sync: the heart rate of the latest days, then the
  * estimate for the morning. A failure here never fails the sync.
  */
 async function afterSync(repo: Repository, client: GarminClient, days: GarminDay[], today: DateKey, now: Date, trigger: SyncTrigger): Promise<void> {

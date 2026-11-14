@@ -1,4 +1,4 @@
-// Klockans rytm (experimental): a passive model that looks for early signs of a possible coming
+// Dygnsrytm (experimental): a passive model that looks for early signs of a possible coming
 // mood episode in sleep timing and activity over the day, from the watch alone. It needs no note
 // and no check-in, and a missed check-in is never evidence. Everything is computed on the phone.
 //

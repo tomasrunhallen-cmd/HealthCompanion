@@ -1,4 +1,4 @@
-// Klockans rytm (experimental), the phone's side: fetches the heart rate after each successful
+// Dygnsrytm (experimental), the phone's side: fetches the heart rate after each successful
 // Garmin sync, computes the passive estimate for the morning and keeps it apart from the rated
 // mood and from the episode starts the person documents. Nothing here is sent anywhere but Garmin.
 //
@@ -246,7 +246,7 @@ let fetching = false;
 
 /**
  * Fetches the heart rate of every day the model can use, by itself, whenever the app is open and
- * Klockans rytm is on. One day per call with a pause, so the Netlify hop's limit holds; saved every
+ * Dygnsrytm is on. One day per call with a pause, so the Netlify hop's limit holds; saved every
  * ten days, so a closed app or a stop from Garmin continues where it left off next time.
  */
 export async function fetchAllActivity(

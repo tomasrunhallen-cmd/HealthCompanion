@@ -296,7 +296,7 @@ export type SignalKind =
   | 'heavy_day'
   | 'late_sleep_no_entry'
   | 'medication_missed'
-  /** Klockans rytm (experimental): a change in sleep timing with support for a direction in the person's own history. */
+  /** Dygnsrytm (experimental): a change in sleep timing with support for a direction in the person's own history. */
   | 'rhythm'
   | 'akut';
 
@@ -385,7 +385,7 @@ export interface Assessment {
   remeasureDeclined?: { at: string; level: Level; points: number } | null;
   /** Mina tidigare texter: what the comparison with the person's earlier texts found and changed. */
   textPatterns?: TextComparison | null;
-  /** Klockans rytm: what the passive estimate said that morning, and the level with and without it. */
+  /** Dygnsrytm: what the passive estimate said that morning, and the level with and without it. */
   rhythm?: AssessmentRhythm | null;
 }
 
@@ -436,7 +436,7 @@ export interface AssessmentInputs {
   sentenceDropped?: string | null;
   /** Observations of personal text patterns that passed the checks on the phone (Mina tidigare texter). */
   textObservations?: TextObservationInput[];
-  /** Klockans rytm as it stood that morning, so a recomputation counts it the same way. */
+  /** Dygnsrytm as it stood that morning, so a recomputation counts it the same way. */
   rhythm?: RhythmScoreInput | null;
 }
 
@@ -509,7 +509,7 @@ export interface AppSettings {
   routineSuggestions?: boolean;
   /** The person's own name in message files, so only their own lines are imported. */
   ownMessageName?: string | null;
-  /** Klockans rytm (experimental): off, shown only, or used in the day's level. Missing: off. */
+  /** Dygnsrytm (experimental): off, shown only, or used in the day's level. Missing: off. */
   rhythm?: 'off' | 'show' | 'use';
 }
 

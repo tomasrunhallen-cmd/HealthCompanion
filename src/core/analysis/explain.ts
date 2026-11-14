@@ -54,7 +54,7 @@ function conclusion(a: Assessment): string {
     case 'akut':
       return 'Det du skrev liknar formuleringar om att inte vilja leva eller att skada dig. Då visar appen alltid rött och krisnumren, oavsett poäng. Anteckningen skickades inte till någon språkmodell.';
     case 'passive_cap':
-      return `${p} hade gett rött, men en del av poängen kommer från klockans rytm. Den kan höja en dag, men aldrig avgöra rött.`;
+      return `${p} hade gett rött, men en del av poängen kommer från dygnsrytmen. Den kan höja en dag, men aldrig avgöra rött.`;
     case 'text_alone':
       return `${p} hade gett rött, men poängen kommer bara från mönster ur dina tidigare texter. De kan höja en dag med andra tecken, aldrig ensamma ge rött.`;
     case 'excused':

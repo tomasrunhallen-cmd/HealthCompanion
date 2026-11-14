@@ -1,4 +1,4 @@
-// Klockans rytm (experimental): the passive estimate from the watch, in two separate answers
+// Dygnsrytm (experimental): the passive estimate from the watch, in two separate answers
 // (what changed, and whether the person's own history supports a direction), the nights behind
 // it, a step that is already in the plan, an optional correction, the level with and without the
 // signal, the data sources and how fresh they are, and the evaluation on the person's own data.
@@ -182,7 +182,7 @@ export function RhythmScreen() {
   const fetchNow = () => { fetchAllActivity(repo).catch(() => null); };
 
   return (
-    <Screen title="Klockans rytm">
+    <Screen title="Dygnsrytm">
       <Row style={{ gap: space.s, alignItems: 'center' }}>
         <Tag label="Experimentell" />
       </Row>
@@ -190,7 +190,7 @@ export function RhythmScreen() {
         Letar efter tidiga tecken i sömn och dygnsrytm från klockan, utan anteckning och utan avstämning. Hypotesen som prövas är en möjlig episodstart inom tre dygn.
       </P>
       <Segmented<RhythmMode>
-        label="Klockans rytm"
+        label="Dygnsrytm"
         options={[{ value: 'off', label: 'Av' }, { value: 'show', label: 'Visa' }, { value: 'use', label: 'Använd' }]}
         value={mode}
         onChange={(m) => setRhythmMode(repo, m)}

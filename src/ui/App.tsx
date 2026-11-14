@@ -32,9 +32,9 @@ function GarminAutoSync(props: { repo: Repository }) {
     const run = () => syncOnOpen(props.repo)
       .then((r) => (r?.ok ? afterSync(props.repo) : null))
       .catch(() => null)
-      // Klockans rytm: also without a new sync (offline, or synced a moment ago), today's estimate from what is stored.
+      // Dygnsrytm: also without a new sync (offline, or synced a moment ago), today's estimate from what is stored.
       .then(() => ensureRhythm(props.repo))
-      // Klockans rytm: the heart rate of every earlier day, by itself while the app is open.
+      // Dygnsrytm: the heart rate of every earlier day, by itself while the app is open.
       .then(() => fetchAllActivity(props.repo, { cancelled: () => AppState.currentState !== 'active' }))
       .catch(() => null);
     run();

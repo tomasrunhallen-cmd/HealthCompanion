@@ -1,4 +1,4 @@
-// Does Klockans rytm do anything better than the sleep notice? The history is played back in
+// Does Dygnsrytm do anything better than the sleep notice? The history is played back in
 // time order: for each morning a method may only use nights up to that morning, the activity of
 // the evening before, and episode starts that lay at least a week back. Documented episode starts
 // are the truth, never the app's earlier colours. The thresholds in rules/rules.json were set

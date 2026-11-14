@@ -1,4 +1,4 @@
-// Klockans rytm (experimental): the passive model's rules, on invented watch data. Every case
+// Dygnsrytm (experimental): the passive model's rules, on invented watch data. Every case
 // here is simulated; none of it says how the model works for a real person.
 
 import { assessRhythm, axis, clockOfAxis, detect, directionFor, nightsFrom, prepare, type EpisodeStart, type RhythmData } from '../src/core/analysis/rhythm';
@@ -416,7 +416,7 @@ describe('heart rate for every earlier day, by itself while the app is open', ()
     expect(svc.activityProgress(repo)).toMatchObject({ done: total, total, finished: true });
   });
 
-  it('does nothing when Klockans rytm is off', async () => {
+  it('does nothing when Dygnsrytm is off', async () => {
     const { repo, client, asked } = await setup();
     await repo.updateSettings({ rhythm: 'off' });
     await svc.fetchAllActivity(repo, { client, pauseMs: 0 });
