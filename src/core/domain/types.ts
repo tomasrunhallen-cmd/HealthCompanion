@@ -511,6 +511,8 @@ export interface AppSettings {
   ownMessageName?: string | null;
   /** Dygnsrytm (experimental): off, shown only, or used in the day's level. Missing: off. */
   rhythm?: 'off' | 'show' | 'use';
+  /** Mina mönster: a language model may word an explanation of a verified finding. Missing: off. */
+  patternExplanations?: boolean;
 }
 
 /** direct: as soon as there is one. weekly: on Mondays. visit: only under Inför återbesök. */

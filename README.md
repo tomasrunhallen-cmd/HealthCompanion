@@ -165,7 +165,7 @@ Appen följer Apples Human Interface Guidelines. Se `DESIGN.md` för vilka avsni
 
 - **Flikar:** Hem, Avstämning, Trend och Jag. Varje flik har en native stack med stor rubrik.
 - **Trend** har en period för hela sidan: 7 dagar, 30 dagar, 6 månader eller 1 år. Sedan kommer nivå, stämning, rutiner, sömn och stress i den ordningen. 7 och 30 dagar visar varje dag; 6 månader visar en stapel per vecka och ett år en per månad (stämningens spann från lägsta till högsta skattning med snittet som en punkt, snitt för sömn och stress, antal för nivåerna), så staplarna går att läsa och trycka på. En tryckning på en dags symbol öppnar dagens bedömning.
-- **Hem** ryms utan att skrolla. Överst står datumet och, när *Dygnsrytm* är på, en rad med dagens bedömning från klockan, till exempel *Dygnsrytm: ingen förändring*. Motiveringen fälls ut med *Varför*. Sedan kommer *Senaste veckan*: en rad med nivån per dag, där varje dag öppnar sin bedömning, och en rad med antal gröna och gula dagar, stämningens spann och hur stor andel av rutinerna som blev av. Under den kommer *Rutiner i dag*, som är ihopfällt: dagens förslag syns, och *Alla N* visar resten. Sedan kommer ett kort ur kön, ihopfällt till en rad med *Visa ›*. Längst ner finns kvällens avstämning med *Orkar bara trycka* och *Lågt läge*. Klockans värden visas bara i avstämningen.
+- **Hem** ryms utan att skrolla. Överst står datumet och, när *Dygnsrytm* är på, ett kort med vad klockan visar i dag, till exempel *Senare och kortare sömn · Tre nätter i rad*, ett steg ur planen vid en förändring och hur färskt det är. *Visa detaljer ›* öppnar Dygnsrytm. Sedan kommer *Senaste veckan*: en rad med nivån per dag, där varje dag öppnar sin bedömning, och en rad med antal gröna och gula dagar, stämningens spann och hur stor andel av rutinerna som blev av. Under den kommer *Rutiner i dag*, som är ihopfällt: dagens förslag syns, och *Alla N* visar resten. Sedan kommer ett kort ur kön, ihopfällt till en rad med *Visa ›*. Längst ner finns kvällens avstämning med *Orkar bara trycka* och *Lågt läge*. Klockans värden visas bara i avstämningen.
 - **Rutiner på Trend:** andelen hållna rutiner för perioden, andelen per dag, vecka eller månad, och en rad per rutin (till exempel *20 av 24*). Räknat på kvällar då personen bockade av rutiner, så en kväll utan avstämning är inte en miss. Den streckade linjen i stressgrafen är gränsen 30 från reglerna.
 - **Inställningar** är ordnade efter uppgift:
     - *Påminnelser*: kvällens påminnelse, tysta timmar och en länk till rutinernas påminnelser.
@@ -297,20 +297,39 @@ Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poän
 
 ### Dygnsrytm (experimentell)
 
-En passiv modell som letar efter tidiga tecken på en möjlig kommande stämningsepisod i sömn och dygnsrytm från klockan. Den fungerar en vecka utan en enda anteckning eller avstämning. Den slås på under *Inställningar → Dygnsrytm*, med tre lägen: *Av* (standard), *Visa* och *Använd*.
+En passiv modell som letar efter tidiga tecken på en möjlig kommande stämningsepisod i sömn och dygnsrytm från klockan. Den fungerar en vecka utan en enda anteckning eller avstämning. Den slås på under *Inställningar → Dygnsrytm*, med tre lägen: *Av* (standard), *Visa mönster* och *Använd i bedömningen*.
 
 - **Data:** insomning, uppvakning, sömnlängd och tidszon per natt, och när på dygnet pulsen är förhöjd (`dailyHeartRate`, värden varannan minut). Förhöjd puls betyder minst 25 slag över vilopulsen. Det är en uppskattning, inte ett mått på rörelse: det kan också vara stress eller feber. Pulsen räknas om till minuter med förhöjd puls per timme, och själva pulsen sparas inte.
 - **När:** efter varje lyckad hämtning från Garmin och när appen öppnas. Appen kan inte hämta när den är stängd, och skärmen säger det. Varje hämtning loggas med om appen var öppen.
 - **Äldre puls** hämtas av sig själv för varje dag med sömn från klockan, medan appen är öppen och på vilken skärm som helst. Ett anrop per dag och en paus mellan, så att det tar ungefär en sekund per dag. Hämtningen fortsätter där den slutade. Pulsen sparas en post per månad.
-- **Två besked:**
-    - vad som ändrats mot dina egna nätter (tre nätter i rad, median och robust spridning)
-    - om din historik ger stöd för en riktning uppåt eller nedåt
-  Svaren kan också vara *förändring upptäckt, riktning oklar* och *för lite data*. Ingen procentsats visas.
-- **Överst på Hem** står dagens bedömning på en rad. *Varför* fäller ut motiveringen, nätterna den bygger på och ett steg ur planen. En ny förändring märks *Ny* tills raden öppnats. En rättelse är frivillig.
-- **Ampeln:** *Visa* visar nivån med och utan signalen. *Använd* ger 1 poäng för en förändring med stöd för en riktning. Den kan aldrig avgöra rött, sänker aldrig något och går aldrig före akutregeln. Samma korta sömn räknas en gång.
-- **Hålls isär:** din skattade stämning (avstämningen), appens uppskattning (`rhythmAssessments`) och de episodstarter du dokumenterar (`episodeStarts`, med källa: du i efterhand eller klinisk bedömning).
+- **Två besked, hållna isär:**
+    - vad klockan visar mot dina egna nätter (tre nätter i rad, median och robust spridning), till exempel *Senare och kortare sömn* eller *Inget tydligt nytt mönster*
+    - om det liknar tiden före en tidigare period du lagt in, till exempel *Liknar mönstret före en tidigare uppvarvad period*. Sidan säger att likhet inte betyder att en ny period börjar.
+  Svaret kan också vara *för lite data*. Ingen procentsats visas.
+- **På Hem** står bara vad som ändrats, hur många nätter, ett steg ur planen och hur färskt det är. Inga motiveringar, värden eller pulsandelar. En ny förändring märks *Ny* tills detaljerna öppnats.
+- **Detaljsidan** går från observationen, via ett steg ur planen, till underlaget: nätterna som en enkel graf (exakta värden ett tryck bort), jämförelsen med tidigare perioder och frivilligt sammanhang. *Användning* samlar läget och påverkan på kvällens färg. *Fördjupning* har pulsandelen, klockdata, utvärderingen och hur appen räknar.
+- **Sammanhang** (resa, sjuk, fest, arbete) är frivilligt. Det sparas med förändringen och visas i bedömningen, men ändrar inte analysen och inte färgen (regler 1.6.0).
+- **Ampeln:** *Visa mönster* visar nivån med och utan signalen. *Använd i bedömningen* ger 1 poäng för en förändring som liknar tiden före en tidigare period. Den kan aldrig avgöra rött, sänker aldrig något och går aldrig före akutregeln. Samma korta sömn räknas en gång.
+- **Hålls isär:** din skattade stämning (avstämningen), appens uppskattning (`rhythmAssessments`) och de tidigare perioder du lägger in under *Tidigare perioder* (`episodeStarts`, med källa: du i efterhand eller klinisk bedömning).
 - **Utvärdering:** en uppspelning i tidsordning jämför sömnnotisen, modellen med bara sömn och modellen med sömn och puls, mot dina dokumenterade episodstarter.
 - **Kod och rapport:** koden finns i `src/core/analysis/rhythm.ts`, `rhythmEval.ts` och `rhythmSim.ts`, med reglerna i `rules/README.md`. Vad som faktiskt kunnat utvärderas står i `RYTMRAPPORT.md`. Allt med siffror där är simulerat.
+
+### Mina mönster (experimentell)
+
+Letar efter samband som återkommer mellan klockans sömn och puls och dina egna skattningar av stämningsläget (−3 till +3). Ingen ny daglig registrering: den läser det som redan är sparat. Den finns under *Jag → Mina mönster*.
+
+- **När:** av sig själv ungefär en gång i månaden när appen öppnas, om det finns minst 30 nätter och 30 skattade dagar, och när du trycker *Analysera nu*.
+- **Koden räknar allt** (`src/core/analysis/moodPatterns.ts`): perioder då du skattade högre eller lägre, vilka klockmönster som fanns före eller vid starten, hur många dygn före, hur mycket data som fanns och motexemplen. Klockmönstren är samma som i Dygnsrytm.
+- **Mot slumpfynd:**
+    - Bara fem samband, bestämda i förväg, prövas: kortare sömn, senare insomning och förhöjd puls senare på kvällen mot högre skattning, och längre respektive kortare sömn mot lägre.
+    - Ett samband visas bara om mönstret kom före minst tre separata perioder, minst dubbelt så ofta som under lugna tider, och sannolikheten för resultatet under lugna tiders takt är högst 0,05 delat med antalet prövade samband.
+    - Högst ett fynd per riktning visas. Håller flera samband i samma riktning nämns de med fyndet, eftersom det troligen är samma förändring sedd på flera sätt.
+- **Svaren:** högst två fynd, till exempel *Kortare sömn före högre stämningsläge. Mönstret återkom före tre av fyra separata perioder då du skattade högre stämningsläge, men inte varje gång.* Annars *Inget tydligt samband hittades.* eller *För lite data för att hitta återkommande mönster.*, med skälet.
+- **Visa underlag** visar perioderna, motexemplen (perioder utan mönstret, och gånger mönstret kom utan att skattningen ändrades) och saknade data. Skattningar kallas skattningar, aldrig episoder.
+- **Hypotes:** ett fynd sparas med dagen det hittades och siffrorna det hittades med. Vid senare analyser räknas det om på perioder som började efter den dagen, alltså data som inte användes för att hitta det.
+- **Ett kort på Hem** visar ett fynd du inte öppnat, i kön med de andra korten.
+- **Språkmodell, frivilligt och av som standard:** den kan formulera en kort förklaring av ett fynd som redan är uträknat (`prompts/monsterforklaring.md` 1.0.0). Den får bara fyndets antal, genom `scrub()`: inga datum, inga anteckningar. Svaret kontrolleras på telefonen: inga siffror som inte finns i underlaget, inga diagnos-, orsaks- eller prognosord och inga råd. Håller det inte visas ingenting. Sidan visar exakt vad som skickas, innan och efter att det slagits på. Modellen fastställer aldrig perioder och ändrar aldrig bedömningsreglerna.
+- **Påverkar inte kvällens färg.** Att låta ett fynd bli en regel i bedömningen är ett senare steg.
 
 ### Funktionerna från granskningen (fas C)
 

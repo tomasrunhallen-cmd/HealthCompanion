@@ -23,6 +23,8 @@ import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { remeasurePending } from '../../services/remeasure';
 import { latestRhythm, rhythmMode } from '../../services/rhythm';
 import { RhythmToday } from '../RhythmToday';
+import { findingSummary, findingTitle } from '../../core/analysis/moodPatterns';
+import { markPatternsSeen, patternCard } from '../../services/moodPatterns';
 import { rereadDays } from '../../core/analysis/recompute';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
@@ -60,6 +62,8 @@ export function HomeScreen() {
   const remeasured = remeasurePending(repo);
   // Imported days whose mood was read again (schema 6): their levels wait for the person.
   const reread = rereadDays(entries, repo.assessments());
+  // Mina mönster: a finding the person has not opened yet.
+  const pattern = patternCard(repo);
   const [reviewing, setReviewing] = useState(false);
 
   const review = async () => {
@@ -152,6 +156,7 @@ export function HomeScreen() {
     sleepNote ? { kind: 'sleepNotice' as const, id: 'sleepNotice' } : null,
     fw?.weekPicture ? { kind: 'weekPicture' as const, id: 'weekPicture' } : null,
     fw?.offerSleepSource ? { kind: 'sleepSource' as const, id: 'sleepSource' } : null,
+    pattern ? { kind: 'pattern' as const, id: pattern.id } : null,
     pending ? { kind: 'suggestions' as const, id: 'suggestions' } : null,
     showSuggestions && due ? { kind: 'review' as const, id: `review_${due.reason}` } : null,
     nudgeWeek != null ? { kind: 'standardNudge' as const, id: 'standardNudge' } : null,
@@ -246,6 +251,16 @@ export function HomeScreen() {
             <Button kind="ghost" title="Jag anger sömnen själv" onPress={() => markFirstWeek(repo, 'sleepSource')} />
           </Card>
         );
+      case 'pattern':
+        return (
+          <Card>
+            <Text style={type.label}>MINA MÖNSTER · EXPERIMENTELL</Text>
+            <Text style={[type.h2, { marginTop: space.xs }]} accessibilityRole="header">{findingTitle(pattern!.finding.result)}</Text>
+            <P style={{ marginTop: space.xs }}>{findingSummary(pattern!.finding.result)}</P>
+            <Button kind="secondary" title="Visa underlag" onPress={() => nav.push({ name: 'patterns' })} />
+            <Button kind="ghost" title="Okej" onPress={() => markPatternsSeen(repo)} />
+          </Card>
+        );
       case 'suggestions':
         return (
           <Card>
@@ -295,6 +310,7 @@ export function HomeScreen() {
       case 'sleepNotice': return sleepNote?.title ?? 'Sömnen';
       case 'weekPicture': return 'Din första vecka';
       case 'sleepSource': return 'Sömnen gör bedömningen bättre';
+      case 'pattern': return pattern ? `Mina mönster: ${findingTitle(pattern.finding.result).toLowerCase()}` : 'Mina mönster';
       case 'suggestions': return pending === 1 ? 'Ett förslag väntar' : `${pending} förslag väntar`;
       case 'review': return 'Dags att se över din profil';
       case 'standardNudge': return 'Din plan bygger på allmänna tecken';

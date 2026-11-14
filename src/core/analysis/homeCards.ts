@@ -14,6 +14,7 @@ export type HomeCardKind =
   | 'reread'
   | 'sleepNotice'
   | 'weekPicture'
+  | 'pattern'
   | 'sleepSource'
   | 'suggestions'
   | 'review'
@@ -29,6 +30,7 @@ export const HOME_PRIORITY: readonly HomeCardKind[] = [
   'sleepNotice',
   'weekPicture',
   'sleepSource',
+  'pattern',
   'suggestions',
   'review',
   'standardNudge',

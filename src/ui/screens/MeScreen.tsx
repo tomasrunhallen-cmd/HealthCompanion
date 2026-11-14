@@ -54,7 +54,8 @@ export function MeScreen() {
       </Section>
       <Section title="Min profil">
         <Card style={{ paddingVertical: 0 }}>
-          <ListRow title="Mina tidigare texter" detail={refCount ? `${refCount} texter, experimentellt` : 'Experimentellt'} to={{ name: 'references' }} last />
+          <ListRow title="Mina tidigare texter" detail={refCount ? `${refCount} texter, experimentellt` : 'Experimentellt'} to={{ name: 'references' }} />
+          <ListRow title="Mina mönster" detail="Sömn, puls och dina skattningar, experimentellt" to={{ name: 'patterns' }} last />
         </Card>
       </Section>
       <Section title="Det appen vet">

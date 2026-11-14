@@ -11,6 +11,7 @@ import { cloudConfigured, onUserChanged, signOutUser, type CloudUser } from '../
 import { syncOnOpen } from '../services/garmin';
 import { ensureRhythm, fetchAllActivity } from '../services/rhythm';
 import { autoBackfillGarmin } from '../services/garminHistory';
+import { ensureMonthlyPatterns } from '../services/moodPatterns';
 import { afterSync } from '../services/remeasure';
 import { openBackend } from '../storage/openBackend';
 import { Repository } from '../storage/repository';
@@ -39,7 +40,9 @@ function GarminAutoSync(props: { repo: Repository }) {
       // Sleep and stress for the last year, then the heart rate of every earlier day, by themselves while the app is open.
       .then(() => autoBackfillGarmin(props.repo, { cancelled: () => AppState.currentState !== 'active' }))
       .then(() => fetchAllActivity(props.repo, { cancelled: () => AppState.currentState !== 'active' }))
-      .catch(() => null);
+      .catch(() => null)
+      // Mina mönster: the analysis about once a month, on the phone, from what is already saved.
+      .then(() => ensureMonthlyPatterns(props.repo));
     run();
     const sub = AppState.addEventListener('change', (next) => {
       if (next === 'active') run();

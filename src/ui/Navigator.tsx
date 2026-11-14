@@ -39,6 +39,7 @@ import { ReferencesScreen } from './screens/ReferencesScreen';
 import { TextPatternsScreen } from './screens/TextPatternsScreen';
 import { RhythmScreen } from './screens/RhythmScreen';
 import { EpisodesScreen } from './screens/EpisodesScreen';
+import { PatternsScreen } from './screens/PatternsScreen';
 import { SuggestionsScreen } from './screens/SuggestionsScreen';
 import { TrendScreen } from './screens/TrendScreen';
 import { useRepo } from './state';
@@ -92,6 +93,7 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   textPatterns: TextPatternsScreen,
   rhythm: RhythmScreen,
   episodes: EpisodesScreen,
+  patterns: PatternsScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
 };
@@ -122,6 +124,7 @@ const TITLE: Record<RouteName, string> = {
   textPatterns: 'Mönster',
   rhythm: 'Dygnsrytm',
   episodes: 'Tidigare perioder',
+  patterns: 'Mina mönster',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
 };

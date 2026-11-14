@@ -74,7 +74,7 @@ Den är enkel, begriplig och körs helt på telefonen. Alla värden finns i `rul
     - Det första beskriver vad som ändrats, med nätterna och det vanliga värdet.
     - Det andra säger om din historik ger stöd för en riktning. Det räknar hur ofta samma mönster fanns sju dagar före dokumenterade starter, och hur ofta under stabila perioder.
     - Svaren kan vara *förändring upptäckt, riktning oklar* eller *för lite data*. Ingen procentsats visas.
-- **Ampeln:** först väljer du *Visa*, som visar nivån med och utan signalen. *Använd* gör att en förändring med stöd för en riktning ger 1 poäng.
+- **Ampeln:** först väljer du *Visa mönster*, som visar nivån med och utan signalen. *Använd i bedömningen* gör att en förändring som liknar tiden före en tidigare period ger 1 poäng. Sammanhang du lägger till (resa, sjuk) sparas men avfärdar inte signalen (regler 1.6.0).
     - Samma korta sömn räknas en gång.
     - Signalen avgör aldrig rött, sänker aldrig en nivå och går aldrig före akutregeln.
     - Effekten på senare dagar genom regeln om de senaste dagarna visas under *Påverkan på ampeln*.
@@ -148,7 +148,7 @@ För få dokumenterade episoder i den här delen (2) för att säga något om hu
 
 ## Det som återstår
 
-1. **Dokumentera episodstarter** under *Episodstarter*. Ange typ och om datumet kommer från dig i efterhand eller från vården.
+1. **Lägg in tidigare perioder** under *Tidigare perioder*. Ange typ och om datumet kommer från dig i efterhand eller från vården.
 2. **Puls bakåt:** hämtas nu av sig själv för alla dagar med sömn, medan appen är öppen. Förloppet syns under *Datakällor*. Hämta sömn för samma period med *Hämta ett år bakåt* under Garmin.
 3. **Kör *Utvärdera på mina data*** och skicka resultatet. Först då finns något att säga om modellen för dig.
 4. **Kontrollera *Datakällor*:** att puls över dygnet går att hämta med din nyckel, och att loggen bara har hämtningar med appen öppen.

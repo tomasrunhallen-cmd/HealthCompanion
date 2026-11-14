@@ -272,6 +272,8 @@ export function SettingsScreen() {
               </View>
               <P style={{ marginTop: space.s }}>Jämförelse med tidigare texter: {s.textPatterns?.enabled ? 'på' : 'av'}.</P>
               <Button kind="ghost" title="Mina tidigare texter" onPress={() => nav.push({ name: 'references' })} />
+              <P style={{ marginTop: space.s }}>Förklaring av fynd i Mina mönster: {s.patternExplanations ? 'på' : 'av'}. Bara siffror skickas.</P>
+              <Button kind="ghost" title="Mina mönster" onPress={() => nav.push({ name: 'patterns' })} />
             </>
           ) : null}
         </Card>

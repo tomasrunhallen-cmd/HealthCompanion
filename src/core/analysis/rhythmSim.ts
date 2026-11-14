@@ -113,6 +113,30 @@ export function simulate(opts: SimOptions): RhythmData {
   return { measured, activity, episodes };
 }
 
+/**
+ * Invented evening ratings (−3 to +3) for the same events: balanced on ordinary days, higher
+ * during an up episode and lower during a down episode, with some days left without a rating.
+ * A late week, a short night and a trip do not move the rating. For Mina mönster's tests.
+ */
+export function simulateRatings(opts: { end: DateKey; days: number; seed?: number; events?: SimEvent[]; skip?: number }): Record<DateKey, number> {
+  const rand = seeded((opts.seed ?? 7) + 1000);
+  const out: Record<DateKey, number> = {};
+  const start = addDays(opts.end, -(opts.days - 1));
+  for (let d = start; d <= opts.end; d = addDays(d, 1)) {
+    const skipped = rand() < (opts.skip ?? 0.2);
+    let mood = 0;
+    for (const e of opts.events ?? []) {
+      if (e.kind !== 'episode' || e.type === 'mixed') continue;
+      const k = Math.round((Date.parse(d) - Date.parse(e.start)) / 86_400_000);
+      if (k >= 0 && k < (e.days ?? 21)) mood = (e.type === 'up' ? 1 : -1) * (k === 0 ? 1 : 2);
+    }
+    // The first days of a period are always rated, so its start is known.
+    const firstDays = (opts.events ?? []).some((e) => e.kind === 'episode' && d >= addDays(e.start, -2) && d <= addDays(e.start, 2));
+    if (!skipped || firstDays) out[d] = mood;
+  }
+  return out;
+}
+
 /** The year of invented data behind the simulated part of the report. */
 export function simulatedYear(end: DateKey = '2026-11-13'): { data: RhythmData; description: string[] } {
   const e = (n: number) => addDays(end, -n);
