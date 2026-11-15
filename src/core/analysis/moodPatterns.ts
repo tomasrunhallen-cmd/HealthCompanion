@@ -22,7 +22,7 @@ import { addDays, daysBetween, formatDateSvYear } from './dates';
 import { detect, prepare, type RhythmData, type RhythmPattern } from './rhythm';
 import { RULES } from './rules';
 
-export const PATTERNS_VERSION = '1.0.0';
+export const PATTERNS_VERSION = '1.1.0';
 
 /** Every threshold in one place. Product assumptions, set before the analysis was run on real data. */
 export const PATTERN_PARAMS = {
@@ -54,6 +54,16 @@ export const PATTERN_PARAMS = {
   minRatedDays: 30,
   minNights: 30,
   maxFindings: 2,
+  /**
+   * The shift test (1.1.0): the period starts are moved this many days at a time through the
+   * data, at least `nullMinShiftDays` from where they were, and the link must hold at most this
+   * share of the shifted copies. A check on chance that does not lean on the calm-time rate.
+   */
+  nullStepDays: 3,
+  nullMinShiftDays: 14,
+  nullAlpha: 0.05,
+  /** The evaluation keeps the latest share of the data as a test part that never sets anything. */
+  testShare: 0.5,
 } as const;
 
 const P = PATTERN_PARAMS;
@@ -194,6 +204,11 @@ export interface CandidateResult {
   /** Mostly before the period's start, or mostly at the same time. */
   timing: 'before' | 'with';
   leadDays: number[];
+  /** When the pattern began, per hit: days before the start, the same day, or after it (1.1.0). */
+  when: { before: number; same: number; after: number };
+  /** Share of the shifted copies with at least as high a share of hits, and how many copies (1.1.0). */
+  nullShare: number;
+  nullShifts: number;
   /** Runs of the pattern with ratings after them and no change in the rated mood. */
   patternOnly: Run[];
   /** Runs of the pattern with too few ratings after them to tell. */
@@ -219,6 +234,34 @@ export function binomialTail(n: number, k: number, q: number): number {
     p += c * q ** i * (1 - q) ** (n - i);
   }
   return Math.min(1, p);
+}
+
+/**
+ * The shift test: every period start moved by the same number of days, wrapping round the data,
+ * keeps how the periods lie to one another but breaks any tie to the watch. The share of such
+ * copies where the pattern came before as large a share of the periods is how often the result
+ * comes by chance in these very data.
+ */
+function shiftTest(starts: DateKey[], hits: number, judgedWindow: (d: DateKey) => boolean, runs: Run[], from: DateKey, to: DateKey): { share: number; shifts: number } {
+  const lo = addDays(from, P.leadDays);
+  const len = daysBetween(lo, addDays(to, -P.afterDays)) + 1;
+  if (!starts.length || len < 2 * P.nullMinShiftDays) return { share: 1, shifts: 0 };
+  const observed = hits / starts.length;
+  let shifts = 0, asHigh = 0;
+  for (let k = P.nullMinShiftDays; k <= len - P.nullMinShiftDays; k += P.nullStepDays) {
+    let n = 0, h = 0;
+    for (const s of starts) {
+      const d = addDays(lo, (daysBetween(lo, s) + k) % len);
+      if (!judgedWindow(d)) continue;
+      n++;
+      if (runs.some((r) => overlaps(r, addDays(d, -P.leadDays), addDays(d, P.afterDays)))) h++;
+    }
+    // Only copies where every start could be judged, so each copy is tried on as many periods.
+    if (n < starts.length) continue;
+    shifts++;
+    if (h / n >= observed) asHigh++;
+  }
+  return { share: shifts ? asHigh / shifts : 1, shifts };
 }
 
 function evaluate(
@@ -278,9 +321,16 @@ function evaluate(
   const n = results.length;
   const hits = hitList.length;
   const chance = calmDays >= P.minCalmDays ? binomialTail(n, hits, calmRate) : 1;
-  const qualifies = n >= P.minPeriods && hits >= P.minHits && calmDays >= P.minCalmDays && hits / n >= P.minLift * calmRate && chance <= P.alpha / tested;
+  const when = {
+    before: hitList.filter((r) => r.lead! >= 1).length,
+    same: hitList.filter((r) => r.lead === 0).length,
+    after: hitList.filter((r) => r.lead! < 0).length,
+  };
+  const { share: nullShare, shifts: nullShifts } = shiftTest(results.map((r) => r.start), hits, judgedWindow, runs, from, to);
+  const qualifies = n >= P.minPeriods && hits >= P.minHits && calmDays >= P.minCalmDays && hits / n >= P.minLift * calmRate &&
+    chance <= P.alpha / tested && nullShifts > 0 && nullShare <= P.nullAlpha;
   return {
-    candidate, periods: results, hits, timing: leadDays.length * 2 >= hits ? 'before' : 'with', leadDays,
+    candidate, periods: results, hits, timing: leadDays.length * 2 >= hits ? 'before' : 'with', leadDays, when, nullShare, nullShifts,
     patternOnly, patternUnrated, periodsUnjudged, periodsStartUnknown, calmRate, calmDays, chance, qualifies,
   };
 }
@@ -376,6 +426,86 @@ export function followUpLine(h: PatternHypothesis, later: FollowUp): string {
   return `${found}${periods}${only}`;
 }
 
+// ---- evaluation with a frozen test part (1.1.0) ----
+
+export interface PatternTestResult {
+  candidateId: string;
+  /** Periods in the test part the link could be tried on, and how many the pattern came before. */
+  periods: number;
+  hits: number;
+  /** Periods in the test part that could not be tried yet: start unknown or too little watch data. */
+  notAssessable: number;
+  /** Runs of the pattern in the test part with no change in the rated mood after. */
+  patternOnly: number;
+  /** Share of the judged days in the test part when the pattern was there: how often it would have shown. */
+  timeShown: number;
+  judgedDays: number;
+}
+
+export interface PatternEvaluation {
+  from: DateKey;
+  /** The first day of the test part. Nothing from it on was used to find the links. */
+  testFrom: DateKey;
+  to: DateKey;
+  development: PatternAnalysis;
+  /** Each link found in the development part, tried on the test part. */
+  tested: PatternTestResult[];
+}
+
+const upTo = <T>(o: Record<DateKey, T>, to: DateKey) => Object.fromEntries(Object.entries(o).filter(([k]) => k <= to)) as Record<DateKey, T>;
+
+/**
+ * The whole chain from the watch and the ratings to a finding, run in two parts: the links are
+ * found on the older part only, with the same code the app runs, and then counted on the latest
+ * part, which never sets a threshold or picks a link.
+ */
+export function evaluatePatterns(data: PatternData, to: DateKey): PatternEvaluation {
+  const dates = Object.keys(data.measured).filter((d) => d <= to).sort();
+  const from = dates[0] ?? to;
+  const total = daysBetween(from, to) + 1;
+  const testFrom = addDays(from, Math.floor(total * (1 - P.testShare)));
+  const devTo = addDays(testFrom, -1);
+  const development = analysePatterns({
+    ...data, measured: upTo(data.measured, devTo), activity: upTo(data.activity, devTo), ratings: upTo(data.ratings, devTo),
+    episodes: data.episodes.filter((e) => e.start <= devTo),
+  }, devTo, `${devTo}T12:00:00.000Z`);
+  const days = patternDays(data, from, to);
+  const periods = moodPeriods(data.ratings, from, to);
+  const tested = development.findings.map((f): PatternTestResult => {
+    const r = evaluate(f.candidate, days, periods, data.ratings, from, to, CANDIDATES.length);
+    const inTest = r.periods.filter((p) => p.start >= testFrom);
+    const all = periods.filter((p) => p.direction === f.candidate.mood && p.start >= testFrom).length;
+    const pulse = f.candidate.pattern === 'evening_activity';
+    let judgedDays = 0, shown = 0;
+    for (let d = testFrom; d <= to; d = addDays(d, 1)) {
+      const v = days.get(d);
+      if (!v || !(pulse ? v.pulseJudged : v.judged)) continue;
+      judgedDays++;
+      if (v.patterns.includes(f.candidate.pattern)) shown++;
+    }
+    return {
+      candidateId: f.candidate.id, periods: inTest.length, hits: inTest.filter((p) => p.hit).length, notAssessable: all - inTest.length,
+      patternOnly: r.patternOnly.filter((x) => x.from >= testFrom).length, timeShown: judgedDays ? shown / judgedDays : 0, judgedDays,
+    };
+  });
+  return { from, testFrom, to, development, tested };
+}
+
+/** The evaluation in words, for the report. */
+export function evaluationLines(ev: PatternEvaluation): string[] {
+  const out = [`Utvecklingsdel ${span(ev.from, addDays(ev.testFrom, -1))}, testdel ${span(ev.testFrom, ev.to)}. Testdelen används aldrig för att välja samband eller gränser.`];
+  if (!ev.tested.length) {
+    out.push(ev.development.status === 'insufficient' ? 'Utvecklingsdelen hade för lite data för att hitta något samband.' : 'Utvecklingsdelen gav inget samband att pröva.');
+    return out;
+  }
+  for (const t of ev.tested) {
+    const f = ev.development.findings.find((x) => x.candidate.id === t.candidateId)!;
+    const pct = Math.round(t.timeShown * 100);
+    out.push(`${findingTitle(f)}: i testdelen kom mönstret före ${t.hits} av ${t.periods} perioder som gick att pröva. ${t.notAssessable} ${t.notAssessable === 1 ? 'period gick' : 'perioder gick'} inte att bedöma än. Mönstret fanns ${pct} % av ${t.judgedDays} bedömda dagar, och ${t.patternOnly} ${t.patternOnly === 1 ? 'gång' : 'gånger'} utan att skattningen ändrades.`);
+  }
+  return out;
+}
+
 // ---- words ----
 
 const NUMBER = ['noll', 'en', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta', 'nio', 'tio', 'elva', 'tolv'];
@@ -408,9 +538,23 @@ export function findingSummary(r: CandidateResult): string {
   const when = r.timing === 'before' ? 'före' : 'vid';
   const what = `då du skattade ${RATED_WORD[r.candidate.mood]} stämningsläge`;
   const n = r.periods.length;
-  if (r.hits < n) return `Mönstret återkom ${when} ${num(r.hits)} av ${num(n)} separata perioder ${what}, men inte varje gång.`;
+  const split = whenLine(r);
+  if (r.hits < n) return `Mönstret återkom ${when} ${num(r.hits)} av ${num(n)} separata perioder ${what}, men inte varje gång.${split}`;
   const also = r.patternOnly.length ? ` Det kom också ${r.patternOnly.length === 1 ? 'en gång' : `${num(r.patternOnly.length)} gånger`} utan att skattningen ändrades.` : '';
-  return `Mönstret återkom ${when} alla ${num(n)} separata perioder ${what}.${also}`;
+  return `Mönstret återkom ${when} alla ${num(n)} separata perioder ${what}.${split}${also}`;
+}
+
+/** " Det började före två av dem och samma dag som en." Empty when every hit has the same timing as the title says. */
+function whenLine(r: CandidateResult): string {
+  const w = r.when ?? { before: r.leadDays.length, same: r.hits - r.leadDays.length, after: 0 };
+  const parts = [
+    w.before ? `före ${num(w.before)}` : '',
+    w.same ? `samma dag som ${num(w.same)}` : '',
+    w.after ? `efter starten av ${num(w.after)}` : '',
+  ].filter(Boolean);
+  if (parts.length < 2) return '';
+  const list = parts.length === 2 ? parts.join(' och ') : `${parts.slice(0, -1).join(', ')} och ${parts[parts.length - 1]}`;
+  return ` Det började ${list} av dem.`;
 }
 
 /** Other links in the same direction that also hold: named with the finding, not shown as findings of their own. */
@@ -418,7 +562,7 @@ export function relatedLine(r: CandidateResult, a: PatternAnalysis): string | nu
   const others = a.results.filter((x) => x.qualifies && x.candidate.mood === r.candidate.mood && x.candidate.id !== r.candidate.id).map((x) => FEATURE_WORD[x.candidate.pattern]);
   if (!others.length) return null;
   const list = others.length === 1 ? others[0] : `${others.slice(0, -1).join(', ')} och ${others[others.length - 1]}`;
-  return `Även ${list} kom före samma slags perioder. Det är troligen samma förändring sedd på flera sätt.`;
+  return `Även ${list} sammanföll med dessa perioder. Det är troligen samma förändring sedd på flera sätt.`;
 }
 
 const span = (from: DateKey, to: DateKey) => (from === to ? formatDateSvYear(from) : `${formatDateSvYear(from)} – ${formatDateSvYear(to)}`);
@@ -473,7 +617,7 @@ export function insufficientLine(a: PatternAnalysis): string | null {
 
 /** How the analysis guards against chance, for the page. */
 export function methodText(a: Pick<PatternAnalysis, 'tested'>): string {
-  return `Appen prövade ${num(a.tested)} samband som bestämts i förväg. Ett visas bara om mönstret kom före minst ${num(P.minHits)} separata perioder och tydligt oftare än under lugna tider. Det är ett samband i dina data, inte en orsak och ingen förutsägelse. Skattningarna är dina egna skattningar, inte bekräftade episoder.`;
+  return `Appen prövade ${num(a.tested)} samband som bestämts i förväg. Ett visas bara om mönstret kom före minst ${num(P.minHits)} separata perioder och tydligt oftare än under lugna tider, och oftare än när perioderna flyttas i tiden. Det är ett samband i dina data, inte en orsak och ingen förutsägelse. Skattningarna är dina egna skattningar, inte bekräftade episoder.`;
 }
 
 // ---- the language model: wording only ----

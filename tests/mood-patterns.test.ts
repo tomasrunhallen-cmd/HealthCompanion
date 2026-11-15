@@ -2,7 +2,7 @@
 // only word a verified result, and its wording is checked.
 import { addDays } from '../src/core/analysis/dates';
 import {
-  analysePatterns, binomialTail, CANDIDATES, checkExplanation, findingEvidence, findingFacts, findingSummary, findingTitle, followUp, hypothesisOf,
+  analysePatterns, binomialTail, CANDIDATES, evaluatePatterns, evaluationLines, checkExplanation, findingEvidence, findingFacts, findingSummary, findingTitle, followUp, hypothesisOf,
   findingTopic, insufficientLine, methodText, moodPeriods, PATTERN_PARAMS, relatedLine, statusLine, type PatternData,
 } from '../src/core/analysis/moodPatterns';
 import { simulate, simulateRatings, type SimEvent } from '../src/core/analysis/rhythmSim';
@@ -136,7 +136,7 @@ describe('the analysis', () => {
     // Later sleep, shorter sleep and a later pulse before the same periods are one finding, with the others named.
     expect(a.results.filter((r) => r.qualifies).length).toBeGreaterThan(1);
     expect(a.findings).toHaveLength(1);
-    expect(relatedLine(a.findings[0], a)).toMatch(/^Även .* kom före samma slags perioder\./);
+    expect(relatedLine(a.findings[0], a)).toMatch(/^Även .* sammanföll med dessa perioder\./);
   });
 
   it('never uses a day without a rating as a rating of zero', () => {
@@ -217,5 +217,48 @@ describe('the chance of a result', () => {
     expect(binomialTail(5, 3, 0.1)).toBeCloseTo(0.00856, 5);
     expect(binomialTail(4, 0, 0.3)).toBe(1);
     expect(binomialTail(3, 3, 0)).toBe(0);
+  });
+});
+
+describe('Mina mönster 1.1.0: timing, chance and a frozen test part', () => {
+  it('every finding passes the shift test, and says how many shifted copies it was tried on', () => {
+    const a = analysePatterns(world([up(330), up(255), up(150), up(60)]), END, 'x');
+    expect(a.findings.length).toBeGreaterThan(0);
+    for (const f of a.findings) {
+      expect(f.nullShifts).toBeGreaterThan(10);
+      expect(f.nullShare).toBeLessThanOrEqual(PATTERN_PARAMS.nullAlpha);
+    }
+  });
+
+  it('splits the hits into before, the same day and after, and says so when they differ', () => {
+    const a = analysePatterns(world([up(330), up(255), up(150), up(60)]), END, 'x');
+    const r = a.findings[0];
+    expect(r.when.before + r.when.same + r.when.after).toBe(r.hits);
+    const mixed = { ...r, when: { before: 2, same: 1, after: 1 }, hits: 4, periods: r.periods.slice(0, 4) };
+    expect(findingSummary(mixed)).toContain('Det började före två, samma dag som en och efter starten av en av dem.');
+    expect(findingSummary({ ...r, when: { before: r.hits, same: 0, after: 0 } })).not.toContain('Det började');
+  });
+
+  it('finds the links on the older part only and counts them on the test part', () => {
+    const ev = evaluatePatterns(world([up(560), up(470), up(385), up(250), up(160), up(60)], { days: 600 }), END);
+    expect(ev.development.to < ev.testFrom).toBe(true);
+    expect(ev.development.from).toBe(ev.from);
+    expect(ev.tested.length).toBeGreaterThan(0);
+    const t = ev.tested[0];
+    expect(t.periods + t.notAssessable).toBeGreaterThan(0);
+    expect(t.hits).toBeLessThanOrEqual(t.periods);
+    expect(t.timeShown).toBeGreaterThan(0);
+    expect(t.timeShown).toBeLessThan(0.5);
+    const lines = evaluationLines(ev);
+    expect(lines[0]).toContain('Testdelen används aldrig för att välja samband eller gränser.');
+    expect(lines[1]).toMatch(/i testdelen kom mönstret före \d+ av \d+ perioder som gick att pröva\. \d+ perioder? gick inte att bedöma än\. Mönstret fanns \d+ % av \d+ bedömda dagar/);
+  });
+
+  it('later data can never change what the development part found', () => {
+    const w = world([up(560), up(470), up(385), up(250), up(160), up(60)], { days: 600 });
+    const a = evaluatePatterns(w, END);
+    const noisier = { ...w, ratings: { ...w.ratings, [d(5)]: 3, [d(4)]: 3 } };
+    const b = evaluatePatterns(noisier, END);
+    expect(b.development.findings.map((f) => f.candidate.id)).toEqual(a.development.findings.map((f) => f.candidate.id));
   });
 });

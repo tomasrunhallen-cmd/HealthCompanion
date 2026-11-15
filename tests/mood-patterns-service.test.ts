@@ -96,7 +96,8 @@ describe('the monthly analysis', () => {
   });
 
   it('a hypothesis is tried on periods that come after the day it was found', async () => {
-    const events = [up(330), up(240), up(150), up(60)];
+    // Uneven gaps: periods exactly as far apart would line up again in the shift test.
+    const events = [up(330), up(255), up(150), up(60)];
     const { repo, data, ratings } = await repoWith(events, 400, d(100));
     await runPatterns(repo, new Date(`${d(100)}T09:00:00`));
     expect(shownFindings(repo)[0].later.periods).toBe(0);
