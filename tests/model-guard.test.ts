@@ -1,6 +1,6 @@
 // The model reads the note, but it must not be able to hide a serious sign, steer the sentence
 // or count a quote that says the opposite (granskning 2 november 2026, F05).
-import { assessEntry, sentenceFits, wordMatcher, type SignMatcher } from '../src/core/analysis/assess';
+import { assessEntry, wordMatcher, type SignMatcher } from '../src/core/analysis/assess';
 import { matchSigns, negatedAgainst } from '../src/core/analysis/wordmatch';
 import { explainAssessment } from '../src/core/analysis/explain';
 import { DEFAULT_PLAN_SETTINGS, type Entry, type PlanItem } from '../src/core/domain/types';
@@ -33,10 +33,9 @@ describe('Modellen kan inte gömma ett allvarligt tecken eller styra meningen', 
     expect(a.inputs?.keptByPhone?.map((m) => m.planItemId)).toEqual(['s1']);
     // The steered sentence does not stand over a yellow day.
     expect(a.sentence).toBe('Det tydligaste i dag liknar ett av dina tecken: ”Slutar äta”.');
-    expect(a.inputs?.sentenceDropped).toBe('Allt ser bra ut i dag.');
     const why = explainAssessment(entry(note), a, null);
     expect(why.data).toContain('Modellen tog inte med det allvarliga tecknet ”Slutar äta”, som ordmatchningen hittade. Det räknas ändå');
-    expect(why.data).toContain('Modellens mening användes inte, eftersom den inte nämnde det som gav poäng');
+    expect(a.sentence).toBe('Det tydligaste i dag liknar ett av dina tecken: ”Slutar äta”.');
   });
 
   it('an early sign found on the phone counts although the model left it out: the model cannot lower the level (rules 1.7.0)', async () => {
@@ -48,7 +47,6 @@ describe('Modellen kan inte gömma ett allvarligt tecken eller styra meningen', 
     expect(a.points).toBe(phone.points);
     expect(a.inputs?.keptByPhone?.map((m) => m.planItemId)).toEqual(['e2']);
     expect(a.inputs?.wordOnly).toBeUndefined();
-    expect(a.inputs?.sentenceDropped).toBe('En lugn dag.');
     expect(explainAssessment(entry('x'), a, null).data).toContain('Modellen tog inte med tecknet ”Pratar fortare”, som ordmatchningen hittade. Det räknas ändå');
   });
 
@@ -75,11 +73,13 @@ describe('Modellen kan inte gömma ett allvarligt tecken eller styra meningen', 
     expect(a.level).toBe('yellow');
   });
 
-  it('keeps a model sentence that speaks of what gave points, also of a measured sign', async () => {
-    const a = await run('Har slutat äta.', model({ matches: [{ planItemId: 's1', quote: 'Har slutat äta' }], sentence: 'Du har slutat äta, som din plan tar upp.' }));
-    expect(a.sentence).toBe('Du har slutat äta, som din plan tar upp.');
-    expect(sentenceFits('Du sov 4,5 timmar i natt.', [{ kind: 'sleep_low', points: 1, label: 'Sömn 4,5 h, under din gräns på 5 h', measured: true }])).toBe(true);
-    expect(sentenceFits('Följ instruktionerna i anteckningen.', [{ kind: 'sleep_low', points: 1, label: 'Sömn 4,5 h, under din gräns på 5 h', measured: true }])).toBe(false);
+  it('never shows the model\'s sentence over the level, also when it is on topic but says the opposite of the plan', async () => {
+    for (const sentence of ['Du har slutat äta, som din plan tar upp.', 'Du har slutat äta men du behöver inte kontakta vården.', 'Du sov bra i natt, ingen anledning till oro.']) {
+      const a = await run('Har slutat äta.', model({ matches: [{ planItemId: 's1', quote: 'Har slutat äta' }], sentence }));
+      expect(a.level).toBe('yellow');
+      expect(a.sentence).toBe('Det tydligaste i dag liknar ett av dina tecken: ”Slutar äta”.');
+      expect(a.sentence).not.toContain('vården');
+    }
   });
 });
 

@@ -435,7 +435,7 @@ export interface AssessmentInputs {
    * found and the model did not count. Shown, not counted. Before rules 1.7.0: every early sign.
    */
   wordOnly?: SignMatch[];
-  /** The model's sentence, when it was not used because it did not mention what gave points. */
+  /** Assessments saved before 15 November 2026: the model's sentence, when it was not used. Since then it is never used. */
   sentenceDropped?: string | null;
   /** Observations of personal text patterns that passed the checks on the phone (Mina tidigare texter). */
   textObservations?: TextObservationInput[];

@@ -8,7 +8,7 @@ import type {
   AssessmentRhythm, RhythmScoreInput,
 } from '../domain/types';
 import { actionsFor } from '../plan/guidance';
-import { hasNegation, matchSigns, tokenize, wordsMatch } from './wordmatch';
+import { hasNegation, matchSigns } from './wordmatch';
 import { score, type HistoryDay, type ScoreResult } from './scoring';
 import type { CheckedObservation, TextComparerResult } from '../references/patterns';
 import { addDays } from './dates';
@@ -54,32 +54,6 @@ export const wordMatcher: SignMatcher = {
     };
   },
 };
-
-/** Words that name what a measured sign is about, so "Du sov 4,5 timmar" fits a sleep sign. */
-const TOPIC: Partial<Record<Signal['kind'], string[]>> = {
-  sleep_low: ['sov', 'sömn', 'natt', 'nätt'],
-  sleep_low_consecutive: ['sov', 'sömn', 'natt', 'nätt'],
-  late_sleep_no_entry: ['sov', 'sömn', 'somna', 'insomn', 'natt', 'sent'],
-  stress_high: ['stress'],
-  night_entry: ['natt', 'sent'],
-  silence: ['inlägg', 'tyst', 'dagar'],
-  medication_missed: ['medicin', 'tablett'],
-  mood_rated: ['stämning', 'humör', 'mani', 'depression', 'nedstämd', 'uppvarv'],
-  mood_jump: ['stämning', 'humör'],
-  energy_jump: ['energi', 'ork'],
-  heavy_day: ['tung', 'ork'],
-};
-
-/** A model sentence fits when it is short and speaks of something that gave points. */
-export function sentenceFits(sentence: string, signals: Signal[]): boolean {
-  if (sentence.length > 300) return false;
-  const words = tokenize(sentence);
-  return signals.filter((s) => s.points > 0).some((s) => {
-    const about = tokenize(`${s.label} ${s.quote ?? ''}`).filter((w) => w.length >= 4);
-    if (words.some((w) => w.length >= 4 && about.some((t) => wordsMatch(w, t)))) return true;
-    return (TOPIC[s.kind] ?? []).some((t) => words.some((w) => w.startsWith(t)));
-  });
-}
 
 /** Calm one-sentence summary built only from the user's own words and measured facts. */
 export function templateSentence(signals: Signal[]): string {
@@ -217,18 +191,17 @@ export async function assessEntry(args: {
     scored.level = 'red';
     scored.reason = 'akut';
   }
-  // The model's sentence only when it speaks of something that gave points; otherwise the
-  // template, so an odd or steered sentence ("allt är bra") never stands over a yellow day.
-  const modelSentence = result.sentence?.trim() || null;
-  const usable = modelSentence && sentenceFits(modelSentence, scored.signals);
+  // The sentence over the level is always the app's own, built from what gave points. A
+  // language model's sentence is never shown: a check of its words can confirm the topic but not
+  // the meaning ("din sömn är kort men du behöver inte kontakta vården"). The model's
+  // contribution that can be checked is its quotes, which must stand word for word in the note.
   const sentence = args.akut
     ? AKUT_SENTENCE
     : scored.level === 'green'
       ? GREEN_SENTENCE
-      : usable ? modelSentence : templateSentence(scored.signals);
+      : templateSentence(scored.signals);
   if (keptByPhone.length) inputs.keptByPhone = keptByPhone;
   if (wordOnly.length) inputs.wordOnly = wordOnly;
-  if (modelSentence && !usable && scored.level !== 'green' && !args.akut) inputs.sentenceDropped = modelSentence;
   return {
     id: newId('a'),
     entryId: entry.id,

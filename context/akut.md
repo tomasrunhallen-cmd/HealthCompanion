@@ -1,6 +1,6 @@
 ---
 id: akut
-version: 0.5.0
+version: 0.6.0
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Akutordlista
@@ -22,10 +22,10 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
   ("vill inte dö", "tänker inte göra mig illa", "har aldrig haft självmordstankar"):
   en mildare krisruta med planens steg vid rött och numren. Dagen blir inte röd av
   detta, och anteckningen skickas inte till modellen.
-- Träff i samma sats som ett ord under Sammanhang ("för tio år sedan", "min vän",
-  "självmordsprevention", "av skratt"), eller om någon annan ("han", "hon", "hen") i en
-  sats där personen inte skriver om sig själv: samma mildare ruta. Hjälpen visas alltid,
-  men dagen bokförs inte som akut. Personens egna formuleringar räknas alltid fullt.
+- Träff som handlar om något förr, någon annan eller ett ämne: samma mildare ruta. Hjälpen
+  visas alltid, men dagen bokförs inte som akut. Var sammanhangsordet står avgör, se de tre
+  listorna nedan (lista 0.6.0): "Jag vill dö och min vän vet om det" gäller personen själv,
+  "Min vän vill dö" gör det inte. Personens egna formuleringar räknas alltid fullt.
 
 ## Fraser
 
@@ -101,13 +101,21 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
 - skärpte
 - skärpt
 
-## Sammanhang
+## Sammanhang: tid
+
+Gäller i hela satsen, utom när det är en jämförelse ("precis som för tio år sedan").
 
 - år sedan
 - länge sedan
 - som barn
 - som tonåring
 - i tonåren
+
+## Sammanhang: person
+
+Gäller bara när personen nämns före träffen och inget "jag" står mellan ("Min vän vill dö").
+"Min mamma vet inte att jag vill dö" och "Jag vill dö och min vän vet om det" gäller personen själv.
+
 - min vän
 - min kompis
 - min mamma
@@ -117,6 +125,12 @@ skärper mig" är inte "skär mig"), bara som exakt samma ord. Anteckningen läs
 - min kollega
 - min partner
 - min sambo
+
+## Sammanhang: ämne
+
+Gäller när ordet sitter i träffordet ("självmordsprevention"), står direkt efter träffen
+("dö av skratt"), eller när satsen saknar "jag" före träffen ("Filmen handlar om självmord").
+
 - prevention
 - statistik
 - forskning

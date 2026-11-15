@@ -23,14 +23,23 @@ export interface AkutLists {
   /** Known false hits. Their words may only match a phrase word that is spelled the same, never as an inflection. */
   exceptions: string[];
   /**
-   * Words that place a hit in the past, with someone else or in a topic ("för tio år sedan",
-   * "min vän", "självmordsprevention", "av skratt"). In the same clause they make a full hit
-   * mild: the crisis card shows, but the day is not made red.
+   * Words that place a hit in the past, with someone else or in a topic. All three kinds
+   * together; aboutPastOrOthers uses them as they are, the emergency rule by kind below.
    */
   contexts?: string[];
+  /** In the past ("för tio år sedan", "som barn"): anywhere in the clause, unless it is a comparison ("som för tio år sedan"). */
+  contextTime?: string[];
+  /** Someone else ("min vän", "min mamma"): only before the hit, with no "jag" between it and the hit. */
+  contextPerson?: string[];
+  /** A topic ("film", "statistik", "av skratt"): inside the hit word, right after it, or in a clause without "jag" before the hit. */
+  contextTopic?: string[];
 }
 
-const SECTION: Record<string, keyof AkutLists> = { fraser: 'phrases', 'kärnord': 'cores', undantag: 'exceptions', sammanhang: 'contexts' };
+const SECTION: Record<string, keyof AkutLists> = {
+  fraser: 'phrases', 'kärnord': 'cores', undantag: 'exceptions', sammanhang: 'contexts',
+  'sammanhang: tid': 'contextTime', 'sammanhang: person': 'contextPerson', 'sammanhang: ämne': 'contextTopic',
+};
+const CONTEXT_KINDS = ['contextTime', 'contextPerson', 'contextTopic'] as const;
 
 export function parseAkutLists(source: string): AkutLists {
   const { body } = parseFrontmatter(source);
@@ -45,6 +54,8 @@ export function parseAkutLists(source: string): AkutLists {
     const m = line.match(/^\s*[-*]\s+(.+?)\s*$/);
     if (into && m) (out[into] ??= []).push(m[1]);
   }
+  // The three kinds together are the context list as before (aboutPastOrOthers).
+  for (const k of CONTEXT_KINDS) if (out[k]?.length) out.contexts = [...(out.contexts ?? []), ...out[k]!];
   return out;
 }
 
@@ -138,7 +149,7 @@ function phraseIn(
   phrase: string[],
   /** A core word: the first word only has to start with it. */
   prefix = false,
-): { found: boolean; negated: boolean } {
+): { found: boolean; negated: boolean; start?: number; end?: number } {
   if (!phrase.length) return { found: false, negated: false };
   const own = (w: string) => phrase.includes(w);
   let negatedHit = false;
@@ -160,7 +171,7 @@ function phraseIn(
         if (NEGATIONS.has(w) && !own(w)) negated = true;
       }
     }
-    if (ok && !negated) return { found: true, negated: false };
+    if (ok && !negated) return { found: true, negated: false, start, end: pos };
     if (ok) negatedHit = true;
   }
   return { found: negatedHit, negated: negatedHit };
@@ -174,7 +185,70 @@ function clauses(note: string): string[][] {
     .filter((c) => c.length > 0);
 }
 
-/** A context word in the clause: in the past, someone else, or a topic rather than the person's own state now. */
+/** Where a cue occurs in the clause: the index of its first word, or -1. */
+function cueAt(words: string[], cue: string[], from = 0): number {
+  for (let i = from; i + cue.length <= words.length; i++) {
+    if (cue.every((t, k) => tokenEq(words[i + k], t, false))) return i;
+  }
+  return -1;
+}
+
+interface ContextLists {
+  time: string[][];
+  person: string[][];
+  topic: string[][];
+  cores: string[];
+}
+
+/**
+ * Whether a hit at words[start..end] is about the past, someone else or a topic rather than the
+ * person's own state now. Each kind counts only where it can mean that (akut list 0.6.0):
+ * - time: anywhere in the clause, but not as a comparison ("som för tio år sedan");
+ * - person: before the hit with no "jag" between ("Min vän vill dö", not "Min mamma vet inte att
+ *   jag vill dö"), or "han", "hon" and "hen" in a clause where the person does not write about
+ *   themselves;
+ * - topic: inside the hit word ("självmordsprevention"), right after it ("dö av skratt"), or in a
+ *   clause with no "jag" before the hit ("Filmen handlar om självmord", not "Läste en bok men
+ *   jag vill dö").
+ */
+function hitInContext(words: string[], start: number, end: number, lists: ContextLists): boolean {
+  const own = words.some((w) => FIRST_PERSON.has(w));
+  const ownBefore = (i: number) => words.slice(0, i).some((w) => FIRST_PERSON.has(w));
+  const ownBetween = (a: number, b: number) => words.slice(a, b).some((w) => FIRST_PERSON.has(w));
+
+  for (const cue of lists.time) {
+    if (!cue.length) continue;
+    for (let i = cueAt(words, cue); i >= 0; i = cueAt(words, cue, i + 1)) {
+      // "som för tio år sedan", "precis som som barn": a comparison, the hit is about now.
+      const comparison = i > end && words.slice(end + 1, i).includes('som');
+      if (!comparison) return true;
+    }
+  }
+
+  if (!own && words.some((w) => THIRD_PERSON.has(w))) return true;
+  const persons = [...lists.person, ...[...THIRD_PERSON].map((w) => [w])];
+  for (const cue of persons) {
+    if (!cue.length) continue;
+    const i = cueAt(words, cue);
+    if (i >= 0 && i < start && !ownBetween(i + cue.length, start)) return true;
+  }
+
+  for (const cue of lists.topic) {
+    if (!cue.length) continue;
+    if (cue.length === 1) {
+      const c = cue[0];
+      // "självmordsprevention", "självmordsstatistiken": the topic sits inside the hit word.
+      if (c.length >= 5 && words.slice(start, end + 1).some((w) => lists.cores.some((k) => startsWithCore(w, k)) && w.includes(c))) return true;
+    }
+    const i = cueAt(words, cue);
+    if (i < 0) continue;
+    if (i > end && i <= end + 1) return true;
+    if (!ownBefore(start)) return true;
+  }
+  return false;
+}
+
+/** A context word anywhere in the clause: in the past, someone else, or a topic rather than the person's own state now. */
 function contextIn(words: string[], contexts: string[][], cores: string[]): boolean {
   const own = words.some((w) => FIRST_PERSON.has(w));
   if (!own && words.some((w) => THIRD_PERSON.has(w))) return true;
@@ -218,8 +292,15 @@ export function akutCheckWith(note: string, lists: AkutLists, userPhrases: strin
     ...[...lists.phrases, ...userPhrases].filter((x) => x.trim()).map((text) => ({ text, tokens: tokenize(text), prefix: false })),
     ...lists.cores.filter((x) => x.trim()).map((text) => ({ text, tokens: tokenize(text), prefix: true })),
   ];
-  const contexts = (lists.contexts ?? []).map(tokenize);
   const cores = lists.cores.map((c) => tokenize(c)[0]).filter(Boolean);
+  const kinds: ContextLists = {
+    time: (lists.contextTime ?? []).map(tokenize),
+    person: (lists.contextPerson ?? []).map(tokenize),
+    topic: (lists.contextTopic ?? []).map(tokenize),
+    cores,
+  };
+  // A list without kinds (older tests and callers): every context word is a topic word, as strict as before.
+  if (!kinds.time.length && !kinds.person.length && !kinds.topic.length) kinds.time = (lists.contexts ?? []).map(tokenize);
   const full: string[] = [];
   const mild: string[] = [];
   let byContext = false;
@@ -229,7 +310,7 @@ export function akutCheckWith(note: string, lists: AkutLists, userPhrases: strin
       const h = phraseIn(parts[i], masks[i], c.tokens, c.prefix);
       if (!h.found) continue;
       // The person's own phrases are always taken as written.
-      const context = !h.negated && !userPhrases.includes(c.text) && contextIn(parts[i], contexts, cores);
+      const context = !h.negated && !userPhrases.includes(c.text) && hitInContext(parts[i], h.start ?? 0, h.end ?? 0, kinds);
       if (!h.negated && !context) { hit = { ...h, context: false }; break; }
       hit = { found: true, negated: h.negated, context };
     }
