@@ -56,6 +56,8 @@ export interface Rules {
   sleepThresholdHoursDefault: number;
   /** Stress at or above this (Garmin's scale 0–100, which the manual steps follow) ... */
   stressHighAt: number;
+  /** The same limit for stress the person gave by hand (rules 1.8.0): only the step "Hög" (75). A run never mixes sources. */
+  stressHighAtManual: number;
   /** ... this many days in a row, today included, is a sign. */
   stressHighDays: number;
   speechFastFraction: number;

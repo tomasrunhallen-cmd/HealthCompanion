@@ -77,6 +77,8 @@ export interface Evening {
   night: DateKey;
   /** Share of the day's active minutes from 21:00 to 04:00. */
   late: number | null;
+  /** Minutes with raised pulse from 21:00 to 04:00: a higher share may also be less in the day. */
+  lateMinutes: number | null;
   /** Centre of the day's activity, minutes after 04:00. */
   centre: number | null;
   worn: number;
@@ -132,10 +134,15 @@ export function eveningOf(activity: Record<DateKey, ActivityDay>, night: DateKey
   for (let h = 0; h < 4; h++) hours.push({ h: h + 20, active: next?.activeMinutes[h] ?? null, worn: next?.worn[h] ?? 0 });
   const worn = hours.reduce((s, x) => s + x.worn, 0) / 24;
   const total = hours.reduce((s, x) => s + (x.active ?? 0), 0);
-  if (worn < R.minActivityWornShare || total < 10) return { night, late: null, centre: null, worn };
-  const late = hours.filter((x) => x.h >= 17).reduce((s, x) => s + (x.active ?? 0), 0) / total;
+  // The evening has to be covered on its own (rules 1.8.0): a watch taken off at 21 must not read
+  // as an evening without raised pulse.
+  const evening = hours.filter((x) => x.h >= 17);
+  const eveningWorn = evening.reduce((s, x) => s + x.worn, 0) / evening.length;
+  if (worn < R.minActivityWornShare || eveningWorn < R.minActivityWornShare || total < 10) return { night, late: null, lateMinutes: null, centre: null, worn };
+  const lateMinutes = evening.reduce((s, x) => s + (x.active ?? 0), 0);
+  const late = lateMinutes / total;
   const centre = hours.reduce((s, x) => s + (x.active ?? 0) * (x.h * 60 + 30), 0) / total;
-  return { night, late, centre, worn };
+  return { night, late, lateMinutes, centre, worn };
 }
 
 // ---- robust statistics ----
@@ -165,6 +172,8 @@ export interface Baseline {
   /** Usual change in falling asleep from one night to the next, minutes. */
   nightToNight: number;
   late: { mid: number; spread: number } | null;
+  /** Usual minutes with raised pulse in the evening, for telling more evening from less daytime. */
+  lateMinutes: number | null;
   evenings: number;
 }
 
@@ -178,6 +187,7 @@ export function baselineFor(nights: Map<DateKey, Night>, evenings: Map<DateKey, 
   const to = addDays(today, -R.baselineGapDays - 1);
   const use: Night[] = [];
   const late: number[] = [];
+  const lateMinutes: number[] = [];
   const deltas: number[] = [];
   let prev: Night | null = null;
   for (let d = from; d <= to; d = addDays(d, 1)) {
@@ -188,6 +198,7 @@ export function baselineFor(nights: Map<DateKey, Night>, evenings: Map<DateKey, 
     prev = n;
     const e = evenings.get(d);
     if (e?.late != null) late.push(e.late);
+    if (e?.lateMinutes != null) lateMinutes.push(e.lateMinutes);
   }
   if (use.length < R.baselineMinNights) return use.length ? { nights: use.length } as Baseline : null;
   const wakes = use.filter((n) => n.wake != null).map((n) => n.wake!);
@@ -200,6 +211,7 @@ export function baselineFor(nights: Map<DateKey, Night>, evenings: Map<DateKey, 
     hours: robust(use.map((n) => n.hours!), FLOOR.hours),
     nightToNight: deltas.length ? median(deltas) : 0,
     late: late.length >= R.baselineMinNights ? robust(late, FLOOR.late) : null,
+    lateMinutes: lateMinutes.length >= R.baselineMinNights ? median(lateMinutes) : null,
     evenings: late.length,
   };
 }
@@ -305,7 +317,10 @@ export function detect(p: Prepared, today: DateKey, episodes: EpisodeStart[], us
     const ev = dates.map((d) => p.evenings.get(d)).filter((e): e is Evening => e?.late != null);
     if (ev.length >= 2) {
       activityUsed = true;
-      if (ev.every((e) => z(e.late!, base.late!) >= R.activityZ)) {
+      // A larger evening share counts only when the evening itself has more raised pulse than
+      // usual, not when the share rises because the day had less (rules 1.8.0).
+      const moreInTheEvening = (e: Evening) => base.lateMinutes == null || (e.lateMinutes ?? 0) > base.lateMinutes;
+      if (ev.every((e) => z(e.late!, base.late!) >= R.activityZ && moreInTheEvening(e))) {
         changes.push({ pattern: 'evening_activity', nights: ev.map((e) => e.night), values: ev.map((e) => pct(e.late!)), usual: pct(base.late.mid) });
       }
     }
@@ -328,7 +343,15 @@ function minutesWord(m: number): string {
 // ---- direction from the person's own history ----
 
 export type DirectionValue = 'up' | 'down' | 'unclear';
-export type DirectionReason = 'supported' | 'no_episodes' | 'no_match' | 'both' | 'also_stable';
+/**
+ * supported: the pattern came before one kind of period and not, or clearly less, outside them.
+ * no_episodes: no periods to compare with. no_match: compared, and the pattern was not there.
+ * both: before up and down periods. also_stable: as often outside periods.
+ * no_stable_comparison: it came before a period, but no day outside the periods could be judged,
+ * so it is unknown whether it is unusual (rules 1.8.0).
+ * conflict: two of today's patterns point different ways (rules 1.8.0).
+ */
+export type DirectionReason = 'supported' | 'no_episodes' | 'no_match' | 'both' | 'also_stable' | 'no_stable_comparison' | 'conflict';
 
 export interface EpisodeMatch {
   episodeId: string;
@@ -350,6 +373,22 @@ export interface Direction {
   stableRuns: { from: DateKey; to: DateKey }[];
   /** Stable days the model could judge (enough data). */
   stableDaysJudged: number;
+  /** Every pattern of the change, each compared on its own (rules 1.8.0). Missing on older estimates. */
+  byPattern?: { pattern: RhythmPattern; value: DirectionValue; reason: DirectionReason; type: EpisodeType | null }[];
+}
+
+/**
+ * The direction of a change with several patterns (rules 1.8.0): each pattern is compared on its
+ * own. One direction with support, and none the other way: that one. Support both ways: unclear,
+ * as a conflict. No support at all: the first pattern's answer, so the reason says why.
+ */
+export function combinedDirection(all: Direction[]): Direction {
+  const supported = all.filter((d) => d.reason === 'supported' && d.value !== 'unclear');
+  const byPattern = all.map((d) => ({ pattern: d.pattern, value: d.value, reason: d.reason, type: d.matches[0]?.type ?? null }));
+  const ways = new Set(supported.map((d) => d.value));
+  if (ways.size > 1) return { ...supported[0], value: 'unclear', reason: 'conflict', byPattern };
+  if (supported.length) return { ...supported[0], byPattern };
+  return { ...all[0], byPattern };
 }
 
 /**
@@ -400,6 +439,8 @@ export function directionFor(p: Prepared, today: DateKey, pattern: RhythmPattern
   if (up && down) return { value: 'unclear', reason: 'both', ...base };
   const m = Math.max(up, down);
   if (!m) return { value: 'unclear', reason: 'no_match', ...base };
+  // Nothing outside the periods to compare with is not the same as the pattern never being there.
+  if (stableDaysJudged === 0) return { value: 'unclear', reason: 'no_stable_comparison', ...base };
   const st = stableRuns.length;
   if (st === 0 || (m >= 2 && st < m)) return { value: up ? 'up' : 'down', reason: 'supported', ...base };
   return { value: 'unclear', reason: 'also_stable', ...base };
@@ -443,7 +484,7 @@ export function assessRhythm(data: RhythmData, today: DateKey, computedAt: strin
   const activityAvailable = Object.keys(data.activity).some((d) => d >= addDays(today, -R.windowSpanNights) && d <= today);
   const useActivity = opts.useActivity ?? true;
   const r = detect(p, today, data.episodes.filter((e) => e.start <= today), useActivity);
-  const direction = r.status === 'change' ? directionFor(p, today, r.changes[0].pattern, data.episodes, useActivity, histFrom) : null;
+  const direction = r.status === 'change' ? combinedDirection(r.changes.map((c) => directionFor(p, today, c.pattern, data.episodes, useActivity, histFrom))) : null;
   const prev = opts.previous;
   const courseStart = r.status !== 'change' ? null
     : prev && prev.status === 'change' && prev.courseStart && daysBetween(prev.date, today) <= 2 ? prev.courseStart : today;
@@ -472,13 +513,25 @@ export function assessRhythm(data: RhythmData, today: DateKey, computedAt: strin
 const NUM = ['', 'En', 'Två', 'Tre', 'Fyra', 'Fem', 'Sex', 'Sju'];
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} och ${xs[xs.length - 1]}`);
 
+/** The nights of a change in words: "Tre nätter i rad" when they follow each other, else "Tre av de fyra senaste nätterna". */
+function nightsWord(c: RhythmChange): { lead: string; gap: string } {
+  const n = c.nights.length;
+  const span = n ? daysBetween(c.nights[0], c.nights[n - 1]) + 1 : 0;
+  if (span <= n) return { lead: `${NUM[n] ?? n} nätter i rad har du`, gap: '' };
+  const missing = span - n;
+  return {
+    lead: `${NUM[n] ?? n} av de ${(NUM[span] ?? String(span)).toLowerCase()} senaste nätterna har du`,
+    gap: ` ${missing === 1 ? 'En natt saknar' : `${NUM[missing] ?? missing} nätter saknar`} data.`,
+  };
+}
+
 export function changeSentence(c: RhythmChange): string {
-  const n = NUM[c.nights.length] ?? String(c.nights.length);
+  const { lead, gap } = nightsWord(c);
   switch (c.pattern) {
-    case 'later': return `${n} nätter i rad har du somnat senare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.`;
-    case 'earlier': return `${n} nätter i rad har du somnat tidigare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.`;
-    case 'shorter': return `${n} nätter i rad har du sovit kortare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.`;
-    case 'longer': return `${n} nätter i rad har du sovit längre än vanligt: ${list(c.values)} mot vanligt ${c.usual}.`;
+    case 'later': return `${lead} somnat senare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.${gap}`;
+    case 'earlier': return `${lead} somnat tidigare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.${gap}`;
+    case 'shorter': return `${lead} sovit kortare än vanligt: ${list(c.values)} mot vanligt ${c.usual}.${gap}`;
+    case 'longer': return `${lead} sovit längre än vanligt: ${list(c.values)} mot vanligt ${c.usual}.${gap}`;
     case 'irregular': return `Sovtiderna har varierat mer än vanligt den senaste veckan: insomningen skiftade ${c.values[0]} från natt till natt mot vanligt ${c.usual}.`;
     case 'evening_activity': return `Den förhöjda pulsen har flyttats mot kvällen: ${list(c.values)} av dygnets minuter med förhöjd puls kom efter 21 mot vanligt ${c.usual}.`;
   }
@@ -505,8 +558,11 @@ export function changeScope(changes: RhythmChange[]): string {
   const c = changes[0];
   if (!c) return '';
   if (c.pattern === 'irregular') return 'Den senaste veckan.';
-  const n = NUM[c.nights.length] ?? String(c.nights.length);
-  return c.pattern === 'evening_activity' ? `${n} kvällar i rad.` : `${n} nätter i rad.`;
+  const n = c.nights.length;
+  const span = n ? daysBetween(c.nights[0], c.nights[n - 1]) + 1 : 0;
+  const unit = c.pattern === 'evening_activity' ? 'kvällar' : 'nätter';
+  if (span > n) return `${NUM[n] ?? n} av ${(NUM[span] ?? String(span)).toLowerCase()} ${unit}. ${span - n === 1 ? 'En saknar' : `${NUM[span - n] ?? span - n} saknar`} data.`;
+  return `${NUM[n] ?? n} ${unit} i rad.`;
 }
 
 export const STABLE_TITLE = 'Inget tydligt nytt mönster';
@@ -544,15 +600,23 @@ export function directionHeadline(d: Direction | null): string | null {
  */
 export function directionText(d: Direction): string {
   const m = d.matches[0];
+  const judged = d.stableDaysJudged === 1 ? 'den enda dag' : `de ${d.stableDaysJudged} dagar`;
+  // "Outside the periods" rather than "stable": that the mood was calm then is not known (rules 1.8.0).
   const stable = d.stableRuns.length
-    ? ` Samma mönster fanns också under ${d.stableRuns.length === 1 ? 'en stabil period' : `${d.stableRuns.length} stabila perioder`} (${formatDateSv(d.stableRuns[0].from)}${d.stableRuns[0].to !== d.stableRuns[0].from ? `–${formatDateSv(d.stableRuns[0].to)}` : ''}).`
-    : ' Mönstret fanns inte under stabila perioder.';
+    ? ` Samma mönster fanns också ${d.stableRuns.length === 1 ? 'en gång' : `${d.stableRuns.length} gånger`} under ${judged} utanför registrerade perioder som gick att bedöma (${formatDateSv(d.stableRuns[0].from)}${d.stableRuns[0].to !== d.stableRuns[0].from ? `–${formatDateSv(d.stableRuns[0].to)}` : ''}).`
+    : ` Mönstret fanns inte under någon av ${judged} utanför registrerade perioder som gick att bedöma.`;
   const like = m ? `Liknar mönstret före en tidigare ${typeWordOne(m.type)} period, som började ${formatDateSv(m.start)} (${SOURCE_WORD[m.source]}).` : '';
   switch (d.reason) {
     case 'supported':
       return `${like}${stable}`;
     case 'also_stable':
       return `${like}${stable} Därför går det inte att säga åt vilket håll det pekar.`;
+    case 'no_stable_comparison':
+      return `${like} Det finns inga dagar utanför registrerade perioder som gick att bedöma, så det går inte att säga om mönstret är ovanligt för dig.`;
+    case 'conflict': {
+      const parts = (d.byPattern ?? []).filter((p) => p.reason === 'supported' && p.type).map((p) => `${PATTERN_WORD[p.pattern]} före en ${typeWordOne(p.type!)} period`);
+      return `Mönstren pekar åt olika håll: ${parts.join(' och ')}. Det går inte att säga åt vilket håll det pekar.`;
+    }
     case 'both':
       return 'Samma mönster fanns före både uppvarvade och nedstämda perioder. Det går inte att säga åt vilket håll det pekar.';
     case 'no_episodes':

@@ -387,6 +387,7 @@ Stämningen skattas på en bipolär skala med sju steg:
 | F12 kvällsflödet | Högst fem rutiner först, "Vill inte svara" efter röd dag, veckofrågan märkt valfri, avstämningens längd sparas |
 | F13 återbesök | Dag för dag med stämning, sömn, riktning och anmärkningar. Färgen förklaras som regelutfall |
 | F14 tangentbord | Reglagen tar fokus med Tab och flyttas med piltangenterna i webben |
+| Signallogik (andra granskningen) | Regler 1.8.0: varje mönster i *Dygnsrytm* jämförs för sig, och pekar de åt olika håll är riktningen oklar. Jämförelsen sägs som *dagar utanför registrerade perioder*, med antal, och utan sådana dagar är riktningen oklar. Kvällspuls kräver buren klocka på kvällen och fler kvällsminuter än vanligt. Nätter med lucka sägs som *tre av de fyra senaste*. Ett sömntecken ur planen räknas inte en gång till som kort sömn första natten. Stress räknas per källa, egen uppgift bara vid *Hög* |
 
 Inte åtgärdat i koden: F09 (kräver riktig iPhone), F10 (regelverk, beslut före extern användning) och skalans namn (diagnosord, behållna på din begäran).
 

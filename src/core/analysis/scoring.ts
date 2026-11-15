@@ -197,39 +197,51 @@ function rawLevel(
   return { level: 'green', points, reason: 'nothing' };
 }
 
+/** One day's stress and where it came from. */
+type StressDay = { v: number; source: MeasureSource };
+
+/** The limit for high stress on a source's own scale (rules 1.8.0): manual "Hög" is its own step. */
+const stressLimit = (source: MeasureSource) => (source === 'manual' ? RULES.stressHighAtManual : RULES.stressHighAt);
+
 /**
- * The stress of the `RULES.stressHighDays` days ending on `end`, oldest first, or null when a
- * day lacks a value. The watch first, then the entry; `endValue` for the last day when given.
+ * The stress of the `RULES.stressHighDays` days ending on `end`, oldest first, null for a day
+ * without a value. The watch first, then the entry; `endValue` (and `endSource`) for the last
+ * day when given.
  */
-function stressRun(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null): number[] | null {
+function stressDays(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null, endSource?: MeasureSource | null): (StressDay | null)[] {
   const n = RULES.stressHighDays;
-  const vals = Array.from({ length: n }, (_, i) => {
+  return Array.from({ length: n }, (_, i) => {
     const d = addDays(end, i - (n - 1));
-    if (i === n - 1 && endValue !== undefined) return endValue;
-    return garmin[d]?.stressAvg ?? history.find((h) => h.entry.date === d)?.entry.stressAvg ?? null;
+    if (i === n - 1 && endValue !== undefined) return endValue == null ? null : { v: endValue, source: endSource ?? 'garmin' };
+    const g = garmin[d];
+    if (g?.stressAvg != null) return { v: g.stressAvg, source: g.stressSource ?? g.source ?? 'garmin' };
+    const e = history.find((h) => h.entry.date === d)?.entry;
+    return e?.stressAvg != null ? { v: e.stressAvg, source: e.stressSource ?? 'garmin' } : null;
   });
-  return vals.every((v) => v != null) ? (vals as number[]) : null;
+}
+
+/** The run when every day has a value from one and the same source, else null: scales are not mixed. */
+function stressRun(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null, endSource?: MeasureSource | null): StressDay[] | null {
+  const days = stressDays(end, history, garmin, endValue, endSource);
+  if (days.some((d) => d == null)) return null;
+  const run = days as StressDay[];
+  return run.every((d) => d.source === run[0].source) ? run : null;
 }
 
 /**
  * The days of the stress run that have no value, counted only when the rule is relevant: at
- * least one day has a value and every value there is at or above the limit. A day missing when
- * stress was low anyway says nothing.
+ * least one day has a value and every value there is at or above its source's limit. A day
+ * missing when stress was low anyway says nothing.
  */
-export function stressGap(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null): number {
-  const n = RULES.stressHighDays;
-  const vals = Array.from({ length: n }, (_, i) => {
-    const d = addDays(end, i - (n - 1));
-    if (i === n - 1 && endValue !== undefined) return endValue;
-    return garmin[d]?.stressAvg ?? history.find((h) => h.entry.date === d)?.entry.stressAvg ?? null;
-  });
-  const present = vals.filter((v): v is number => v != null);
-  const missing = n - present.length;
-  return missing > 0 && present.length > 0 && present.every((v) => v >= RULES.stressHighAt) ? missing : 0;
+export function stressGap(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null, endSource?: MeasureSource | null): number {
+  const days = stressDays(end, history, garmin, endValue, endSource);
+  const present = days.filter((d): d is StressDay => d != null);
+  const missing = days.length - present.length;
+  return missing > 0 && present.length > 0 && present.every((d) => d.v >= stressLimit(d.source)) ? missing : 0;
 }
 
-/** Stress at or above the limit every day of the run. */
-const stressHigh = (run: number[] | null): run is number[] => !!run && run.every((v) => v >= RULES.stressHighAt);
+/** Stress at or above the source's limit every day of a one-source run. */
+const stressHigh = (run: StressDay[] | null): run is StressDay[] => !!run && run.every((d) => d.v >= stressLimit(d.source));
 
 /** Which capped measured signs were there the day before, from yesterday's entry and Garmin. */
 function yesterdaysMeasured(
@@ -322,9 +334,16 @@ export function trendLines(
   const sleep = series((g, e) => g?.sleepHours ?? e?.sleepHours, entry.sleepHours);
   if (sleep && falling(sleep) && sleep[n - 1] >= planSettings.sleepThresholdHours) out.push(TREND_SLEEP);
   const stress = series((g, e) => g?.stressAvg ?? e?.stressAvg, entry.stressAvg);
-  if (stress && rising(stress) && !stressHigh(stressRun(entry.date, history, garmin, entry.stressAvg))) out.push(TREND_STRESS);
+  if (stress && rising(stress) && !stressHigh(stressRun(entry.date, history, garmin, entry.stressAvg, entry.stressSource))) out.push(TREND_STRESS);
   return out;
 }
+
+/** Word stems that make a plan sign one about sleep (rules 1.8.0). */
+const SLEEP_STEMS = ['sov', 'sömn', 'somn', 'vak', 'natt', 'nätt', 'insomn'];
+export const aboutSleep = (text: string) => {
+  const t = text.toLowerCase();
+  return SLEEP_STEMS.some((st) => new RegExp(`(^|[^a-zåäö])${st}`).test(t) || (st === 'sömn' && t.includes(st)));
+};
 
 export function score(input: ScoreInput): ScoreResult {
   const { entry, matches, plan, planSettings } = input;
@@ -349,13 +368,16 @@ export function score(input: ScoreInput): ScoreResult {
     });
   }
 
-  // Sleep under the plan's threshold. Two nights in a row count as two.
+  // Sleep under the plan's threshold. Two nights in a row count as two. When a sign from the
+  // plan about sleep already matched, the first short night is that same sign measured and
+  // gives no point of its own (rules 1.8.0); the second night in a row still counts.
   if (entry.sleepHours != null && entry.sleepHours < planSettings.sleepThresholdHours) {
     const src = entry.sleepSource === 'transcript' ? ' (skattat ur anteckningen)' : '';
+    const viaSign = signals.some((s) => (s.kind === 'early_sign' || s.kind === 'serious_sign') && aboutSleep(`${s.label} ${s.quote ?? ''}`));
     signals.push({
       kind: 'sleep_low',
-      points: RULES.points.measured,
-      label: `Sömn ${sv(entry.sleepHours)} h, under din gräns på ${sv(planSettings.sleepThresholdHours)} h${src}`,
+      points: viaSign ? 0 : RULES.points.measured,
+      label: `Sömn ${sv(entry.sleepHours)} h, under din gräns på ${sv(planSettings.sleepThresholdHours)} h${src}${viaSign ? ', räknas redan genom ditt tecken' : ''}`,
       measured: true,
     });
     // Yesterday's sleep from Garmin when there is no entry, so a silent day still counts.
@@ -374,12 +396,17 @@ export function score(input: ScoreInput): ScoreResult {
   const baseline = computeBaseline(entry.date, history, entry.stressSource ?? 'garmin');
 
   // Stress at or above the limit several days in a row; one high day is not a sign.
-  const stressDays = stressRun(entry.date, history, garmin, entry.stressAvg);
-  if (stressHigh(stressDays)) {
+  // One source for the whole run (rules 1.8.0): the label says which.
+  const stressRunDays = stressRun(entry.date, history, garmin, entry.stressAvg, entry.stressSource);
+  if (stressHigh(stressRunDays)) {
+    const days = `${WORD[RULES.stressHighDays] ?? RULES.stressHighDays} dagar i rad`;
+    const src = stressRunDays[0].source;
     signals.push({
       kind: 'stress_high',
       points: RULES.points.measured,
-      label: `Stress ${RULES.stressHighAt} eller mer ${WORD[RULES.stressHighDays] ?? RULES.stressHighDays} dagar i rad (${stressDays.join(', ')})`,
+      label: src === 'manual'
+        ? `Du angav hög stress ${days}`
+        : `Stress ${RULES.stressHighAt} eller mer ${days}${src === 'health' ? ' enligt Apple Hälsa eller Health Connect' : ''} (${stressRunDays.map((d) => d.v).join(', ')})`,
       measured: true,
     });
   }
@@ -512,7 +539,7 @@ export function score(input: ScoreInput): ScoreResult {
   const rhythm = input.rhythm
     ? { signal: rhythmSignal, with: { level: tried.level, points: tried.points }, without: { level: before.level, points: before.points }, used }
     : null;
-  const stressMissingDays = stressGap(entry.date, history, garmin, entry.stressAvg);
+  const stressMissingDays = stressGap(entry.date, history, garmin, entry.stressAvg, entry.stressSource);
   return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText, rhythm, stressMissingDays };
 }
 

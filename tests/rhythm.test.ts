@@ -174,7 +174,7 @@ describe('direction from the person\u2019s own history', () => {
     const a = assessRhythm({ ...data, episodes: data.episodes.filter((e) => e.start < END) }, END, 'x');
     expect(a.direction?.value).toBe('unclear');
     expect(a.direction?.reason).toBe('also_stable');
-    expect(a.text.direction).toMatch(/Förändring upptäckt, riktning oklar\. Det liknar perioden före .* men|Samma mönster fanns också under en stabil period/);
+    expect(a.text.direction).toMatch(/Samma mönster fanns också en gång under .* dagar utanför registrerade perioder.*Därför går det inte att säga åt vilket håll det pekar/);
   });
 
   it('is unclear without documented episodes', () => {

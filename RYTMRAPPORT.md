@@ -104,7 +104,7 @@ Den är enkel, begriplig och körs helt på telefonen. Alla värden finns i `rul
 
 > **Simulerade testfall.** Resultaten nedan kommer från påhittade data som appen genererar för att testa reglerna. De säger ingenting om hur modellen fungerar för dig.
 
-Period: 5 december 2025 – 13 november 2026 (344 dagar). Nätter med sömn från klockan: 329. Kvällar med tillräcklig puls: 335.
+Period: 5 december 2025 – 13 november 2026 (344 dagar). Nätter med sömn från klockan: 329. Kvällar med tillräcklig puls: 334.
 Episodstarter i perioden: 5 (uppvarvade 3, nedstämda 2, blandade 0). Källa: 3 angivna i efterhand, 2 från klinisk bedömning.
 Uppspelningen antar att varje natts sömn och föregående kvälls puls fanns hämtade på morgonen. Ingen natt hämtades mer än två dygn senare. En episod räknas som känd först en vecka efter starten, och bara den del som passerat. Modellen med sömn och puls gav 7 larm med episoderna utanför sitt vanliga mönster och 7 utan någon episodmärkning.
 Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från 26 maj 2026 redovisas för sig och får aldrig användas för att justera dem.

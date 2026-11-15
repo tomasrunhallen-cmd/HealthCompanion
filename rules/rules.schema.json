@@ -13,6 +13,7 @@
     "textPatterns",
     "sleepThresholdHoursDefault",
     "stressHighAt",
+    "stressHighAtManual",
     "stressHighDays",
     "speechFastFraction",
     "lateSleepHour",
@@ -143,6 +144,11 @@
       "minimum": 0
     },
     "stressHighAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "stressHighAtManual": {
       "type": "integer",
       "minimum": 0,
       "maximum": 100
