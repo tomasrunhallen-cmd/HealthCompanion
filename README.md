@@ -327,7 +327,7 @@ Letar efter samband som återkommer mellan klockans sömn och puls och dina egna
 - **Svaren:** högst två fynd, till exempel *Kortare sömn före högre stämningsläge. Mönstret återkom före tre av fyra separata perioder då du skattade högre stämningsläge, men inte varje gång.* Annars *Inget tydligt samband hittades.* eller *För lite data för att hitta återkommande mönster.*, med skälet.
 - **Visa underlag** visar perioderna, motexemplen (perioder utan mönstret, och gånger mönstret kom utan att skattningen ändrades) och saknade data. Skattningar kallas skattningar, aldrig episoder.
 - **Hypotes:** ett fynd sparas med dagen det hittades och siffrorna det hittades med. Vid senare analyser räknas det om på perioder som började efter den dagen, alltså data som inte användes för att hitta det.
-- **Ett kort på Hem** visar ett fynd du inte öppnat, i kön med de andra korten.
+- **Ett kort på Hem** visar ett fynd du inte öppnat, i kön med de andra korten. Det är kort: bara vad fyndet gäller ("Sömn och stämningsläge") och *Visa underlag*. Fyndet med antal och motexempel står på sidan.
 - **Språkmodell, frivilligt och av som standard:** den kan formulera en kort förklaring av ett fynd som redan är uträknat (`prompts/monsterforklaring.md` 1.0.0). Den får bara fyndets antal, genom `scrub()`: inga datum, inga anteckningar. Svaret kontrolleras på telefonen: inga siffror som inte finns i underlaget, inga diagnos-, orsaks- eller prognosord och inga råd. Håller det inte visas ingenting. Sidan visar exakt vad som skickas, innan och efter att det slagits på. Modellen fastställer aldrig perioder och ändrar aldrig bedömningsreglerna.
 - **Påverkar inte kvällens färg.** Att låta ett fynd bli en regel i bedömningen är ett senare steg.
 

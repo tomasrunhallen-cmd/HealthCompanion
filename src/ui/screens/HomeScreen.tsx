@@ -23,8 +23,8 @@ import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { remeasurePending } from '../../services/remeasure';
 import { latestRhythm, rhythmMode } from '../../services/rhythm';
 import { RhythmToday } from '../RhythmToday';
-import { findingSummary, findingTitle } from '../../core/analysis/moodPatterns';
-import { markPatternsSeen, patternCard } from '../../services/moodPatterns';
+import { findingTopic } from '../../core/analysis/moodPatterns';
+import { patternCard } from '../../services/moodPatterns';
 import { rereadDays } from '../../core/analysis/recompute';
 import { RemeasureCard } from '../RemeasureCard';
 import { useDialog, useRepo } from '../state';
@@ -253,12 +253,14 @@ export function HomeScreen() {
         );
       case 'pattern':
         return (
+          // Short like Dygnsrytm on Hem: the finding itself, its counts and what speaks against it are
+          // on the page, which also marks it as read.
           <Card>
             <Text style={type.label}>MINA MÖNSTER · EXPERIMENTELL</Text>
-            <Text style={[type.h2, { marginTop: space.xs }]} accessibilityRole="header">{findingTitle(pattern!.finding.result)}</Text>
-            <P style={{ marginTop: space.xs }}>{findingSummary(pattern!.finding.result)}</P>
+            <Text style={[type.body, { fontWeight: '600', marginTop: space.xs }]} accessibilityRole="header">{findingTopic(pattern!.finding.result)}</Text>
+            <P>Ett återkommande samband att följa.</P>
             <Button kind="secondary" title="Visa underlag" onPress={() => nav.push({ name: 'patterns' })} />
-            <Button kind="ghost" title="Okej" onPress={() => markPatternsSeen(repo)} />
+            {notNow(c.id)}
           </Card>
         );
       case 'suggestions':
@@ -310,7 +312,7 @@ export function HomeScreen() {
       case 'sleepNotice': return sleepNote?.title ?? 'Sömnen';
       case 'weekPicture': return 'Din första vecka';
       case 'sleepSource': return 'Sömnen gör bedömningen bättre';
-      case 'pattern': return pattern ? `Mina mönster: ${findingTitle(pattern.finding.result).toLowerCase()}` : 'Mina mönster';
+      case 'pattern': return pattern ? `Mina mönster: ${findingTopic(pattern.finding.result).toLowerCase()}` : 'Mina mönster';
       case 'suggestions': return pending === 1 ? 'Ett förslag väntar' : `${pending} förslag väntar`;
       case 'review': return 'Dags att se över din profil';
       case 'standardNudge': return 'Din plan bygger på allmänna tecken';

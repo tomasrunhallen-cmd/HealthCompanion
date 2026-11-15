@@ -393,6 +393,11 @@ export const FEATURE_WORD: Record<RhythmPattern, string> = {
 export const MOOD_WORD: Record<MoodDirection, string> = { up: 'högre stämningsläge', down: 'lägre stämningsläge' };
 const RATED_WORD: Record<MoodDirection, string> = { up: 'högre', down: 'lägre' };
 
+/** What a finding is about, in a few words and without direction or timing: for the short card on Hem. */
+export function findingTopic(r: Pick<CandidateResult, 'candidate'>): string {
+  return r.candidate.pattern === 'evening_activity' ? 'Kvällspuls och stämningsläge' : 'Sömn och stämningsläge';
+}
+
 /** "Kortare sömn före högre stämningsläge". */
 export function findingTitle(r: Pick<CandidateResult, 'candidate' | 'timing'>): string {
   return `${cap(FEATURE_WORD[r.candidate.pattern])} ${r.timing === 'before' ? 'före' : 'samtidigt med'} ${MOOD_WORD[r.candidate.mood]}`;

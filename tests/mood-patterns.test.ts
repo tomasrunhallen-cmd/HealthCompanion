@@ -3,7 +3,7 @@
 import { addDays } from '../src/core/analysis/dates';
 import {
   analysePatterns, binomialTail, CANDIDATES, checkExplanation, findingEvidence, findingFacts, findingSummary, findingTitle, followUp, hypothesisOf,
-  insufficientLine, methodText, moodPeriods, PATTERN_PARAMS, relatedLine, statusLine, type PatternData,
+  findingTopic, insufficientLine, methodText, moodPeriods, PATTERN_PARAMS, relatedLine, statusLine, type PatternData,
 } from '../src/core/analysis/moodPatterns';
 import { simulate, simulateRatings, type SimEvent } from '../src/core/analysis/rhythmSim';
 
@@ -144,6 +144,17 @@ describe('the analysis', () => {
     const a = analysePatterns(w, END, 'x');
     expect(a.coverage.ratedDays).toBe(Object.keys(w.ratings).length);
     expect(a.coverage.ratedDays).toBeLessThan(a.coverage.days * 0.6);
+  });
+});
+
+describe('the short card on Hem', () => {
+  it('names only what the finding is about, without direction, timing or numbers', () => {
+    const t = (pattern: (typeof CANDIDATES)[number]['pattern']) => findingTopic({ candidate: { id: 'x', pattern, mood: 'up' } });
+    expect(t('shorter')).toBe('Sömn och stämningsläge');
+    expect(t('later')).toBe('Sömn och stämningsläge');
+    expect(t('longer')).toBe('Sömn och stämningsläge');
+    expect(t('evening_activity')).toBe('Kvällspuls och stämningsläge');
+    for (const c of CANDIDATES) expect(findingTopic({ candidate: c })).not.toMatch(/före|efter|\d/);
   });
 });
 
