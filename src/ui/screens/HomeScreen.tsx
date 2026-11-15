@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
 import { weekCounts } from '../../core/analysis/levelWords';
+import { limitedGreen } from '../../core/analysis/coverage';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
 import { RULES } from '../../core/analysis/rules';
@@ -94,7 +95,7 @@ export function HomeScreen() {
     const date = addDays(today, i - 6);
     const e = repo.entryFor(date);
     const a = e ? repo.assessmentFor(e.id) : null;
-    return { date, level: a?.level ?? null };
+    return { date, level: a?.level ?? null, limited: !!(e && a && limitedGreen(e, a)) };
   });
 
   const onHeavy = async () => {
@@ -386,11 +387,12 @@ export function HomeScreen() {
  * The last seven days at the top of Hem: each day's level (a tap opens the day), and one line
  * with the levels counted, the span of the mood, and the share of routines kept.
  */
-function WeekSummary({ week, fontScale, today }: { week: { date: string; level: Level | null }[]; fontScale: number; today: string }) {
+function WeekSummary({ week, fontScale, today }: { week: { date: string; level: Level | null; limited?: boolean }[]; fontScale: number; today: string }) {
   const repo = useRepo();
   const from = week[0].date;
   const counts = { green: 0, yellow: 0, red: 0 } as Record<Level, number>;
   for (const d of week) if (d.level) counts[d.level]++;
+  const limited = week.filter((d) => d.limited).length;
   const missing = week.filter((d) => !d.level).length;
   const moods = repo.entries().filter((e) => e.date >= from && e.date <= today && e.mood != null).map((e) => e.mood!);
   const answers = repo.contextOf('routine_done').filter((e) => e.date && e.date >= from && e.date <= today && e.done != null);
@@ -399,7 +401,7 @@ function WeekSummary({ week, fontScale, today }: { week: { date: string; level: 
   const lo = moods.length ? Math.min(...moods) : null;
   const hi = moods.length ? Math.max(...moods) : null;
   const parts = [
-    weekCounts(counts, missing),
+    weekCounts(counts, missing, limited),
     lo != null ? `stämning ${lo === hi ? signedMood(lo) : `${signedMood(lo)} till ${signedMood(hi!)}`}` : null,
     kept != null ? `rutiner ${kept}\u00a0%` : null,
   ].filter(Boolean);
@@ -413,7 +415,7 @@ function WeekSummary({ week, fontScale, today }: { week: { date: string; level: 
 }
 
 /** Seven days with their level; a day with an assessment opens it. HIG: fewer columns at large text sizes, so nothing is cut off. */
-function WeekRow({ week, fontScale }: { week: { date: string; level: Level | null }[]; fontScale: number }) {
+function WeekRow({ week, fontScale }: { week: { date: string; level: Level | null; limited?: boolean }[]; fontScale: number }) {
   const repo = useRepo();
   const nav = useNav();
   return (
@@ -426,7 +428,7 @@ function WeekRow({ week, fontScale }: { week: { date: string; level: Level | nul
             disabled={!e}
             onPress={() => e && nav.push({ name: 'result', entryId: e.id })}
             accessibilityRole={e ? 'button' : 'text'}
-            accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}`}
+            accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}${d.limited ? ', begränsat underlag' : ''}`}
             accessibilityHint={e ? 'Visar bedömningen' : undefined}
             style={({ pressed }) => ({ alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 40, minHeight: 44, opacity: pressed ? 0.5 : 1 })}
           >

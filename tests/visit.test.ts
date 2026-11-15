@@ -22,7 +22,7 @@ describe('Inför återbesök', () => {
 
     const s = visitSummary(repo, 14, at('2026-11-04'));
     expect([s.from, s.to, s.days.length]).toEqual(['2026-10-22', '2026-11-04', 14]);
-    expect(s.counts).toEqual({ green: 1, yellow: 1, red: 1, none: 11 });
+    expect(s.counts).toEqual({ green: 1, yellow: 1, red: 1, none: 11, limitedGreen: 1 });
     expect(s.signs.up).toEqual([{ text: 'Pratar fortare', days: 1 }]);
     expect(s.signs.down.map((x) => x.text).sort()).toEqual(['Slutar äta', 'Svarar inte på sms']);
     expect(s.routines).toEqual([{ text: 'Sömn 22:30–07:00', done: 1, logged: 2 }, { text: 'Promenad varje dag', done: 1, logged: 2 }]);

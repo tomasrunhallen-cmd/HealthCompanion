@@ -218,6 +218,7 @@ export async function assessEntry(args: {
     baseline: scored.baseline,
     levelReason: scored.reason,
     recentNonGreenDays: scored.recentNonGreenDays,
+    ...(scored.stressMissingDays ? { stressMissingDays: scored.stressMissingDays } : {}),
     ...(args.akut ? { akut: true } : {}),
     ...(args.akutMild && !args.akut ? { akutMild: true, ...(args.akutMildBecause ? { akutMildBecause: args.akutMildBecause } : {}) } : {}),
     ...(scored.level === 'green' && scored.trend.length ? { trend: scored.trend } : {}),

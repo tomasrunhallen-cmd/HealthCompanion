@@ -383,6 +383,8 @@ export interface Assessment {
   remeasured?: { at: string; level: Level; points: number; changes: string[] } | null;
   /** The person kept the day as it was although the watch's later values gave this. */
   remeasureDeclined?: { at: string; level: Level; points: number } | null;
+  /** Days without stress when the stress rule could otherwise have given a sign (15 November 2026). */
+  stressMissingDays?: number;
   /** Mina tidigare texter: what the comparison with the person's earlier texts found and changed. */
   textPatterns?: TextComparison | null;
   /** Dygnsrytm: what the passive estimate said that morning, and the level with and without it. */

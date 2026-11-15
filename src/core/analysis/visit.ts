@@ -2,6 +2,7 @@
 // sleep and stress, the signs that matched by direction, the routines kept, and the person's
 // own list of things to bring up. No notes are included; the person decides what to share.
 
+import { limitedGreen } from './coverage';
 import type { Assessment, ContextEntry, DateKey, Entry, Level, MeasuredDay, PlanItem, Polarity } from '../domain/types';
 import { addDays } from './dates';
 import { routines } from '../plan/routines';
@@ -38,7 +39,7 @@ export interface VisitSummary {
   from: DateKey;
   to: DateKey;
   days: VisitDay[];
-  counts: Record<Level | 'none', number>;
+  counts: Record<Level | 'none', number> & { limitedGreen: number };
   sleepAvg: number | null;
   stressAvg: number | null;
   /** Signs that gave points, by the direction the plan gives them. */
@@ -66,7 +67,7 @@ export function buildVisitSummary(input: {
   const byEntry = new Map(input.assessments.map((a) => [a.entryId, a]));
   const entryOn = new Map(input.entries.map((e) => [e.date, e]));
   const days: VisitDay[] = [];
-  const counts: VisitSummary['counts'] = { green: 0, yellow: 0, red: 0, none: 0 };
+  const counts: VisitSummary['counts'] = { green: 0, yellow: 0, red: 0, none: 0, limitedGreen: 0 };
   const signDays: Record<Polarity, Map<string, Set<DateKey>>> = { up: new Map(), down: new Map(), both: new Map() };
   const polarityOf = new Map(input.plan.map((p) => [p.id, p.plan?.polarity ?? 'both']));
 
@@ -88,6 +89,8 @@ export function buildVisitSummary(input: {
     if (a?.remeasureDeclined) notes.push('klockans senare värden användes inte');
     if (a?.recomputed) notes.push('omräknad med nya regler');
     if (a?.akut) notes.push('krisrutan visades');
+    const limited = !!(e && a && limitedGreen(e, a));
+    if (limited) notes.push('begränsat underlag');
     days.push({
       date,
       level: a?.level ?? null,
@@ -98,6 +101,7 @@ export function buildVisitSummary(input: {
       notes,
     });
     counts[a?.level ?? 'none']++;
+    if (limited) counts.limitedGreen++;
     for (const s of a?.signals ?? []) {
       if ((s.kind !== 'early_sign' && s.kind !== 'serious_sign') || s.points <= 0) continue;
       const pol = (s.planItemId && (polarityOf.get(s.planItemId) ?? a?.inputs?.signs.find((x) => x.id === s.planItemId)?.plan?.polarity)) || 'both';

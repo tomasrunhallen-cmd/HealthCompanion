@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { displaySentence } from '../../core/analysis/assess';
+import { limitedGreen } from '../../core/analysis/coverage';
 import { Pressable, Text, View } from 'react-native';
 import { formatDateSvTitleYear } from '../../core/analysis/dates';
 import { Button, Card, Dot, P, Screen } from '../components';
@@ -30,7 +31,7 @@ export function HistoryScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[type.body, { fontWeight: '700' }]}>{formatDateSvTitleYear(e.date)}</Text>
                   <Text style={type.small} numberOfLines={2}>
-                    {a ? `${LEVEL_TEXT[a.level]} · ` : ''}
+                    {a ? `${LEVEL_TEXT[a.level]}${limitedGreen(e, a) ? ', begränsat underlag' : ''} · ` : ''}
                     {e.kind === 'heavy' ? 'Orkar bara trycka' : a ? displaySentence(a) : ''}
                     {e.kind === 'imported' ? ' · Importerad' : ''}
                   </Text>

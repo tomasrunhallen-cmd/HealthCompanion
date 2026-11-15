@@ -49,7 +49,8 @@ ${body}
 }
 
 /** "4 gröna, 0 gula, 1 röd och 9 dagar utan avstämning": singular for one. */
-export function levelCounts(c: { green: number; yellow: number; red: number; none: number }): string {
+export function levelCounts(c: { green: number; yellow: number; red: number; none: number; limitedGreen?: number }): string {
   const w = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-  return `${w(c.green, 'grön', 'gröna')}, ${w(c.yellow, 'gul', 'gula')}, ${w(c.red, 'röd', 'röda')} och ${w(c.none, 'dag', 'dagar')} utan avstämning.`;
+  const limited = c.green && c.limitedGreen ? ` (${c.green === 1 ? 'med' : `${c.limitedGreen} med`} begränsat underlag)` : '';
+  return `${w(c.green, 'grön', 'gröna')}${limited}, ${w(c.yellow, 'gul', 'gula')}, ${w(c.red, 'röd', 'röda')} och ${w(c.none, 'dag', 'dagar')} utan avstämning.`;
 }

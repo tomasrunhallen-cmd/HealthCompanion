@@ -54,6 +54,11 @@ export interface ScoreResult {
   withoutText: { level: Level; points: number; reason: LevelReason };
   /** Dygnsrytm: the level with and without the signal, whether or not it was used. Null without an estimate. */
   rhythm: { signal: Signal | null; with: { level: Level; points: number }; without: { level: Level; points: number }; used: boolean } | null;
+  /**
+   * Days of the stress run without a value, when the days that had one were all at or above the
+   * limit: the stress rule could have given a sign but could not be judged. 0 otherwise.
+   */
+  stressMissingDays: number;
 }
 
 function mean(values: number[]): number | null {
@@ -204,6 +209,23 @@ function stressRun(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, 
     return garmin[d]?.stressAvg ?? history.find((h) => h.entry.date === d)?.entry.stressAvg ?? null;
   });
   return vals.every((v) => v != null) ? (vals as number[]) : null;
+}
+
+/**
+ * The days of the stress run that have no value, counted only when the rule is relevant: at
+ * least one day has a value and every value there is at or above the limit. A day missing when
+ * stress was low anyway says nothing.
+ */
+export function stressGap(end: DateKey, history: HistoryDay[], garmin: Record<DateKey, GarminDay>, endValue?: number | null): number {
+  const n = RULES.stressHighDays;
+  const vals = Array.from({ length: n }, (_, i) => {
+    const d = addDays(end, i - (n - 1));
+    if (i === n - 1 && endValue !== undefined) return endValue;
+    return garmin[d]?.stressAvg ?? history.find((h) => h.entry.date === d)?.entry.stressAvg ?? null;
+  });
+  const present = vals.filter((v): v is number => v != null);
+  const missing = n - present.length;
+  return missing > 0 && present.length > 0 && present.every((v) => v >= RULES.stressHighAt) ? missing : 0;
 }
 
 /** Stress at or above the limit every day of the run. */
@@ -490,7 +512,8 @@ export function score(input: ScoreInput): ScoreResult {
   const rhythm = input.rhythm
     ? { signal: rhythmSignal, with: { level: tried.level, points: tried.points }, without: { level: before.level, points: before.points }, used }
     : null;
-  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText, rhythm };
+  const stressMissingDays = stressGap(entry.date, history, garmin, entry.stressAvg);
+  return { level, points, reason, recentNonGreenDays: recentNonGreen, signals: adjusted, baseline, trend, textOutcomes, withoutText, rhythm, stressMissingDays };
 }
 
 // ---- Dygnsrytm (experimental) ----

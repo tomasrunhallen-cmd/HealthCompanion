@@ -376,7 +376,7 @@ Stämningen skattas på en bipolär skala med sju steg:
 | Fynd | Åtgärd |
 | --- | --- |
 | F01 alkoholfrågan | Värdena räknas och syns med "möjlig förklaring", men bara mot gult (`excusedMeasuredToRed`) |
-| F02 grönt med tunt underlag | "Underlaget är tunt: …" intill nivån. Baslinjen tar bara fullständiga gröna dagar. En behållen dag säger vad klockans senare värden hade gett |
+| F02 grönt med tunt underlag | "Underlaget är tunt: …" intill nivån. Baslinjen tar bara fullständiga gröna dagar. En behållen dag säger vad klockans senare värden hade gett. Sedan 15 november: en grön dag med begränsat underlag (inga tecken i planen, ingen anteckning, sömn saknas, klockan låg efter, eller stressregeln kunde inte bedömas) märks också där färgerna summeras: veckan på Hem ("4 gröna dagar (2 med begränsat underlag)"), Alla dagar, Inför återbesök och Visa för någon. Stressregeln säger "kunde inte bedömas" bara när de dagar som har värden alla ligger över gränsen. Inget av detta höjer nivån eller ber om mer |
 | F03 ±3 ger gult | ±3 väger som ett allvarligt tecken: planens steg vid rött, och rött med ett annat tecken |
 | F04 akutregeln | Fem missar täppta. Sammanhang (förr, någon annan, ämne) ger den mildare rutan. 48 formuleringar som test |
 | F05 modellen | Tecken från ordmatchningen räknas också när modellen utelämnar dem, även tidiga (regler 1.7.0, före det bara allvarliga), så modellen kan inte sänka nivån. Undantag: tidiga tecken som själva innehåller en negation, där modellen avgör. Negation kontrolleras på telefonen. Meningen över nivån är alltid appens egen; modellens mening visas inte (15 november, efter granskning). Injektionstester |
