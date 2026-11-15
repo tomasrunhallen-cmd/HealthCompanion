@@ -31,7 +31,7 @@ export async function offerSleepWindow(
     message:
       `Planen säger ”${sleep.text}”. Appen kan räkna sömn under ${String(limit).replace('.', ',')} timmar som ett tidigt tecken, ` +
       `i stället för ${String(now).replace('.', ',')} timmar i dag. Gränsen är fönstret minus två timmar. Det är appens tolkning, ` +
-      'inte planens, och du kan ändra den här under Sömngräns.',
+      'inte planens, och du kan ändra gränsen under Sömn i Min krisplan.',
     confirmLabel: 'Använd sömnfönstret',
   });
   if (use) await repo.updatePlanSettings({ sleepWindow: { start: sleep.start, end: sleep.end }, sleepThresholdHours: limit });
@@ -189,15 +189,23 @@ export function PlanScreen() {
         </Card>
       </Section>
 
-      <Section title="Sömngräns">
+      {/* Two things that are easy to mix up, side by side and named apart: the limit that gives a
+          sign, and the sleep the plan aims for. Changing one never changes the other quietly. */}
+      <Section title="Sömn">
         <Card>
+          <Text style={[type.body, { fontWeight: '600' }]}>Sömn under detta ger ett tecken</Text>
           <Row>
             <Button kind="secondary" title="−" label="Sänk gränsen en halvtimme" onPress={() => { const v = Math.max(2, threshold - 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
             <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]} accessibilityLabel={`Sömngräns ${threshold} timmar`}>{String(threshold).replace('.', ',')} h</Text>
             <Button kind="secondary" title="+" label="Höj gränsen en halvtimme" onPress={() => { const v = Math.min(10, threshold + 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
           </Row>
           <P muted>Kortare sömn räknas som ett tidigt tecken.</P>
-          {ps.sleepWindow ? <P muted style={{ marginTop: space.s }}>Planens sömnfönster: {ps.sleepWindow.start}–{ps.sleepWindow.end}.</P> : null}
+          <Text style={[type.body, { fontWeight: '600', marginTop: space.m }]}>Sovtid jag vill hålla</Text>
+          {ps.sleepWindow ? (
+            <P>{ps.sleepWindow.start}–{ps.sleepWindow.end}, ur planens rutiner. Den ändrar inte gränsen ovan.</P>
+          ) : (
+            <P muted>Ingen. Står en sovtid bland planens rutiner, till exempel ”Sömn 22:30–07:00”, föreslås den här.</P>
+          )}
         </Card>
       </Section>
 

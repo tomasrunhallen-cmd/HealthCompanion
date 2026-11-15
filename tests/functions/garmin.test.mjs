@@ -80,7 +80,7 @@ test('without a valid sign-in nothing is forwarded', async () => {
     'unsigned (alg none)': withToken(`${b64({ alg: 'none', kid: 'k1' })}.${b64({ aud: PROJECT_ID, iss: `https://securetoken.google.com/${PROJECT_ID}`, sub: 'u', iat: t, exp: t + 100 })}.`),
     'claims changed after signing': withToken((() => { const [h, , s] = token().split('.'); return `${h}.${b64({ aud: PROJECT_ID, iss: `https://securetoken.google.com/${PROJECT_ID}`, sub: 'someone-else', iat: t - 60, exp: t + 3000 })}.${s}`; })()),
   };
-  for (const [name, req] of Object.entries(bad)) assert.equal((await handler(req, {}, never, auth)).status, 401, name);
+  for (const [name, req] of Object.entries(bad)) { const r = await handler(req, {}, never, auth); assert.equal(r.status, 401, name); assert.equal(await r.text(), 'dagsljus-sign-in-required', name); }
 });
 
 test('a path off the list is refused before anything else, and Garmin being down is 502', async () => {

@@ -87,19 +87,29 @@ export async function savePlanBlocks(repo: Repository, blocks: PlanBlock[], now 
   let rows = 0;
   for (const block of ordered) {
     if (block.type === 'normal') continue;
-    for (const row of rowsFromBlock(block)) {
+    const blockRows = rowsFromBlock(block);
+    const newTexts = new Set(blockRows.map((r) => r.text));
+    // A routine's line edited in place in the plan is the same routine renamed: it keeps its id,
+    // how often, its reminder and its history, as when it is renamed under Rutiner. Matched by
+    // position among the routines of this block whose old line is gone.
+    const oldRoutines = existing.filter((e) => e.blockId === block.id && e.kind === 'routine').sort((a, b) => a.order - b.order);
+    let routineIndex = 0;
+    for (const row of blockRows) {
       const kind: ContextKind | null = row.akut ? 'akut' : contextKindOf(row.fields);
       if (!kind) continue;
       const order = counters.get(kind) ?? 0;
       counters.set(kind, order + 1);
       // The same line in the same block first; otherwise the same line of the same kind, e.g.
       // after a new version of the plan has been read in and its blocks have new ids.
+      const position = kind === 'routine' ? routineIndex++ : -1;
+      const renamed = position >= 0 ? oldRoutines[position] : undefined;
       const same =
         existing.find((e) => !used.has(e.id) && e.text === row.text && e.blockId === block.id) ??
-        existing.find((e) => !used.has(e.id) && e.text === row.text && e.kind === kind);
+        existing.find((e) => !used.has(e.id) && e.text === row.text && e.kind === kind) ??
+        (renamed && !used.has(renamed.id) && !newTexts.has(renamed.text) ? renamed : undefined);
       if (same) {
         used.add(same.id);
-        await repo.updateContextEntry(same.id, { kind, plan: kind === 'akut' ? null : row.fields, blockId: block.id, order }, false);
+        await repo.updateContextEntry(same.id, { kind, text: row.text, plan: kind === 'akut' ? null : row.fields, blockId: block.id, order }, false);
         rows++;
         continue;
       }

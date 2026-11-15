@@ -40,7 +40,8 @@ export default async (req, _context, doFetch = fetch, auth = {}) => {
   const target = targetFor(req.method, req.url);
   if (!target) return new Response('Not found', { status: 404 });
   const uid = await verifyFirebaseToken(req.headers.get(AUTH_HEADER), auth);
-  if (!uid) return new Response('Sign in to Dagsljus first', { status: 401, headers: { 'cache-control': 'no-store' } });
+  // A body of its own, so the app can tell its own sign-in from a key Garmin refused (src/garmin/client.ts).
+  if (!uid) return new Response('dagsljus-sign-in-required', { status: 401, headers: { 'cache-control': 'no-store', 'content-type': 'text/plain' } });
   if (!userLimiter(uid)) return new Response('Too many requests', { status: 429, headers: { 'retry-after': '60' } });
   const headers = { accept: req.headers.get('accept') ?? '*/*' };
   const authorization = req.headers.get('authorization');

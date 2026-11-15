@@ -29,7 +29,14 @@ export type GarminFetch = (
   init: { method: string; headers: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
-export type GarminErrorKind = 'auth' | 'not_exposed' | 'rate_limit' | 'server' | 'network' | 'timeout' | 'bad_answer';
+export type GarminErrorKind = 'auth' | 'session' | 'not_exposed' | 'rate_limit' | 'server' | 'network' | 'timeout' | 'bad_answer';
+
+/**
+ * The web version's own Garmin function answers 401 with this body when the person is not
+ * signed in to Dagsljus (netlify/functions/garmin.mjs). It is the app's sign-in, not Garmin's key.
+ */
+export const SIGN_IN_REQUIRED = 'dagsljus-sign-in-required';
+export const SESSION_MESSAGE = 'Logga in i Dagsljus igen för att hämta klockdata.';
 
 export class GarminError extends Error {
   constructor(readonly kind: GarminErrorKind, message: string, readonly status: number | null = null) {
@@ -305,7 +312,9 @@ export class GarminClient {
     }
   }
 
-  private fail(status: number): GarminError {
+  private fail(status: number, body = ''): GarminError {
+    // The app's own sign-in has run out: Garmin's key is fine and must not be made again.
+    if (status === 401 && body.trim() === SIGN_IN_REQUIRED) return new GarminError('session', SESSION_MESSAGE, status);
     if (status === 400 || status === 401 || status === 403) {
       return new GarminError('auth', 'Garmin godtog inte nyckeln. Den kan ha gått ut eller tagits bort. Skapa en ny i Garmin Connect.', status);
     }
@@ -322,7 +331,7 @@ export class GarminClient {
       method: 'POST',
       headers: { Accept: '*/*', Authorization: `ApiKey ${this.opts.apiKey.trim()}` },
     });
-    if (!res.ok) throw this.fail(res.status);
+    if (!res.ok) throw this.fail(res.status, res.body);
     const value = res.body.trim().replace(/^"|"$/g, '');
     this.token = { value, expiresAt: jwtExpiryMs(value) };
     return value;
@@ -337,8 +346,9 @@ export class GarminClient {
         method: 'GET',
         headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401 && res.body.trim() === SIGN_IN_REQUIRED) throw this.fail(res.status, res.body);
       if (res.status === 401 && attempt === 0) continue;
-      if (!res.ok) throw this.fail(res.status);
+      if (!res.ok) throw this.fail(res.status, res.body);
       if (!res.body.trim()) return null;
       try {
         return JSON.parse(res.body);

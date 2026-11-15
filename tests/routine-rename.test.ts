@@ -33,4 +33,33 @@ describe('Byta namn på en rutin', () => {
     // The same words again change nothing.
     expect(await renameRoutine(repo, renamed!, 'Kvällspromenad 3 gånger i veckan')).toBeNull();
   });
+
+  it('a line edited in place in the plan is the same routine, with the same history, as when renamed under Rutiner', async () => {
+    const repo = await Repository.create(memoryBackend());
+    await saveBlock(repo, { id: 'b_routine', type: 'routine', heading: 'Livsstil och rutiner', text: '- Promenad 3 gånger i veckan\n- Drick ingen alkohol', updatedAt: '' });
+    const walk = repo.contextOf('routine').find((e) => e.text.startsWith('Promenad'))!;
+    await repo.updateContextEntry(walk.id, { routine: { track: true, reminder: '18:00', frequency: { kind: 'weekly', times: 3 } } });
+    await setRoutineDone(repo, '2026-11-12', walk, true);
+    const block = planBlocks(repo).find((b) => b.id === 'b_routine')!;
+    await saveBlock(repo, { ...block, text: '- Kvällspromenad 3 gånger i veckan\n- Drick ingen alkohol' });
+    const after = repo.contextOf('routine');
+    expect(after.map((e) => e.text)).toEqual(['Kvällspromenad 3 gånger i veckan', 'Drick ingen alkohol']);
+    expect(after[0]).toMatchObject({ id: walk.id, routine: { reminder: '18:00', frequency: { kind: 'weekly', times: 3 } } });
+    expect(repo.contextOf('routine_done').map((e) => e.routineId)).toEqual([walk.id]);
+  });
+
+  it('a new line and a removed line in the plan are a new and a removed routine', async () => {
+    const repo = await Repository.create(memoryBackend());
+    await saveBlock(repo, { id: 'b_routine', type: 'routine', heading: 'Livsstil och rutiner', text: '- Promenad\n- Drick ingen alkohol', updatedAt: '' });
+    const [walk, alcohol] = repo.contextOf('routine');
+    const block = planBlocks(repo).find((b) => b.id === 'b_routine')!;
+    // Adding a line keeps both, and the new one is new.
+    await saveBlock(repo, { ...block, text: '- Promenad\n- Drick ingen alkohol\n- Läser en stund' });
+    expect(repo.contextOf('routine').map((e) => e.id).slice(0, 2)).toEqual([walk.id, alcohol.id]);
+    // Removing a line removes that routine only.
+    await saveBlock(repo, { ...planBlocks(repo).find((b) => b.id === 'b_routine')!, text: '- Promenad\n- Läser en stund' });
+    const ids = repo.contextOf('routine').map((e) => e.id);
+    expect(ids).toContain(walk.id);
+    expect(ids).not.toContain(alcohol.id);
+  });
 });

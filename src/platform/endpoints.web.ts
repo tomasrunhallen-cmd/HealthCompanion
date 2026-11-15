@@ -2,7 +2,7 @@
 // Netlify function (netlify/functions/garmin.mjs). EXPO_PUBLIC_GARMIN_PROXY is set in
 // netlify.toml; a plain `npm run web` calls Garmin directly and will be refused.
 import { currentIdToken } from '../cloud/firebase';
-import { GARMIN_BASE_URL, type GarminFetch } from '../garmin/client';
+import { GARMIN_BASE_URL, SIGN_IN_REQUIRED, type GarminFetch } from '../garmin/client';
 
 const viaFunction = () => process.env.EXPO_PUBLIC_GARMIN_PROXY === '1' && typeof location !== 'undefined';
 
@@ -20,7 +20,14 @@ export const AUTH_HEADER = 'x-dagsljus-auth';
 export function garminFetch(): GarminFetch | undefined {
   if (!viaFunction()) return undefined;
   return async (url, init) => {
-    const token = await currentIdToken();
-    return fetch(url, { ...init, headers: token ? { ...init.headers, [AUTH_HEADER]: token } : init.headers });
+    let token: string | null = null;
+    try {
+      token = await currentIdToken();
+    } catch {
+      token = null;
+    }
+    // No sign-in to send: the function would refuse it, so say so here without asking it.
+    if (!token) return { ok: false, status: 401, text: async () => SIGN_IN_REQUIRED };
+    return fetch(url, { ...init, headers: { ...init.headers, [AUTH_HEADER]: token } });
   };
 }
