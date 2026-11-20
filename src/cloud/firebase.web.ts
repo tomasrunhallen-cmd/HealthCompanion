@@ -11,7 +11,7 @@ import {
   collection, connectFirestoreEmulator, deleteDoc, doc, getDoc, getDocFromCache, getDocs, getDocsFromCache, initializeFirestore, persistentLocalCache,
   persistentMultipleTabManager, setDoc, writeBatch, type Firestore,
 } from 'firebase/firestore';
-import type { CloudDocs, StoredDoc } from '../storage/cloudBackend';
+import { reuseRecentList, type CloudDocs, type StoredDoc } from '../storage/cloudBackend';
 import { parseFirebaseConfig } from './config';
 import { FIREBASE_WEB_CONFIG } from './projectConfig';
 
@@ -76,7 +76,19 @@ export async function currentIdToken(): Promise<string | null> {
 
 const BATCH_LIMIT = 450;
 
+/** One per account, so the vault screen and the store share a list fetched a moment ago. */
+const docsByUid = new Map<string, CloudDocs>();
+
 export function cloudDocsFor(uid: string): CloudDocs {
+  let d = docsByUid.get(uid);
+  if (!d) {
+    d = reuseRecentList(firestoreDocs(uid));
+    docsByUid.set(uid, d);
+  }
+  return d;
+}
+
+function firestoreDocs(uid: string): CloudDocs {
   const { db } = init();
   const col = collection(db, 'users', uid, 'docs');
   return {

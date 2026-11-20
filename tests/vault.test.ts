@@ -4,7 +4,7 @@ import {
 } from '../src/cloud/vault';
 import { emptySnapshot } from '../src/storage/backend';
 import {
-  cloudBackend, docId, encryptExisting, isPlainDoc, isSealedDoc, memoryCloudDocs, type StoredDoc,
+  cloudBackend, docId, encryptExisting, isPlainDoc, isSealedDoc, memoryCloudDocs, openSnapshot, reuseRecentList, type StoredDoc,
 } from '../src/storage/cloudBackend';
 import { Repository } from '../src/storage/repository';
 import { commitVault, prepareVault, readVaultState, unlockVault } from '../src/services/vaultFlow';
@@ -204,5 +204,41 @@ describe('the password screen\'s steps', () => {
     const { report } = await unlockVault(docs, header!, PW, { crypto });
     expect(report).toMatchObject({ found: 4, removed: 4, ok: true });
     expect((await readVaultState(docs)).plain).toBe(0);
+  });
+});
+
+describe('opening faster after the password', () => {
+  it('asks Firestore once for the whole store when unlocking and opening follow each other', async () => {
+    const { header, vault } = await createVault(PW, FAST);
+    const mem = memoryCloudDocs();
+    for (const r of plainRows()) await mem.set(r.id, r.data);
+    await encryptExisting(mem, vault);
+    let lists = 0;
+    const counting = { ...mem, list: () => { lists++; return mem.list(); } };
+    let t = 0;
+    const docs = reuseRecentList(counting, 30_000, () => t);
+    await readVaultState(docs);
+    await unlockVault(docs, header, PW, FAST);
+    const snap = await cloudBackend(docs, { account: 'x', vault }).load();
+    expect(Object.keys(snap.entries)).toEqual(['e_2026-10-30']);
+    expect(lists).toBe(1);
+    // Older than the limit, or after a write from here: asked again.
+    t = 30_000;
+    await docs.list();
+    expect(lists).toBe(2);
+    await docs.set('x', { c: 'kv', i: 'x', j: '1', u: '' } as StoredDoc);
+    await docs.list();
+    expect(lists).toBe(3);
+  });
+
+  it('opens every item at once and still refuses the whole store when one item cannot be opened', async () => {
+    const { vault } = await createVault(PW, FAST);
+    const mem = memoryCloudDocs(plainRows());
+    await encryptExisting(mem, vault);
+    const rows = await mem.list();
+    const snap = await openSnapshot(rows, vault);
+    expect(Object.keys(snap.grund)).toEqual(['p1']);
+    const broken = rows.map((r, i) => (i === 1 && isSealedDoc(r.data) ? { ...r, data: { ...r.data, d: r.data.d.slice(0, -4) + 'AAAA' } } : r));
+    await expect(openSnapshot(broken, vault)).rejects.toThrow('gick inte att låsa upp');
   });
 });

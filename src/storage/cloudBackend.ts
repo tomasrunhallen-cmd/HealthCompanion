@@ -36,6 +36,31 @@ export interface CloudDocs {
   commit(ops: ({ type: 'set'; id: string; data: StoredDoc } | { type: 'delete'; id: string })[]): Promise<void>;
 }
 
+/**
+ * Reuses a list fetched a moment ago instead of asking Firestore for everything again. Unlocking
+ * reads the whole store to look for unencrypted items and then once more to open it; with this,
+ * the second read is the first one. Any write from here forgets the list, and it is kept at
+ * most `maxAgeMs`, so a write from another device is at most that old when the app opens.
+ */
+export function reuseRecentList(inner: CloudDocs, maxAgeMs = 30_000, now: () => number = Date.now): CloudDocs {
+  let recent: { at: number; rows: Promise<{ id: string; data: StoredDoc }[]> } | null = null;
+  const forget = () => { recent = null; };
+  return {
+    list() {
+      if (recent && now() - recent.at < maxAgeMs) return recent.rows;
+      const rows = inner.list();
+      const entry = { at: now(), rows };
+      recent = entry;
+      rows.catch(() => { if (recent === entry) recent = null; });
+      return rows;
+    },
+    get: (id) => inner.get(id),
+    async set(id, data) { forget(); try { await inner.set(id, data); } finally { forget(); } },
+    async remove(id) { forget(); try { await inner.remove(id); } finally { forget(); } },
+    async commit(ops) { forget(); try { await inner.commit(ops); } finally { forget(); } },
+  };
+}
+
 const COLLECTIONS: Collection[] = ['plan', 'entries', 'assessments', 'kv', 'grund', 'profil', 'dagligt'];
 
 export function docId(c: Collection, id: string): string {
@@ -79,16 +104,16 @@ async function sealItem(vault: Vault, c: Collection, i: string, v: unknown): Pro
 /** Opens every encrypted item. Throws when one cannot be opened: better to stop than to show half the data. */
 export async function openSnapshot(rows: { id: string; data: StoredDoc }[], vault: Vault): Promise<Snapshot> {
   const snap = emptySnapshot();
-  for (const { id, data } of rows) {
-    if (!isSealedDoc(data)) continue;
-    let inner: Inner;
+  // All at once: Web Crypto runs them side by side, instead of waiting for each in turn.
+  const opened = await Promise.all(rows.filter((r) => isSealedDoc(r.data)).map(async ({ id, data }) => {
     try {
-      inner = JSON.parse(await vault.open(id, data)) as Inner;
+      return JSON.parse(await vault.open(id, data as SealedDoc)) as Inner;
     } catch {
-      throw new Error('En post i Firebase gick inte att låsa upp. Den kan vara skadad, eller krypterad med ett annat lösenord.');
+      return null;
     }
-    if (COLLECTIONS.includes(inner.c)) snap[inner.c][inner.i] = inner.v;
-  }
+  }));
+  if (opened.some((x) => x == null)) throw new Error('En post i Firebase gick inte att låsa upp. Den kan vara skadad, eller krypterad med ett annat lösenord.');
+  for (const inner of opened as Inner[]) if (COLLECTIONS.includes(inner.c)) snap[inner.c][inner.i] = inner.v;
   return snap;
 }
 
