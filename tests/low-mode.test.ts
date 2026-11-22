@@ -10,7 +10,7 @@ const a = (date: string, level: Assessment['level']): Assessment => ({ id: `a_${
 
 describe('Lågt läge', () => {
   it('shows the latest yellow or red evening with the first step of the plan', () => {
-    expect(lowModeSupport([a('2026-11-20', 'green'), a('2026-11-21', 'yellow')], plan, '2026-11-22')).toEqual({ level: 'yellow', date: '2026-11-21', step: 'Gå och lägg dig före 23' });
+    expect(lowModeSupport([a('2026-11-20', 'green'), a('2026-11-21', 'yellow')], plan, '2026-11-22')).toEqual({ level: 'yellow', date: '2026-11-21', step: 'Gå och lägg dig före 23', serious: false });
     expect(lowModeSupport([a('2026-11-22', 'red')], plan, '2026-11-22')?.step).toBe('Ring mottagningen samma dag');
   });
 
@@ -21,6 +21,18 @@ describe('Lågt läge', () => {
   });
 
   it('says so when the plan has no step for the level', () => {
-    expect(lowModeSupport([a('2026-11-22', 'red')], [], '2026-11-22')).toEqual({ level: 'red', date: '2026-11-22', step: null });
+    expect(lowModeSupport([a('2026-11-22', 'red')], [], '2026-11-22')).toEqual({ level: 'red', date: '2026-11-22', step: null, serious: false });
+  });
+});
+
+describe('the same step as the result view', () => {
+  it('a yellow day with a serious sign gives the plan\'s red step in both', () => {
+    const { priorityStep, seriousActions } = require('../src/core/analysis/assess') as typeof import('../src/core/analysis/assess');
+    const day = { ...a('2026-11-22', 'yellow'), signals: [{ kind: 'serious_sign', points: 2, label: 'Slutar äta', measured: false }] } as unknown as Assessment;
+    const low = lowModeSupport([day], plan, '2026-11-22');
+    expect(low).toEqual({ level: 'yellow', date: '2026-11-22', step: 'Ring mottagningen samma dag', serious: true });
+    // The result view shows the red steps first on this day; the first of them is the same step.
+    expect(seriousActions(day, plan)?.[0].text).toBe(low!.step);
+    expect(priorityStep(day, plan)?.step?.text).toBe(low!.step);
   });
 });

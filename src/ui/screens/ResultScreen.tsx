@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
-import { actionsForLevel, displaySentence, firstStep, seriousActions, seriousIntro } from '../../core/analysis/assess';
+import { actionsForLevel, displaySentence, firstStep, priorityStep, seriousActions, seriousIntro } from '../../core/analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvYear, formatTime } from '../../core/analysis/dates';
 import { explainAssessment } from '../../core/analysis/explain';
 import { CrisisCard } from '../CrisisCard';
@@ -70,7 +70,8 @@ export function ResultScreen({ entryId }: { entryId: string }) {
     // Dygnsrytm has its own section below, apart from what the note and the night showed.
     ...a.signals.filter((s) => s.kind !== 'early_sign' && s.kind !== 'serious_sign' && s.kind !== 'akut' && s.kind !== 'rhythm' && s.points > 0),
   ];
-  const first = a.level === 'green' ? null : firstStep(a.level, plan, dir);
+  // The same choice as Lågt läge (priorityStep): a serious sign's red steps come first.
+  const first = priorityStep(a, plan, dir)?.step ?? null;
   // A serious sign shows the plan's red steps, also when the level is yellow.
   const serious = seriousActions(a, plan, dir);
   const answered = correctionFor(repo, a.id).length > 0;

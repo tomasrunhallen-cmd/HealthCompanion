@@ -94,6 +94,18 @@ export function seriousActions(a: Pick<Assessment, 'signals' | 'akut'>, plan: Pl
   return actionsForLevel('red', plan, dir);
 }
 
+/**
+ * The one step that comes first for a day, as the result view orders them: a serious sign puts
+ * the plan's red steps first, also on a yellow day; otherwise the first step at the day's level.
+ * Lågt läge and the result view both use this, so they never point to different steps.
+ */
+export function priorityStep(a: Pick<Assessment, 'signals' | 'akut' | 'level'>, plan: PlanItem[], dir: Polarity | null = null): { step: PlanItem | null; serious: boolean } | null {
+  if (a.level === 'green') return null;
+  const serious = seriousActions(a, plan, dir);
+  if (serious) return { step: serious[0] ?? null, serious: true };
+  return { step: firstStep(a.level, plan, dir), serious: false };
+}
+
 export function firstStep(level: 'yellow' | 'red', plan: PlanItem[], dir: Polarity | null = null): PlanItem | null {
   return actionsForLevel(level, plan, dir)[0] ?? null;
 }

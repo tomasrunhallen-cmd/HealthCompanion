@@ -146,7 +146,7 @@ export function HomeScreen() {
           <Card tone={low.level} style={{ marginBottom: space.m }}>
             <Row style={{ gap: space.s, alignItems: 'center' }}>
               <LevelSymbol level={low.level} size={22} />
-              <Text style={[type.body, { fontWeight: '600', flexShrink: 1 }]}>{`${low.level === 'yellow' ? 'Gult' : 'Rött'} ${low.date === today ? 'i dag' : formatDateSv(low.date)}`}</Text>
+              <Text style={[type.body, { fontWeight: '600', flexShrink: 1 }]}>{`${low.level === 'yellow' ? 'Gult' : 'Rött'} ${low.date === today ? 'i dag' : formatDateSv(low.date)}${low.serious ? ', med ett allvarligt tecken' : ''}`}</Text>
             </Row>
             <P style={{ marginTop: space.xs }}>{low.step ? `Ur din plan: ${low.step}` : 'Din plan har inget steg för den här nivån än.'}</P>
           </Card>
