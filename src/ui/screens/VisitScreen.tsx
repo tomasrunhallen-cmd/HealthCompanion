@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { formatDateSv } from '../../core/analysis/dates';
-import { LEVEL_DISCLAIMER, sleepStressText } from '../../core/analysis/visit';
+import { LEVEL_DISCLAIMER, routineLine, sleepStressText } from '../../core/analysis/visit';
 import { BarChart } from './TrendScreen';
 import { moodStep } from '../../core/analysis/mood';
 import { polarityWord } from '../../core/plan/fields';
@@ -134,7 +134,7 @@ export function VisitScreen() {
 
       <Section title="Rutiner">
         <Card>
-          {s.routines.length ? s.routines.map((r) => <P key={r.text} style={{ marginTop: 2 }}>{`${r.text}: ${r.done} av ${r.logged} dagar`}</P>) : <P muted>Inga rutiner avbockade under perioden.</P>}
+          {s.routines.length ? s.routines.map((r) => <P key={r.text} style={{ marginTop: 2 }}>{routineLine(r)}</P>) : <P muted>Inga rutiner avbockade under perioden.</P>}
         </Card>
       </Section>
     </Screen>

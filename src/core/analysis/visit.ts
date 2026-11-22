@@ -49,8 +49,8 @@ export interface VisitSummary {
   sleepHalves: { first: number | null; second: number | null };
   /** Signs that gave points, by the direction the plan gives them. */
   signs: Record<Polarity, SignCount[]>;
-  /** Routines ticked off: on how many of the days with any tick. */
-  routines: { text: string; done: number; logged: number }[];
+  /** Per routine, its own answers: done, not done, and days in the period without an answer for it. */
+  routines: { text: string; done: number; notDone: number; unanswered: number }[];
   /** The steps answered the day after a red day. */
   redSteps: { date: DateKey; steps: { text: string; done: boolean }[] }[];
   topics: VisitTopic[];
@@ -116,10 +116,17 @@ export function buildVisitSummary(input: {
   }
 
   const ticks = input.context.filter((c) => c.kind === 'routine_done' && c.date && c.date >= from && c.date <= input.today);
-  const logged = new Set(ticks.map((t) => t.date)).size;
+  // Each routine is counted on its own answers: a day without an answer for this routine is no
+  // answer, not a day it was not done (granskning 22 november).
+  const anyTicks = ticks.length > 0;
   const routineRows = routines(input.context)
-    .map((r) => ({ text: r.text, done: new Set(ticks.filter((t) => t.routineId === r.id && t.done).map((t) => t.date)).size, logged }))
-    .filter((r) => logged > 0);
+    .map((r) => {
+      const mine = ticks.filter((t) => t.routineId === r.id && t.done != null);
+      const done = new Set(mine.filter((t) => t.done).map((t) => t.date)).size;
+      const notDone = new Set(mine.filter((t) => !t.done).map((t) => t.date)).size;
+      return { text: r.text, done, notDone, unanswered: Math.max(0, days.length - done - notDone) };
+    })
+    .filter(() => anyTicks);
 
   const sorted = (m: Map<string, Set<DateKey>>) => [...m.entries()].map(([text, d]) => ({ text, days: d.size })).sort((a, b) => b.days - a.days || a.text.localeCompare(b.text));
   return {
@@ -159,4 +166,12 @@ export function sleepStressText(s: Pick<VisitSummary, 'days' | 'sleepAvg' | 'str
   } else parts.push(`Ingen sömn registrerad under ${n === 1 ? 'natten' : `de ${n} nätterna`}.`);
   parts.push(s.stressDays ? `Stress finns för ${s.stressDays} av ${n} dagar, snitt ${sv(s.stressAvg)}.` : 'Ingen stress registrerad.');
   return parts.join(' ');
+}
+
+/** One routine in words: "Ingen uppgift" without any answer, else done and not done apart from no answer. */
+export function routineLine(r: VisitSummary['routines'][number]): string {
+  if (!r.done && !r.notDone) return `${r.text}: Ingen uppgift`;
+  const parts = [`gjord ${r.done} ${r.done === 1 ? 'dag' : 'dagar'}`, `inte gjord ${r.notDone}`];
+  if (r.unanswered) parts.push(`${r.unanswered} utan svar`);
+  return `${r.text}: ${parts.join(', ')}`;
 }

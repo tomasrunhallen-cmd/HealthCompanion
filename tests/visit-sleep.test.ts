@@ -15,3 +15,21 @@ describe('sleep in the visit summary', () => {
     expect(sleepStressText(s)).toBe('Ingen sömn eller stress registrerad under dagen.');
   });
 });
+
+describe('the Inför återbesök PDF', () => {
+  it('says the same about sleep as the screen', async () => {
+    const { visitHtml, visitSummary } = require('../src/services/visit') as typeof import('../src/services/visit');
+    const { repoWithPlan, at } = require('./helpers/plan') as typeof import('./helpers/plan');
+    const repo = await repoWithPlan();
+    await repo.saveGarminDays([
+      { date: '2026-11-01', sleepHours: 7.6, stressAvg: null, fetchedAt: '2026-11-01T08:00:00Z' },
+      { date: '2026-11-13', sleepHours: 5.4, stressAvg: null, fetchedAt: '2026-11-13T08:00:00Z' },
+    ] as never, '2026-11-14');
+    const s = visitSummary(repo, 14, at('2026-11-14'));
+    const html = visitHtml(s, repo.planSettings());
+    expect(html).toContain(sleepStressText(s));
+    expect(html).toContain('Sömn finns för 2 av 14 nätter');
+    expect(html).toContain('Första halvan');
+    expect(html).not.toContain('Snitt: sömn');
+  });
+});

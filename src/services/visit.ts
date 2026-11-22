@@ -4,7 +4,7 @@
 import { moodText } from '../core/analysis/mood';
 import { newId } from '../core/analysis/assess';
 import { eveningDateKey, formatDateSv } from '../core/analysis/dates';
-import { buildVisitSummary, LEVEL_DISCLAIMER, sleepStressText, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
+import { buildVisitSummary, LEVEL_DISCLAIMER, routineLine, sleepStressText, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
 import { levelCounts, levelMark, reportHtml, type ReportPart } from '../core/report/html';
 import { polarityWord } from '../core/plan/fields';
 import type { PlanSettings } from '../core/domain/types';
@@ -92,7 +92,8 @@ export function visitHtml(s: VisitSummary, ps: Pick<PlanSettings, 'polarityWords
         d.direction === 'both' ? 'båda' : d.direction ? word(d.direction) : '–', d.notes.join(', ') || '',
       ]),
     },
-    { kind: 'text', text: `Snitt: sömn ${dec(s.sleepAvg)} h, stress ${dec(s.stressAvg)}.`, muted: true },
+    // The same sentence as the screen: nights with data and the two halves, not only the mean.
+    { kind: 'text', text: sleepStressText(s), muted: true },
     { kind: 'heading', text: `Tecken som syntes, ${word('up')}` },
     { kind: 'list', items: sign(s.signs.up) },
     { kind: 'heading', text: `Tecken som syntes, ${word('down')}` },
@@ -103,6 +104,6 @@ export function visitHtml(s: VisitSummary, ps: Pick<PlanSettings, 'polarityWords
     parts.push({ kind: 'heading', text: 'Stegen efter röda dagar' });
     for (const r of s.redSteps) parts.push({ kind: 'text', text: formatDateSv(r.date) }, { kind: 'list', items: r.steps.map((x) => `${x.done ? 'Gjort' : 'Inte gjort'}: ${x.text}`) });
   }
-  parts.push({ kind: 'heading', text: 'Rutiner' }, { kind: 'list', items: s.routines.map((r) => `${r.text}: ${r.done} av ${r.logged} dagar`) });
+  parts.push({ kind: 'heading', text: 'Rutiner' }, { kind: 'list', items: s.routines.map(routineLine) });
   return reportHtml('Inför återbesök', `${formatDateSv(s.from)} – ${formatDateSv(s.to)}`, parts);
 }
