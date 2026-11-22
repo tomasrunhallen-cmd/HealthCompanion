@@ -1,3 +1,4 @@
+import { repairPlanRows } from '../services/planBlocks';
 import { cancelOrphanRoutineReminders } from '../platform/reminder';
 import { checkSleepNotice } from '../services/sleepNotice';
 import { ensureFirstUse } from '../services/firstWeek';
@@ -184,6 +185,8 @@ export default function App() {
         const kept = () => r.contextOf('routine').filter((e) => e.routine?.reminder).map((e) => e.id);
         void cancelOrphanRoutineReminders(kept());
         void ensureFirstUse(r);
+        // Rows made emergency phrases by an older version get their own type back (granskning 22 november).
+        void repairPlanRows(r);
         // The sleep notice is checked when the app opens and when new sleep data is saved.
         let checking = false;
         const sleep = () => {

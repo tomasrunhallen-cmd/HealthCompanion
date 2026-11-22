@@ -78,7 +78,9 @@ describe('saving the plan', () => {
       ['Pratar fortare och avbryter', 'up'], ['Behöver mindre sömn', 'up'], ['Svarar inte på sms', 'down'], ['Orkar inte laga mat', 'down'],
     ]);
     expect(repo.planOf('action_yellow').map((p) => p.text)).toEqual(['Ringer mottagningen', 'Går och lägger mig före 23']);
-    expect(repo.contextOf('akut').map((e) => e.text)).toEqual(['Känner att familjen klarar sig bättre utan mig']);
+    // A sign about not wanting to live keeps the type the person gave it (granskning 22 november).
+    expect(repo.contextOf('akut')).toHaveLength(0);
+    expect(repo.planOf('serious').map((p) => p.text)).toContain('Känner att familjen klarar sig bättre utan mig');
     expect(repo.planSettings().normalState).toBe('Sover sju timmar, jobbar dagtid.');
     expect(repo.contextOf('wish')).toHaveLength(1);
 

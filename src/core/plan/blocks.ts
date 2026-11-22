@@ -108,6 +108,19 @@ const MARK = /^\s*(?:[-–—•*·●▪]|(\d{1,2})[.)])\s+/;
  * The block's lines as rows: one per line, list marks removed. A line that starts in lower
  * case continues the line before (text wrapped when pasted). Blank lines only separate.
  */
+/**
+ * A row that continues the line before it: one a document broke, never one the person wrote.
+ * It starts with a small letter, has no list mark, and is either indented under the line before
+ * or follows a long line (a printed page's width) that does not end a sentence. "sover mindre"
+ * and "pratar fortare" on two short lines stay two rows.
+ */
+export const WRAPPED_LINE_MIN = 55;
+function continues(raw: string, line: string, prev: string | undefined, marked: boolean): boolean {
+  if (marked || !prev || !/^[a-zåäö]/.test(line)) return false;
+  const indented = /^\s+\S/.test(raw);
+  return indented || (prev.length >= WRAPPED_LINE_MIN && !/[.!?:;]$/.test(prev));
+}
+
 export function blockLines(text: string): { text: string; number: number | null }[] {
   const out: { text: string; number: number | null }[] = [];
   for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
@@ -116,7 +129,7 @@ export function blockLines(text: string): { text: string; number: number | null 
     const line = raw.replace(MARK, '').trim();
     if (!line) continue;
     const prev = out[out.length - 1];
-    if (!m && prev && /^[a-zåäö]/.test(line)) prev.text = `${prev.text} ${line}`;
+    if (continues(raw, line, prev?.text, !!m)) prev.text = `${prev.text} ${line}`;
     else out.push({ text: line, number: m?.[1] ? Number(m[1]) : null });
   }
   return out;
@@ -141,7 +154,7 @@ export function renameLine(text: string, oldLine: string, newLine: string): stri
     const line = raw.replace(MARK, '').trim();
     if (!line) return;
     const prev = groups[groups.length - 1];
-    if (!m && prev && /^[a-zåäö]/.test(line)) {
+    if (continues(raw, line, prev?.text, !!m)) {
       prev.text = `${prev.text} ${line}`;
       prev.end = i;
     } else groups.push({ start: i, end: i, text: line, mark: m ? m[0] : raw.match(/^\s*/)![0] });
@@ -154,7 +167,7 @@ export function renameLine(text: string, oldLine: string, newLine: string): stri
 export interface BlockRow {
   text: string;
   fields: PlanFields;
-  /** About not wanting to live or self-harm: saved as the person's own emergency phrase. */
+  /** About not wanting to live or self-harm. The row keeps the type the person gave it; this only keeps it out of what Prata sends. */
   akut: boolean;
 }
 

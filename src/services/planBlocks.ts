@@ -95,7 +95,9 @@ export async function savePlanBlocks(repo: Repository, blocks: PlanBlock[], now 
     const oldRoutines = existing.filter((e) => e.blockId === block.id && e.kind === 'routine').sort((a, b) => a.order - b.order);
     let routineIndex = 0;
     for (const row of blockRows) {
-      const kind: ContextKind | null = row.akut ? 'akut' : contextKindOf(row.fields);
+      // The row keeps the type the person chose: a red step about suicidal thoughts stays a red
+      // step and shows in Hjälp nu. The emergency words are found by the emergency rule itself.
+      const kind: ContextKind | null = contextKindOf(row.fields);
       if (!kind) continue;
       const order = counters.get(kind) ?? 0;
       counters.set(kind, order + 1);
@@ -109,11 +111,11 @@ export async function savePlanBlocks(repo: Repository, blocks: PlanBlock[], now 
         (renamed && !used.has(renamed.id) && !newTexts.has(renamed.text) ? renamed : undefined);
       if (same) {
         used.add(same.id);
-        await repo.updateContextEntry(same.id, { kind, text: row.text, plan: kind === 'akut' ? null : row.fields, blockId: block.id, order }, false);
+        await repo.updateContextEntry(same.id, { kind, text: row.text, plan: row.fields, blockId: block.id, order }, false);
         rows++;
         continue;
       }
-      const added = await repo.addContextEntry({ kind, text: row.text, origin: 'crisis_plan', plan: kind === 'akut' ? null : row.fields, blockId: block.id }, false);
+      const added = await repo.addContextEntry({ kind, text: row.text, origin: 'crisis_plan', plan: row.fields, blockId: block.id }, false);
       await repo.updateContextEntry(added.id, { order }, false);
       rows++;
     }
@@ -208,4 +210,16 @@ export async function restorePlan(repo: Repository): Promise<boolean> {
 
 export async function dropPlanBackup(repo: Repository): Promise<void> {
   await repo.kvSet(BACKUP_KEY, null);
+}
+
+/**
+ * Plans saved before 22 November could have turned a row with emergency words (a red step such
+ * as "Ring mottagningen vid självmordstankar") into an emergency phrase, so it was missing from
+ * the plan's steps. Saving the blocks again gives each row back the type the person gave it.
+ * Runs when the app opens; does nothing once repaired.
+ */
+export async function repairPlanRows(repo: Repository, now = new Date()): Promise<boolean> {
+  if (!repo.contextEntries('grund').some((e) => e.kind === 'akut' && e.blockId)) return false;
+  await savePlanBlocks(repo, planBlocks(repo), now);
+  return true;
 }
