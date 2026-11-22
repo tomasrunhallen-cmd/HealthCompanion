@@ -185,3 +185,23 @@ describe('stress per source (rules 1.8.0)', () => {
     expect(stressGap(END, hist([{ v: 40, source: 'garmin' }, { v: null, source: 'garmin' }]), {}, 40, 'garmin')).toBe(1);
   });
 });
+
+describe('the sleep rule does not follow how the note is written (rules 1.8.1)', () => {
+  const plan: PlanItem[] = [
+    { id: 'e1', kind: 'early', text: 'Handlar saker', order: 0, approvedAt: '' },
+    { id: 'e2', kind: 'early', text: 'Pratar fortare', order: 1, approvedAt: '' },
+    { id: 'y1', kind: 'action_yellow', text: 'Gå och lägg mig tidigt', order: 0, approvedAt: '' },
+  ];
+  const history = [{ entry: entry({ date: d(1), sleepHours: 4 }), level: 'yellow' as const }];
+  const run = async (transcript: string) => {
+    const { assessEntry, wordMatcher, firstStep } = require('../src/core/analysis/assess') as typeof import('../src/core/analysis/assess');
+    const a = await assessEntry({ entry: entry({ date: END, sleepHours: 4, transcript }), plan, planSettings: ps, history, matcher: wordMatcher });
+    return { points: a.points, level: a.level, step: a.level === 'green' ? null : firstStep(a.level, plan)?.text ?? null };
+  };
+
+  it('three sentences and one sentence with "och" give the same points, level and step', async () => {
+    const three = await run('Handlar saker. Pratar fortare. Sover dåligt.');
+    const one = await run('Handlar saker och pratar fortare och sover dåligt.');
+    expect(one).toEqual(three);
+  });
+});

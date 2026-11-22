@@ -338,7 +338,7 @@ export function trendLines(
   return out;
 }
 
-/** Word stems that make a plan sign one about sleep (rules 1.8.0). */
+/** Word stems that make a plan sign one about sleep (rules 1.8.0; the sign's own words only since 1.8.1). */
 const SLEEP_STEMS = ['sov', 'sömn', 'somn', 'vak', 'natt', 'nätt', 'insomn'];
 export const aboutSleep = (text: string) => {
   const t = text.toLowerCase();
@@ -373,7 +373,9 @@ export function score(input: ScoreInput): ScoreResult {
   // gives no point of its own (rules 1.8.0); the second night in a row still counts.
   if (entry.sleepHours != null && entry.sleepHours < planSettings.sleepThresholdHours) {
     const src = entry.sleepSource === 'transcript' ? ' (skattat ur anteckningen)' : '';
-    const viaSign = signals.some((s) => (s.kind === 'early_sign' || s.kind === 'serious_sign') && aboutSleep(`${s.label} ${s.quote ?? ''}`));
+    // Whether a sign is about sleep is read from the plan's sign alone, never from the quote: the
+    // quote's length follows how the note was written, and the points must not (granskning 22 november).
+    const viaSign = signals.some((s) => (s.kind === 'early_sign' || s.kind === 'serious_sign') && aboutSleep(s.label));
     signals.push({
       kind: 'sleep_low',
       points: viaSign ? 0 : RULES.points.measured,
