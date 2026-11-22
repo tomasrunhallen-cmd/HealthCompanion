@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
 import { weekCounts } from '../../core/analysis/levelWords';
+import { lowModeSupport } from '../../core/analysis/lowMode';
 import { limitedGreen } from '../../core/analysis/coverage';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
 import { silentDaysUntil } from '../../core/analysis/scoring';
@@ -10,7 +11,7 @@ import { logHeavyDay } from '../../services/checkin';
 import { standardNudgeWeek } from '../../core/context/standard';
 import { startWithStandard, unconfirmedStandard } from '../../services/standard';
 import { dueNow, runProfileReview } from '../../services/profile';
-import { Button, Card, Dot, Eyebrow, P, Row, Screen } from '../components';
+import { Button, Card, Dot, Eyebrow, LevelSymbol, P, Row, Screen } from '../components';
 import { homeQueue, laterToday, putAside, type HomeCard, type HomeLater } from '../../core/analysis/homeCards';
 import type { Level } from '../../core/domain/types';
 import { MEDICAL_REMINDER } from '../../legal';
@@ -136,9 +137,20 @@ export function HomeScreen() {
 
   // Lågt läge: only the check-in and Hjälp nu (in the top bar). Everything else waits.
   if (settings.lowMode) {
+    const low = lowModeSupport(repo.assessments(), repo.plan(), today);
     return (
       <Screen title="Dagsljus">
         <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
+        {low ? (
+          // After a yellow or red evening the plan's first step stays, also in Lågt läge.
+          <Card tone={low.level} style={{ marginBottom: space.m }}>
+            <Row style={{ gap: space.s, alignItems: 'center' }}>
+              <LevelSymbol level={low.level} size={22} />
+              <Text style={[type.body, { fontWeight: '600', flexShrink: 1 }]}>{`${low.level === 'yellow' ? 'Gult' : 'Rött'} ${low.date === today ? 'i dag' : formatDateSv(low.date)}`}</Text>
+            </Row>
+            <P style={{ marginTop: space.xs }}>{low.step ? `Ur din plan: ${low.step}` : 'Din plan har inget steg för den här nivån än.'}</P>
+          </Card>
+        ) : null}
         <Button big title={todayEntry ? 'Gör om kvällens avstämning' : 'Kvällens avstämning'} onPress={() => nav.push({ name: 'checkin' })} />
         <Button big kind="secondary" title="Orkar bara trycka" busy={busy} onPress={onHeavy} />
         <Button kind="ghost" title="Lämna lågt läge" onPress={() => repo.updateSettings({ lowMode: false })} />
