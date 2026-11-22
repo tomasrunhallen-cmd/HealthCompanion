@@ -40,7 +40,7 @@ export interface DayContext {
 const dec = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',');
 
 function lastDoneText(s: RoutineStatus, today: DateKey): string {
-  if (!s.lastDone) return 'inte gjord än';
+  if (!s.lastDone) return s.everAnswered ? 'inte gjord än' : 'inget svar än';
   if (s.lastDone === addDays(today, -1)) return 'i går';
   if (s.lastDone === addDays(today, -2)) return 'i förrgår';
   const days = Math.round((Date.parse(today) - Date.parse(s.lastDone)) / 864e5);
@@ -51,7 +51,12 @@ function lastDoneText(s: RoutineStatus, today: DateKey): string {
 export function weekText(s: RoutineStatus): string {
   if (s.frequency.kind === 'daily') {
     const past = 7 - s.daysLeft;
-    return past ? `${s.doneThisWeek} av ${past} ${past === 1 ? 'dag' : 'dagar'} hittills den här veckan` : 'varje dag, veckan börjar i dag';
+    if (!past) return 'varje dag, veckan börjar i dag';
+    // A day without an answer is unknown, not a missed day: say how many there are.
+    const doneBefore = Math.min(s.doneThisWeek - (s.doneToday ? 1 : 0), past);
+    const open = past - s.answeredBeforeToday;
+    if (!s.answeredBeforeToday && !doneBefore) return `ingen uppföljning den här veckan än (${past} ${past === 1 ? 'dag' : 'dagar'} utan svar)`;
+    return `gjord ${doneBefore} av ${past} ${past === 1 ? 'dag' : 'dagar'} hittills den här veckan${open > 0 ? `, ${open} utan svar` : ''}`;
   }
   if (s.frequency.kind === 'weekdays') return `planerad i dag (${frequencyText(s.frequency)})`;
   return `${s.doneThisWeek} av ${s.goalThisWeek} den här veckan, ${s.daysLeft === 1 ? 'sista dagen' : `${s.daysLeft} dagar kvar`}`;

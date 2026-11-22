@@ -5,7 +5,7 @@
 import type { FetchLike } from '../src/adapter/http';
 import { addDays } from '../src/core/analysis/dates';
 import type { ContextEntry } from '../src/core/domain/types';
-import { checkSuggestion, codeSuggestion, suggestionInput } from '../src/core/plan/daySuggestion';
+import { checkSuggestion, codeSuggestion, suggestionInput, weekText } from '../src/core/plan/daySuggestion';
 import { frequencyOf, frequencyText, rankDue, routineStatuses, suggestFrequency, weekday } from '../src/core/plan/routineFrequency';
 import { destinationKey } from '../src/llm/config';
 import { setSecret } from '../src/platform/secrets';
@@ -139,5 +139,22 @@ describe('Dagens förslag', () => {
     const before = sent.length;
     expect((await makeDaySuggestion(repo, { fetch, force: true }, now)).method).toBe('code');
     expect(sent).toHaveLength(before);
+  });
+});
+
+describe('A day without an answer is unknown, not missed', () => {
+  // TODAY is a Friday: Monday to Thursday are the four days before it.
+  it('says there is no follow-up yet instead of "0 av 4"', () => {
+    const r = routine('Sömn 22:30');
+    const [s] = routineStatuses([r], TODAY);
+    expect(weekText(s)).toBe('ingen uppföljning den här veckan än (4 dagar utan svar)');
+  });
+
+  it('counts done days against the days so far and names the ones without an answer', () => {
+    const r = routine('Promenad');
+    const entries = [r, done(r, '2026-11-09'), done(r, '2026-11-10', false)];
+    const [s] = routineStatuses(entries, TODAY);
+    expect(s.answeredBeforeToday).toBe(2);
+    expect(weekText(s)).toBe('gjord 1 av 4 dagar hittills den här veckan, 2 utan svar');
   });
 });

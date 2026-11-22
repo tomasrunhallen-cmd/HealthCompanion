@@ -68,6 +68,10 @@ export interface RoutineStatus {
   /** Something to do today: every day, a planned weekday, or a weekly goal not yet reached. */
   dueToday: boolean;
   lastDone: DateKey | null;
+  /** Days this week before today with an answer for this routine, done or not: a day without one is unknown, not missed. */
+  answeredBeforeToday: number;
+  /** Any answer for this routine at all. */
+  everAnswered: boolean;
   /** Done against what was asked over the four weeks before this one, 0–1. Null without answers then. */
   rate4w: number | null;
   /** How pressing today is, for ordering: higher first. */
@@ -92,6 +96,9 @@ export function routineStatuses(entries: ContextEntry[], today: DateKey): Routin
       const doneThisWeek = [...doneDays].filter((d) => d >= monday && d <= today).length;
       const doneToday = doneDays.has(today);
       const lastDone = [...doneDays].filter((d) => d <= today).sort().pop() ?? null;
+      const mine = answers.filter((e) => e.routineId === r.id);
+      const answeredBeforeToday = new Set(mine.filter((e) => e.date! >= monday && e.date! < today).map((e) => e.date!)).size;
+      const everAnswered = mine.length > 0;
       const goalThisWeek = perWeek(f);
 
       // The four weeks before this one.
@@ -124,7 +131,7 @@ export function routineStatuses(entries: ContextEntry[], today: DateKey): Routin
       // less often lately weighs a little more, so it is not forgotten.
       const need = f.kind === 'weekly' ? Math.min(1, remaining / daysLeft) : f.kind === 'weekdays' ? 0.9 : 0.6;
       const urgency = dueToday ? need + 0.4 * (1 - (rate4w ?? 0.5)) : 0;
-      return { routine: r, frequency: f, doneThisWeek, goalThisWeek, daysLeft, doneToday, dueToday, lastDone, rate4w, urgency };
+      return { routine: r, frequency: f, doneThisWeek, goalThisWeek, daysLeft, doneToday, dueToday, lastDone, answeredBeforeToday, everAnswered, rate4w, urgency };
     });
 }
 
