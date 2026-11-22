@@ -84,7 +84,7 @@ export function VisitScreen() {
                 accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}. ${parts.join(', ')}`}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: space.s, paddingVertical: space.xs, borderTopWidth: 1, borderColor: colors.border, marginTop: space.xs }}
               >
-                <Text style={[type.small, { width: 52 }]}>{formatDateSv(d.date).slice(0, 7)}</Text>
+                <Text style={[type.small, { width: 72 }]} numberOfLines={1}>{formatDateSv(d.date).slice(0, 7)}</Text>
                 <Dot level={d.level} size={18} />
                 <Text style={[type.small, { flex: 1, color: colors.text }]}>{d.level ? parts.join(' · ') : 'Ingen avstämning'}</Text>
               </View>
