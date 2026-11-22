@@ -332,3 +332,19 @@ describe('the app uses the model only after consent', () => {
     expect(assessment).toMatchObject({ method: 'llm_fallback', level: 'yellow' });
   });
 });
+
+describe('the adapter from the stored settings', () => {
+  it('sends Anthropic’s browser header in a web browser, and not in the app', async () => {
+    const { buildAdapter } = require('../src/services/llm') as typeof import('../src/services/llm');
+    const f = fakeFetch([{ status: 200, body: { content: [{ type: 'text', text: ANSWER }] } }, { status: 200, body: { content: [{ type: 'text', text: ANSWER }] } }]);
+    await buildAdapter({ provider: 'anthropic', model: 'claude-haiku-5-5', baseUrl: '' }, 'k', { fetch: f }).send(REQ);
+    expect(f.calls[0].headers['anthropic-dangerous-direct-browser-access']).toBeUndefined();
+    (globalThis as any).document = {};
+    try {
+      await buildAdapter({ provider: 'anthropic', model: 'claude-haiku-5-5', baseUrl: '' }, 'k', { fetch: f }).send(REQ);
+    } finally {
+      delete (globalThis as any).document;
+    }
+    expect(f.calls[1].headers['anthropic-dangerous-direct-browser-access']).toBe('true');
+  });
+});

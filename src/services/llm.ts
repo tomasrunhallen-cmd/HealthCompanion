@@ -46,7 +46,8 @@ export function buildAdapter(
     baseUrl: draft.baseUrl,
     apiKey: apiKey?.trim() || null,
     fetch: opts.fetch,
-    browser: opts.browser,
+    // In a web browser Anthropic needs its browser header, or the browser stops the call.
+    browser: opts.browser ?? typeof document !== 'undefined',
   });
 }
 
