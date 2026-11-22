@@ -6,7 +6,7 @@ import {
   type ChatAnswer, type ChatMessage, type ChatPromptOverride, type ChatSession, type SorkCard,
 } from '../core/chat/chat';
 import { buildContext } from '../core/context/buildContext';
-import { akutCheck } from '../core/context/akut';
+import { akutCheck, akutLevel } from '../core/context/akut';
 import { eveningDateKey, formatDateSv } from '../core/analysis/dates';
 import { findingTitle } from '../core/analysis/moodPatterns';
 import { changeHeadline, STABLE_TITLE } from '../core/analysis/rhythm';
@@ -50,6 +50,11 @@ export function sorkCards(repo: Repository): SorkCard[] {
   return ((repo.kvGet(SORK_KEY) as SorkCard[] | undefined) ?? []).slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/** The person approves a draft: only then does it follow into the next conversation. */
+export async function approveSork(repo: Repository, id: string, now = new Date()): Promise<void> {
+  await repo.kvSet(SORK_KEY, sorkCards(repo).map((c) => (c.id === id ? { ...c, approvedAt: now.toISOString() } : c)));
+}
+
 export async function deleteSork(repo: Repository, id: string): Promise<void> {
   await repo.kvSet(SORK_KEY, sorkCards(repo).filter((c) => c.id !== id));
 }
@@ -79,16 +84,22 @@ export function chatContext(repo: Repository, now = new Date()): string {
   } as Entry;
   const built = buildContext({ entries: bank, entry: today, history, garmin: repo.garminDays() }, repo.planSettings());
   const v = built.variables;
-  const of = (kind: ContextEntry['kind']) => bank.filter((e) => e.kind === kind).map((e) => `- ${e.text}`);
+  // A plan row with emergency words keeps its type in the plan, but is not sent: the model gets
+  // only that there is one (granskning 22 november).
+  const of = (kind: ContextEntry['kind']) => bank.filter((e) => e.kind === kind).map((e) => `- ${akutLevel(e.text) ? '(en rad om akut fara, skickas inte)' : e.text}`);
   const block = (title: string, lines: string[]) => (lines.length ? [`${title}:`, ...lines, ''] : []);
   const last = [...history].sort((a, b) => b.entry.date.localeCompare(a.entry.date))[0];
   const level = last?.level ? `Senaste avstämningen (${formatDateSv(last.entry.date)}): ${LEVEL_WORD[last.level]} enligt appens regler.` : 'Ingen avstämning ännu.';
-  const notes = [...history].filter((h) => h.entry.transcript.trim()).sort((a, b) => b.entry.date.localeCompare(a.entry.date)).slice(0, NOTES_SENT)
+  // A check-in the emergency rule stopped is never sent later as background, nor one whose words
+  // the rule would stop today.
+  const stopped = new Set(repo.assessments().filter((a) => a.akut || a.akutMild).map((a) => a.entryId));
+  const userPhrases = repo.contextOf('akut').map((e) => e.text);
+  const notes = [...history].filter((h) => h.entry.transcript.trim() && !stopped.has(h.entry.id) && !akutCheck(h.entry.transcript, userPhrases).level).sort((a, b) => b.entry.date.localeCompare(a.entry.date)).slice(0, NOTES_SENT)
     .map((h) => `- ${formatDateSv(h.entry.date)}${h.entry.mood != null ? ` (stämning ${h.entry.mood})` : ''}: ${h.entry.transcript.trim().slice(0, NOTE_MAX)}`);
   const rhythm = latestRhythm(repo);
   const rhythmLine = rhythm ? (rhythm.status === 'change' ? changeHeadline(rhythm.changes) : rhythm.status === 'stable' ? STABLE_TITLE : 'För lite data') : null;
   const patterns = shownFindings(repo).map((f) => `- ${findingTitle(f.result)}`);
-  const sork = sorkCards(repo).slice(0, 3).map((c) => `- ${formatDateSv(c.createdAt.slice(0, 10))}: ${sorkText(c).replace(/\n/g, '; ')}`);
+  const sork = sorkCards(repo).filter((c) => c.approvedAt).slice(0, 3).map((c) => `- ${formatDateSv(c.createdAt.slice(0, 10))}: ${sorkText(c).replace(/\n/g, '; ')}`);
   return [
     level, '',
     `Normalläge: ${v.normallage}`, '',
@@ -143,7 +154,8 @@ export async function sendChat(repo: Repository, sessionId: string | null, text:
   let answer: ChatAnswer;
   try {
     const res = await trackedCompleter(repo, adapter, opts.now).complete(frame, {
-      roll: roleText(chatPromptOverride(repo)),
+      // The person's own description is scrubbed too: a name on the list must not go out through it.
+      roll: clean(roleText(chatPromptOverride(repo))),
       sammanhang: clean(chatContext(repo, now)),
       historik: clean(historyText(before)),
       meddelande: clean(message),

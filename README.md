@@ -322,7 +322,7 @@ Ett samtal med språkmodellen du kopplat till appen, i fliken *Prata*. Ett samta
 - **Akutregeln** körs på telefonen före varje meddelande. Vid allvarliga ord skickas meddelandet inte, varken nu eller senare som en del av samtalet, och *Hjälp nu* visas. Vid milda ord skickas det och den mildare rutan visas.
 - **Svaret kontrolleras:** diagnoser om personen, doser, råd om att ändra mediciner och nivåer ersätts med appens egen text.
 - **Minne:** modellen kan föreslå högst två rader per svar (utlösare, rutin, typisk formulering, förlopp). En rad räknas bara om dess citat står i det personen själv skrev i samtalet. Den blir ett förslag under *Förslag* och når kontextbanken först när personen godkänt den.
-- **SORK-kort:** när en analys gått igenom och personen bekräftat den sparas den som ett kort under *SORK-kort*. Korten följer med i nästa samtals sammanhang.
+- **SORK-kort:** det modellen fyller i sparas bara som utkast under *SORK-kort*. Först när personen tryckt *Stämmer, spara kortet* följer kortet med i nästa samtals sammanhang. Prata skickar aldrig avstämningar som akutregeln stoppat, rader i planen med akutord, eller namn på rensningslistan, inte heller via den redigerbara texten.
 - **Prompten** visas och kan ändras under *Prompten*. Personens text läggs in i en fast ram som inte kan ändras, och skydden ovan ligger i koden. Tidigare versioner sparas (högst tio), och *Återställ standard* tar tillbaka standardtexten.
 - Samtalet ändrar aldrig trafikljuset.
 

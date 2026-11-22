@@ -32,6 +32,8 @@ export interface SorkCard {
   organism: string;
   reaktion: string;
   konsekvens: string;
+  /** Saved by the model as a draft; only a card the person approved follows into the next conversation. Missing: a card from before 22 November, treated as a draft. */
+  approvedAt?: string | null;
 }
 
 /** The person's own description of the conversation, the editable part of the prompt. */
@@ -154,7 +156,7 @@ export function sorkFrom(a: Pick<ChatAnswer, 'sork'>, sessionId: string, now: Da
   const s = a.sork;
   const parts = [s.situation, s.organism, s.reaktion, s.konsekvens].map((x) => x.trim());
   if (!parts[0] || parts.slice(1).every((x) => !x)) return null;
-  return { id: `sork_${now.getTime()}`, createdAt: now.toISOString(), sessionId, situation: parts[0], organism: parts[1], reaktion: parts[2], konsekvens: parts[3] };
+  return { id: `sork_${now.getTime()}`, createdAt: now.toISOString(), sessionId, situation: parts[0], organism: parts[1], reaktion: parts[2], konsekvens: parts[3], approvedAt: null };
 }
 
 /** The four parts in plain Swedish, as the card shows them (Situation, Organism, Reaktion, Konsekvens). */

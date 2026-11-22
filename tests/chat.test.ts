@@ -6,7 +6,7 @@ import {
 import { destinationKey } from '../src/llm/config';
 import { setSecret } from '../src/platform/secrets';
 import {
-  chatContext, chatPromptOverride, chatSessions, deleteSession, saveChatPrompt, sendChat, sorkCards,
+  approveSork, chatContext, chatPromptOverride, chatSessions, deleteSession, saveChatPrompt, sendChat, sorkCards,
 } from '../src/services/chat';
 import { decideSuggestion } from '../src/services/corrections';
 import { LLM_KEY_NAME } from '../src/services/llm';
@@ -145,11 +145,17 @@ describe('a conversation', () => {
     expect(chatContext(repo, NOW)).toContain('Bråk på jobbet ger sämre sömn');
   });
 
-  it('a confirmed SORK analysis becomes a card, and the card is part of the next context', async () => {
+  it('a SORK card from the model is a draft, and only an approved card is part of the next context', async () => {
     const repo = await setup();
     const sork = { situation: 'Möte på jobbet', organism: 'Sov fem timmar', reaktion: 'Blev arg och gick', konsekvens: 'Lättnad, sedan skam' };
-    await sendChat(repo, null, 'Ja, det stämmer', model([{ svar: 'Jag sparar den.', minne: [], sork }]));
-    expect(sorkCards(repo)[0]).toMatchObject(sork);
+    await sendChat(repo, null, 'Hej', model([{ svar: 'Jag sparar den.', minne: [], sork }]));
+    // Even after only "Hej" the card is just a draft: it is not background until the person approves it.
+    expect(sorkCards(repo)[0]).toMatchObject({ ...sork, approvedAt: null });
+    expect(chatContext(repo, NOW)).not.toContain('Möte på jobbet');
+    const next = model([{ svar: 'Hej igen.', minne: [], sork: empty }]);
+    await sendChat(repo, null, 'Hej igen', next);
+    expect(next.sent[0].user).not.toContain('Möte på jobbet');
+    await approveSork(repo, sorkCards(repo)[0].id, NOW);
     expect(chatContext(repo, NOW)).toContain('Vad hände: Möte på jobbet; Hur du mådde då: Sov fem timmar');
   });
 
@@ -168,5 +174,28 @@ describe('plain Swedish first (samtal 1.1.0)', () => {
     expect(t).toContain('Vad hände precis innan?');
     expect(t).toContain('Nämn inte metodnamn som KBT eller SORK om inte personen själv gör det');
     expect(t).not.toMatch(/Organism:/);
+  });
+});
+
+describe('nothing leaks out through background or the editable text (granskning 22 november)', () => {
+  it('the whole request, system text included, holds no stopped check-in, no listed name and no emergency row', async () => {
+    const repo = await setup();
+    const { saveCheckin } = require('../src/services/checkin') as typeof import('../src/services/checkin');
+    const { savePlanBlocks } = require('../src/services/planBlocks') as typeof import('../src/services/planBlocks');
+    await savePlanBlocks(repo, [{ id: 'b_action_serious', type: 'action_serious', heading: 'Vid rött', text: 'Ring mottagningen vid självmordstankar\nTa bort det farliga hemma', updatedAt: NOW.toISOString() }], NOW);
+    // A check-in the emergency rule stopped, and an ordinary one.
+    await saveCheckin(repo, { transcript: 'Jag vill inte leva längre', mood: null, energy: null, wordsPerMinute: null }, new Date('2026-11-20T20:00:00'));
+    await saveCheckin(repo, { transcript: 'En lugn dag med promenad.', mood: null, energy: null, wordsPerMinute: null }, new Date('2026-11-21T20:00:00'));
+    await saveChatPrompt(repo, 'Kim är min kontaktperson. Var kort.', NOW);
+    const m = model([{ svar: 'Hej. Hur har du det?', minne: [], sork: empty }]);
+    await sendChat(repo, null, 'Hej', m);
+    const all = `${m.sent[0].system}\n${m.sent[0].user}`;
+    expect(all).not.toContain('vill inte leva');
+    expect(all).not.toContain('Kim');
+    expect(all).not.toContain('självmordstankar');
+    expect(all).toContain('(en rad om akut fara, skickas inte)');
+    expect(all).toContain('Ta bort det farliga hemma');
+    expect(all).toContain('En lugn dag med promenad.');
+    expect(m.sent[0].system).toContain('[NAMN] är min kontaktperson. Var kort.');
   });
 });

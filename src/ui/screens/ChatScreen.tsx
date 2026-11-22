@@ -7,7 +7,7 @@ import { Text, TextInput, View } from 'react-native';
 import { CODE_PROTECTIONS, chatPrompts, frameForDisplay, roleText, SORK_LABELS, type ChatSession } from '../../core/chat/chat';
 import { formatDateSv, formatTime } from '../../core/analysis/dates';
 import {
-  chatPromptLabel, chatPromptOverride, deleteSession, deleteSork, latestSession, newSession, saveChatPrompt, sendChat, sorkCards,
+  approveSork, chatPromptLabel, chatPromptOverride, deleteSession, deleteSork, latestSession, newSession, saveChatPrompt, sendChat, sorkCards,
 } from '../../services/chat';
 import { llmStatus } from '../../services/llm';
 import { CrisisCard } from '../CrisisCard';
@@ -51,7 +51,7 @@ export function ChatScreen() {
       if (t.kind === 'no_model') setError('Ingen språkmodell är kopplad. Koppla en under Jag → Språkmodell.');
       if (t.kind === 'failed') setError(`Modellen svarade inte: ${t.message}`);
       if (t.kind === 'reply') {
-        const parts = [t.suggestions ? `${t.suggestions === 1 ? 'Ett förslag' : `${t.suggestions} förslag`} att minnas väntar på dig.` : '', t.sork ? 'Genomgången sparades som ett SORK-kort.' : ''].filter(Boolean);
+        const parts = [t.suggestions ? `${t.suggestions === 1 ? 'Ett förslag' : `${t.suggestions} förslag`} att minnas väntar på dig.` : '', t.sork ? 'Ett utkast till SORK-kort väntar på att du godkänner det.' : ''].filter(Boolean);
         if (parts.length) setNotice(parts.join(' '));
       }
     } finally {
@@ -155,13 +155,20 @@ export function SorkScreen() {
       {!cards.length ? <P style={{ marginTop: space.l }}>Inga SORK-kort än. Berätta i Prata om en händelse du vill förstå bättre.</P> : null}
       {cards.map((c) => (
         <Card key={c.id} style={{ marginTop: space.l }}>
-          <Text style={type.label}>{formatDateSv(c.createdAt.slice(0, 10)).toUpperCase()}</Text>
+          <Row style={{ gap: space.s, alignItems: 'center' }}>
+            <Text style={type.label}>{formatDateSv(c.createdAt.slice(0, 10)).toUpperCase()}</Text>
+            {c.approvedAt ? null : <Tag label="Utkast" />}
+          </Row>
+          {c.approvedAt ? null : <P muted style={{ marginTop: space.xs }}>Föreslaget av språkmodellen. Följer inte med i nästa samtal förrän du godkänt det.</P>}
           {([[SORK_LABELS[0], c.situation], [SORK_LABELS[1], c.organism], [SORK_LABELS[2], c.reaktion], [SORK_LABELS[3], c.konsekvens]] as const).map(([k, v]) => (v ? (
             <View key={k} style={{ marginTop: space.s }}>
               <Text style={[type.body, { fontWeight: '600' }]}>{k}</Text>
               <P>{v}</P>
             </View>
           ) : null))}
+          {c.approvedAt ? null : (
+            <Button title="Stämmer, spara kortet" label={`Godkänn SORK-kortet från ${formatDateSv(c.createdAt.slice(0, 10))}`} onPress={() => approveSork(repo, c.id)} style={{ marginTop: space.m }} />
+          )}
           <Button
             kind="ghost"
             title="Ta bort"
