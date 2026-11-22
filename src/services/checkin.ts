@@ -15,8 +15,9 @@ import { currentMatcher, type AdapterOptions } from './llm';
 
 export interface CheckinInput {
   transcript: string;
-  mood: number;
-  energy: number;
+  /** Null: the person did not move the slider. */
+  mood: number | null;
+  energy: number | null;
   /** Only set when speech was recorded and timed. */
   wordsPerMinute: number | null;
   /** Asked only when the user has medication in grund. Null: not answered. */

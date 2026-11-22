@@ -24,7 +24,8 @@ import { colors, MIN_TOUCH, paletteHex, space, type } from '../theme';
 /** A slider with its value above it (HIG: Sliders). Stämning and energi 1–10; sömn in half hours. */
 function Scale(props: {
   label: string;
-  value: number;
+  /** Null until the person moves it: an untouched slider is no answer (saved as missing). */
+  value: number | null;
   onChange: (v: number) => void;
   low: string;
   high: string;
@@ -44,24 +45,28 @@ function Scale(props: {
   const max = props.max ?? 10;
   const step = props.step ?? 1;
   const show = props.show ?? String;
-  const spoken = props.spoken ?? ((v: number) => `${v} av ${max}`);
+  const spokenOf = props.spoken ?? ((v: number) => `${v} av ${max}`);
+  const set = props.value != null;
+  // Untouched: the thumb rests in the middle, but nothing is shown or saved as an answer.
+  const at = props.value ?? (props.centred ? 0 : Math.round((min + max) / 2));
+  const spoken = (v: number | null) => (v == null ? 'inte angiven' : spokenOf(v));
   return (
     <View style={{ marginBottom: space.l }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Text style={type.label}>{props.label.toUpperCase()}</Text>
         <Text style={[type.h2, { color: colors.accent, flexShrink: 1, textAlign: 'right' }]} accessibilityLabel={`${props.label} ${spoken(props.value)}`}>
-          {show(props.value)}
+          {set ? show(props.value!) : 'Inte angiven'}
         </Text>
       </Row>
-      {props.detail ? <Text style={[type.small, { textAlign: 'right' }]} accessibilityElementsHidden importantForAccessibility="no">{props.detail(props.value)}</Text> : null}
+      {props.detail || !set ? <Text style={[type.small, { textAlign: 'right' }]} accessibilityElementsHidden importantForAccessibility="no">{set ? props.detail!(props.value!) : 'Dra för att ange. Sparas inte annars.'}</Text> : null}
       {/* Web: the arrow keys move the slider one step, Home and End to the ends (WCAG 2.1.1). */}
       <View
         {...(Platform.OS === 'web' ? ({
           focusable: true,
           accessibilityLabel: `${props.label}: ${spoken(props.value)}. Piltangenterna ändrar.`,
           onKeyDown: (e: { key: string; preventDefault: () => void }) => {
-            const next = e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? props.value - step
-              : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? props.value + step
+            const next = e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? at - step
+              : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? at + step
                 : e.key === 'Home' ? min : e.key === 'End' ? max : null;
             if (next == null) return;
             e.preventDefault();
@@ -72,17 +77,17 @@ function Scale(props: {
       <Slider
         accessibilityLabel={props.label}
         accessibilityHint={`Från ${props.low} till ${props.high}`}
-        accessibilityValue={{ min, max, now: props.value, text: spoken(props.value) }}
+        accessibilityValue={{ min, max, now: at, text: spoken(props.value) }}
         // The slider counts from 0: the web slider puts the thumb wrong on a range below zero.
         minimumValue={0}
         maximumValue={max - min}
         step={step}
-        value={props.value - min}
+        value={at - min}
         onValueChange={(v) => props.onChange(Math.round(v / step) * step + min)}
         // The slider takes plain colour strings; pick the pair for the current appearance.
-        minimumTrackTintColor={paletteHex(props.centred ? 'border' : 'accent', scheme)}
+        minimumTrackTintColor={paletteHex(props.centred || !set ? 'border' : 'accent', scheme)}
         maximumTrackTintColor={paletteHex('border', scheme)}
-        thumbTintColor={paletteHex('accent', scheme)}
+        thumbTintColor={paletteHex(set ? 'accent' : 'border', scheme)}
         style={{ height: MIN_TOUCH }}
       />
       </View>
@@ -130,8 +135,9 @@ export function CheckinScreen() {
   const repo = useRepo();
   const nav = useNav();
   const [text, setText] = useState('');
-  const [mood, setMood] = useState(0);
-  const [energy, setEnergy] = useState(5);
+  // Null until moved: an untouched slider is saved as no answer, never as "Balanserad" or 5.
+  const [mood, setMood] = useState<number | null>(null);
+  const [energy, setEnergy] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const hasMedication = repo.contextOf('medication').length > 0;
   const [medication, setMedication] = useState<boolean | null>(null);
