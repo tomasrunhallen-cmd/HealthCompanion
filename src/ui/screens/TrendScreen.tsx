@@ -22,7 +22,7 @@ const PERIOD_KEY = 'trendPeriod';
 const MONTH_NAMES = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
 
 /** One bar's worth: a day, a week or a month, with what a tap on it reads out. */
-interface Point {
+export interface Point {
   key: string;
   /** Under the chart, first and last: "3 nov", "v. 45", "nov". */
   short: string;
@@ -56,7 +56,7 @@ function Axis({ points }: { points: Point[] }) {
  * hue, a 2-point gap between bars, a recessive reference line. Tapping a bar reads out its
  * day, week or month; VoiceOver gets a summary, and the same numbers are in the list.
  */
-function BarChart(props: {
+export function BarChart(props: {
   title?: string;
   points: Point[];
   unit: string;

@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { formatDateSv } from '../../core/analysis/dates';
+import { sleepStressText } from '../../core/analysis/visit';
 import { polarityWord } from '../../core/plan/fields';
 import { sharePdf } from '../../platform/pdf';
 import { levelCounts } from '../../core/report/html';
@@ -20,7 +21,6 @@ export function ShareScreen() {
   const s = visitSummary(repo, Number(days));
   const ps = repo.planSettings();
   const nothing = !choice.levels && !choice.sleepStress && !choice.signs;
-  const dec = (n: number | null) => (n == null ? '–' : String(n).replace('.', ','));
 
   return (
     <Screen
@@ -55,7 +55,7 @@ export function ShareScreen() {
               </View>
             </>
           ) : null}
-          {choice.sleepStress ? <P style={{ marginTop: space.m }}>Snitt: sömn {dec(s.sleepAvg)} timmar, stress {dec(s.stressAvg)}.</P> : null}
+          {choice.sleepStress ? <P style={{ marginTop: space.m }}>{sleepStressText(s)}</P> : null}
           {choice.signs ? (
             <View style={{ marginTop: space.m }}>
               {(['up', 'down'] as const).map((dir) => (

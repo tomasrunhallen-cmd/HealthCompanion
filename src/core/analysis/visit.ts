@@ -42,6 +42,11 @@ export interface VisitSummary {
   counts: Record<Level | 'none', number> & { limitedGreen: number };
   sleepAvg: number | null;
   stressAvg: number | null;
+  /** Nights with sleep and days with stress: apart from the number of check-ins. */
+  sleepNights: number;
+  stressDays: number;
+  /** Mean sleep in the first and second half of the period, so a change is not hidden by the mean. */
+  sleepHalves: { first: number | null; second: number | null };
   /** Signs that gave points, by the direction the plan gives them. */
   signs: Record<Polarity, SignCount[]>;
   /** Routines ticked off: on how many of the days with any tick. */
@@ -124,9 +129,34 @@ export function buildVisitSummary(input: {
     counts,
     sleepAvg: avg(days.map((d) => d.sleepHours).filter((v): v is number => v != null)),
     stressAvg: avg(days.map((d) => d.stressAvg).filter((v): v is number => v != null)),
+    sleepNights: days.filter((d) => d.sleepHours != null).length,
+    stressDays: days.filter((d) => d.stressAvg != null).length,
+    sleepHalves: {
+      first: avg(days.slice(0, Math.floor(days.length / 2)).map((d) => d.sleepHours).filter((v): v is number => v != null)),
+      second: avg(days.slice(Math.floor(days.length / 2)).map((d) => d.sleepHours).filter((v): v is number => v != null)),
+    },
     signs: { up: sorted(signDays.up), down: sorted(signDays.down), both: sorted(signDays.both) },
     routines: routineRows,
     redSteps: redStepsBetween(input.context, addDays(from, -1), input.today),
     topics: input.topics,
   };
+}
+
+const sv = (n: number | null) => (n == null ? '–' : String(n).replace('.', ','));
+
+/**
+ * Sleep and stress in words, with how many nights and days they rest on and how sleep went in
+ * the first and second half: the mean alone hides a change towards the end of the period.
+ */
+export function sleepStressText(s: Pick<VisitSummary, 'days' | 'sleepAvg' | 'stressAvg' | 'sleepNights' | 'stressDays' | 'sleepHalves'>): string {
+  const n = s.days.length;
+  if (!s.sleepNights && !s.stressDays) return `Ingen sömn eller stress registrerad under ${n === 1 ? 'dagen' : `de ${n} dagarna`}.`;
+  const parts: string[] = [];
+  if (s.sleepNights) {
+    const h = s.sleepHalves;
+    const halves = h.first != null && h.second != null ? ` Första halvan ${sv(h.first)} h, andra halvan ${sv(h.second)} h.` : '';
+    parts.push(`Sömn finns för ${s.sleepNights} av ${n} nätter, snitt ${sv(s.sleepAvg)} h.${halves}`);
+  } else parts.push(`Ingen sömn registrerad under ${n === 1 ? 'natten' : `de ${n} nätterna`}.`);
+  parts.push(s.stressDays ? `Stress finns för ${s.stressDays} av ${n} dagar, snitt ${sv(s.stressAvg)}.` : 'Ingen stress registrerad.');
+  return parts.join(' ');
 }

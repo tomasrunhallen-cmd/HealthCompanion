@@ -4,7 +4,8 @@
 import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { formatDateSv } from '../../core/analysis/dates';
-import { LEVEL_DISCLAIMER } from '../../core/analysis/visit';
+import { LEVEL_DISCLAIMER, sleepStressText } from '../../core/analysis/visit';
+import { BarChart } from './TrendScreen';
 import { moodStep } from '../../core/analysis/mood';
 import { polarityWord } from '../../core/plan/fields';
 import { sharePdf } from '../../platform/pdf';
@@ -94,7 +95,18 @@ export function VisitScreen() {
 
       <Section title="Sömn och stress">
         <Card>
-          <P>Snitt: sömn {dec(s.sleepAvg)} timmar, stress {dec(s.stressAvg)}.</P>
+          <P>{sleepStressText(s)}</P>
+          {s.sleepNights ? (
+            <View style={{ marginTop: space.m }}>
+              <BarChart
+                title="Sömn per natt"
+                unit="h"
+                averaged={false}
+                points={s.days.map((d) => ({ key: d.date, short: `${Number(d.date.slice(8))}/${Number(d.date.slice(5, 7))}`, name: formatDateSv(d.date), value: d.sleepHours }))}
+                reference={{ value: repo.planSettings().sleepThresholdHours, label: `Streckad linje: din gräns på ${dec(repo.planSettings().sleepThresholdHours)} h` }}
+              />
+            </View>
+          ) : null}
         </Card>
       </Section>
 

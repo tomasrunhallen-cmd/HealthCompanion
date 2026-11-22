@@ -4,7 +4,7 @@
 import { moodText } from '../core/analysis/mood';
 import { newId } from '../core/analysis/assess';
 import { eveningDateKey, formatDateSv } from '../core/analysis/dates';
-import { buildVisitSummary, LEVEL_DISCLAIMER, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
+import { buildVisitSummary, LEVEL_DISCLAIMER, sleepStressText, type VisitSummary, type VisitTopic } from '../core/analysis/visit';
 import { levelCounts, levelMark, reportHtml, type ReportPart } from '../core/report/html';
 import { polarityWord } from '../core/plan/fields';
 import type { PlanSettings } from '../core/domain/types';
@@ -63,7 +63,7 @@ export function shareHtml(s: VisitSummary, choice: ShareChoice, ps: Pick<PlanSet
     const head = ['Dag', ...(choice.levels ? ['Nivå'] : []), ...(choice.sleepStress ? ['Sömn (h)', 'Stress'] : [])];
     parts.push({ kind: 'table', head, rows: s.days.map((d) => [formatDateSv(d.date), ...(choice.levels ? [levelMark(d.level)] : []), ...(choice.sleepStress ? [dec(d.sleepHours), dec(d.stressAvg)] : [])]) });
   }
-  if (choice.sleepStress) parts.push({ kind: 'text', text: `Snitt: sömn ${dec(s.sleepAvg)} h, stress ${dec(s.stressAvg)}.`, muted: true });
+  if (choice.sleepStress) parts.push({ kind: 'text', text: sleepStressText(s), muted: true });
   if (choice.signs) {
     const sign = (list: { text: string; days: number }[]) => list.map((x) => `${x.text} (${x.days} ${x.days === 1 ? 'dag' : 'dagar'})`);
     parts.push(
