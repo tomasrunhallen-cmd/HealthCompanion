@@ -157,6 +157,10 @@ export function sorkFrom(a: Pick<ChatAnswer, 'sork'>, sessionId: string, now: Da
   return { id: `sork_${now.getTime()}`, createdAt: now.toISOString(), sessionId, situation: parts[0], organism: parts[1], reaktion: parts[2], konsekvens: parts[3] };
 }
 
+/** The four parts in plain Swedish, as the card shows them (Situation, Organism, Reaktion, Konsekvens). */
+export const SORK_LABELS = ['Vad hände', 'Hur du mådde då', 'Vad du tänkte, kände och gjorde', 'Vad som hände sedan'] as const;
+
 export function sorkText(c: SorkCard): string {
-  return [`Situation: ${c.situation}`, c.organism && `Organism: ${c.organism}`, c.reaktion && `Reaktion: ${c.reaktion}`, c.konsekvens && `Konsekvens: ${c.konsekvens}`].filter(Boolean).join('\n');
+  const [s, o, r, k] = SORK_LABELS;
+  return [`${s}: ${c.situation}`, c.organism && `${o}: ${c.organism}`, c.reaktion && `${r}: ${c.reaktion}`, c.konsekvens && `${k}: ${c.konsekvens}`].filter(Boolean).join('\n');
 }

@@ -1,6 +1,6 @@
 ---
 id: samtal-ram
-version: 1.0.0
+version: 1.1.0
 temperature: 0.4
 max_output_tokens: 900
 response: json
@@ -30,7 +30,7 @@ Svara bara med JSON enligt schemat:
 
 - svar: på svenska, med "du", högst 1200 tecken.
 - minne: högst två rader som är nya och viktiga för att förstå personen över tid, till exempel en utlösare eller något som brukar hjälpa. Bara sådant personen själv har sagt, med ett ordagrant citat. Personen godkänner varje rad innan appen sparar den. Oftast är listan tom.
-- sork: fyll i bara när ni tillsammans har gått igenom en SORK-analys och personen har bekräftat den. Annars lämnar du alla fyra tomma.
+- sork: fyll i bara när ni tillsammans har gått igenom en händelse steg för steg och personen har bekräftat sammanfattningen: situation = vad hände, organism = hur personen mådde då, reaktion = vad personen tänkte, kände och gjorde, konsekvens = vad som hände sedan. Annars lämnar du alla fyra tomma.
 
 # User
 

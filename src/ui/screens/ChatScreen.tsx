@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { CODE_PROTECTIONS, chatPrompts, frameForDisplay, roleText, type ChatSession } from '../../core/chat/chat';
+import { CODE_PROTECTIONS, chatPrompts, frameForDisplay, roleText, SORK_LABELS, type ChatSession } from '../../core/chat/chat';
 import { formatDateSv, formatTime } from '../../core/analysis/dates';
 import {
   chatPromptLabel, chatPromptOverride, deleteSession, deleteSork, latestSession, newSession, saveChatPrompt, sendChat, sorkCards,
@@ -51,7 +51,7 @@ export function ChatScreen() {
       if (t.kind === 'no_model') setError('Ingen språkmodell är kopplad. Koppla en under Jag → Språkmodell.');
       if (t.kind === 'failed') setError(`Modellen svarade inte: ${t.message}`);
       if (t.kind === 'reply') {
-        const parts = [t.suggestions ? `${t.suggestions === 1 ? 'Ett förslag' : `${t.suggestions} förslag`} att minnas väntar på dig.` : '', t.sork ? 'En SORK-analys sparades.' : ''].filter(Boolean);
+        const parts = [t.suggestions ? `${t.suggestions === 1 ? 'Ett förslag' : `${t.suggestions} förslag`} att minnas väntar på dig.` : '', t.sork ? 'Genomgången sparades som ett SORK-kort.' : ''].filter(Boolean);
         if (parts.length) setNotice(parts.join(' '));
       }
     } finally {
@@ -110,7 +110,7 @@ export function ChatScreen() {
 
       <View style={{ marginTop: space.l, gap: space.s }}>
         {!session?.messages.length ? (
-          <P muted>Skriv vad du vill prata om. Vill du gå igenom en händelse kan du be om en SORK-analys.</P>
+          <P muted>Skriv vad du vill prata om. Vill du förstå en händelse bättre kan ni gå igenom den steg för steg.</P>
         ) : session.messages.map((m, i) => {
           const mine = m.role === 'user';
           const who = mine ? 'Du' : 'Prata';
@@ -151,12 +151,12 @@ export function SorkScreen() {
   const cards = sorkCards(repo);
   return (
     <Screen title="SORK-kort">
-      <P muted>Analyser du gått igenom i Prata och bekräftat. Situation, Organism (sömn, stress och mående just då), Reaktion och Konsekvens.</P>
-      {!cards.length ? <P style={{ marginTop: space.l }}>Inga SORK-kort än. Be om en SORK-analys i Prata när du vill förstå en händelse.</P> : null}
+      <P muted>Händelser du gått igenom steg för steg i Prata och bekräftat: vad som hände, hur du mådde då, vad du tänkte, kände och gjorde, och vad som hände sedan. Metoden heter SORK.</P>
+      {!cards.length ? <P style={{ marginTop: space.l }}>Inga SORK-kort än. Berätta i Prata om en händelse du vill förstå bättre.</P> : null}
       {cards.map((c) => (
         <Card key={c.id} style={{ marginTop: space.l }}>
           <Text style={type.label}>{formatDateSv(c.createdAt.slice(0, 10)).toUpperCase()}</Text>
-          {([['Situation', c.situation], ['Organism', c.organism], ['Reaktion', c.reaktion], ['Konsekvens', c.konsekvens]] as const).map(([k, v]) => (v ? (
+          {([[SORK_LABELS[0], c.situation], [SORK_LABELS[1], c.organism], [SORK_LABELS[2], c.reaktion], [SORK_LABELS[3], c.konsekvens]] as const).map(([k, v]) => (v ? (
             <View key={k} style={{ marginTop: space.s }}>
               <Text style={[type.body, { fontWeight: '600' }]}>{k}</Text>
               <P>{v}</P>

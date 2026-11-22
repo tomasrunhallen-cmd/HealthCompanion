@@ -76,7 +76,7 @@ describe('the editable description', () => {
     expect(frameForDisplay()).toContain('[Din text, nedan]');
     expect(frameForDisplay()).toContain('Ge inga råd om mediciner');
     expect(roleText(null)).toBe(chatPrompts().standard.system.trim());
-    expect(promptVersionLabel(null)).toBe('samtal-ram 1.0.0 + samtal 1.0.0');
+    expect(promptVersionLabel(null)).toBe('samtal-ram 1.1.0 + samtal 1.1.0');
   });
 
   it('saves the own text with the old one kept, and goes back to the standard', async () => {
@@ -150,7 +150,7 @@ describe('a conversation', () => {
     const sork = { situation: 'Möte på jobbet', organism: 'Sov fem timmar', reaktion: 'Blev arg och gick', konsekvens: 'Lättnad, sedan skam' };
     await sendChat(repo, null, 'Ja, det stämmer', model([{ svar: 'Jag sparar den.', minne: [], sork }]));
     expect(sorkCards(repo)[0]).toMatchObject(sork);
-    expect(chatContext(repo, NOW)).toContain('Situation: Möte på jobbet');
+    expect(chatContext(repo, NOW)).toContain('Vad hände: Möte på jobbet; Hur du mådde då: Sov fem timmar');
   });
 
   it('without a model the message is kept and nothing is sent; a conversation can be deleted', async () => {
@@ -159,5 +159,14 @@ describe('a conversation', () => {
     expect(t.kind).toBe('no_model');
     await deleteSession(repo, t.session.id);
     expect(chatSessions(repo)).toHaveLength(0);
+  });
+});
+
+describe('plain Swedish first (samtal 1.1.0)', () => {
+  it('the standard text asks what happened and keeps method names out unless the person uses them', () => {
+    const t = chatPrompts().standard.system;
+    expect(t).toContain('Vad hände precis innan?');
+    expect(t).toContain('Nämn inte metodnamn som KBT eller SORK om inte personen själv gör det');
+    expect(t).not.toMatch(/Organism:/);
   });
 });
