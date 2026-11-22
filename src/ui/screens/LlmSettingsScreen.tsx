@@ -229,7 +229,7 @@ export function LlmSettingsScreen() {
             <P style={{ marginTop: space.xs }}>{saved.provider === 'openai-compatible' ? `Servern ${saved.baseUrl}` : PROVIDERS[saved.provider!].label}{saved.lastTest ? `. Senaste test: ${saved.lastTest.passed} av ${saved.lastTest.total}.` : '.'}</P>
           </>
         ) : null}
-        <Text style={[type.label, { marginTop: space.m }]}>DET HÄR SKICKAS</Text>
+        <Text style={[type.label, { marginTop: space.m }]}>{active ? 'DET HÄR SKICKAS' : 'DET HÄR SKICKAS OM DU SLÅR PÅ AI-STÖD'}</Text>
         <P style={{ marginTop: space.xs }}>Kvällens anteckning, dina tecken, ditt normalläge och mätvärden, rensade från namn, nummer och adresser. I Prata också samtalet och en sammanfattning ur appen.</P>
         <P muted style={{ marginTop: space.xs }}>Skickas aldrig: dina önskemål, kontakter, råd till vården, texter som akutregeln stoppat och rader i planen om akut fara.</P>
       </Card>
@@ -355,7 +355,7 @@ export function LlmSettingsScreen() {
         </Section>
       ) : null}
 
-      <Section title="Avancerat: kostnad">
+      <Disclosure title="Avancerat: kostnad" detail="Tokens de senaste 30 dagarna och en uppskattning">
         <Card>
           <P>
             Senaste 30 dagarna: {formatTokens(cost.inputTokens)} tokens in och {formatTokens(cost.outputTokens)} ut.
@@ -379,7 +379,7 @@ export function LlmSettingsScreen() {
             </View>
           </Row>
         </Card>
-      </Section>
+      </Disclosure>
 
       {saved.provider ? (
         <Section title="Koppla bort">
