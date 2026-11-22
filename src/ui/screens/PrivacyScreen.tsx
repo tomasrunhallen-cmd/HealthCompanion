@@ -3,6 +3,7 @@ import { Text, Linking } from 'react-native';
 import { PROVIDERS } from '../../adapter/providers';
 import { hasConsent, isLocalDestination } from '../../llm/config';
 import { MEDICAL_REMINDER, PRIVACY_POLICY_URL } from '../../legal';
+import { storageText } from '../../core/privacy/storageText';
 import { Button, Card, P, Screen, Section } from '../components';
 import { useRepo } from '../state';
 import { colors, space, type } from '../theme';
@@ -20,21 +21,21 @@ const FLOW: { title: string; text: string }[] = [
 export function PrivacyScreen() {
   const repo = useRepo();
   const info = repo.storageInfo();
+  const st = storageText(info);
   const llm = repo.llmConfig();
   const active = !!llm.provider && hasConsent(llm);
   const destination = !active || !llm.provider
-    ? 'Ingen text lämnar telefonen. Bedömningen görs med ordmatchning.'
+    ? `Ingen text lämnar ${info.kind === 'sqlite' ? 'telefonen' : 'den här enheten'}. Bedömningen görs med ordmatchning.`
     : isLocalDestination(llm.provider, llm.baseUrl)
       ? `Rensad text går till din egen server ${llm.baseUrl}. Den lämnar inte dina enheter.`
       : `Rensad text går till ${llm.provider === 'openai-compatible' ? llm.baseUrl : PROVIDERS[llm.provider].label} (${llm.model}) när du gör kvällens avstämning eller importerar en krisplan.`;
   return (
     <Screen title="Integritet" back>
-      <Card tone={info.encrypted ? 'green' : 'yellow'}>
-        <Text style={type.h2}>Lagring på den här enheten</Text>
+      <Card tone={info.kind === 'cloud' || info.encrypted ? 'green' : 'yellow'}>
+        <Text style={type.label}>{st.mode.toUpperCase()}</Text>
+        <Text style={[type.h2, { marginTop: space.xs }]}>{st.heading}</Text>
         <P style={{ marginTop: space.xs }}>{info.detail}</P>
-        <P muted style={{ marginTop: space.xs }}>
-          Kryptering: {info.encrypted === true ? 'på (SQLCipher)' : info.encrypted === false ? 'av' : 'okänd'}
-        </P>
+        <P muted style={{ marginTop: space.xs }}>{st.encryption}</P>
       </Card>
 
       <Card tone={active ? 'accent' : 'green'}>
@@ -43,8 +44,8 @@ export function PrivacyScreen() {
       </Card>
 
       <Section title="Vart din data tar vägen">
-        {FLOW.map((f) => (info.kind === 'cloud' && f.title === 'Krisplan, anteckningar och bedömningar'
-          ? { ...f, text: 'I webbversionen: i ditt eget Firebase-projekt, bakom din inloggning, och i den här webbläsaren. Allt krypteras i webbläsaren med en nyckel från ditt lösenord innan det sparas, så Firebase och Google ser bara krypterad data. Lösenordet lämnar aldrig webbläsaren.' }
+        {FLOW.map((f) => (f.title === 'Krisplan, anteckningar och bedömningar'
+          ? { ...f, text: st.where }
           : info.kind === 'cloud' && f.title === 'Garmin'
             ? { ...f, text: `${f.text} I webbversionen går hämtningen via appens egen funktion på Netlify, eftersom Garmin inte tar emot anrop från webbläsare. Funktionen sparar ingenting.` }
             : f
