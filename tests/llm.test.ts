@@ -160,10 +160,26 @@ describe('Mistral and OpenAI-compatible adapter', () => {
   });
 
   it('reports network failure without leaking the key', async () => {
-    const f: FetchLike = async () => { throw new TypeError('Network request failed'); };
-    const a = chatCompletionsAdapter({ provider: 'mistral', model: 'm', apiKey: 'secret-key', fetch: f });
+    let calls = 0;
+    const f: FetchLike = async () => { calls++; throw new TypeError('Network request failed'); };
+    const waits: number[] = [];
+    const a = chatCompletionsAdapter({ provider: 'mistral', model: 'm', apiKey: 'secret-key', fetch: f, sleep: async (ms) => void waits.push(ms) });
     await expect(a.send(REQ)).rejects.toMatchObject({ kind: 'network' });
     await a.send(REQ).catch((e) => expect(String(e.message)).not.toContain('secret-key'));
+    // Two more tries, a little apart, before giving up.
+    expect(calls).toBe(6);
+    expect(waits.slice(0, 2)).toEqual([2000, 4000]);
+  });
+
+  it('asks Anthropic again after an empty answer, and says when the model declined', async () => {
+    const empty = { status: 200, body: { content: [], stop_reason: 'end_turn' } };
+    const f = fakeFetch([empty, { status: 200, body: { content: [{ type: 'text', text: ANSWER }] } }]);
+    await anthropicAdapter({ provider: 'anthropic', model: 'claude-haiku-5-5', apiKey: 'k', fetch: f }).send(REQ);
+    expect(f.calls).toHaveLength(2);
+    const g = fakeFetch([{ status: 200, body: { content: [], stop_reason: 'refusal' } }]);
+    await expect(anthropicAdapter({ provider: 'anthropic', model: 'claude-haiku-5-5', apiKey: 'k', fetch: g }).send(REQ))
+      .rejects.toMatchObject({ kind: 'empty', message: expect.stringContaining('avböjde') });
+    expect(g.calls).toHaveLength(1);
   });
 
   it('runs a whole completion with schema check through Mistral', async () => {

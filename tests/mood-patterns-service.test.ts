@@ -162,8 +162,9 @@ describe('the explanation from a language model', () => {
     const { repo } = await repoWith([up(330), up(240), up(150), up(60)]);
     await withModel(repo);
     const fetch: FetchLike = async () => { throw new Error('offline'); };
-    await runPatterns(repo, NOW, { fetch });
-    await setPatternExplanations(repo, true, { fetch });
+    const sleep = async () => {};
+    await runPatterns(repo, NOW, { fetch, sleep });
+    await setPatternExplanations(repo, true, { fetch, sleep });
     expect(shownFindings(repo)[0].explanation).toBeNull();
   });
 

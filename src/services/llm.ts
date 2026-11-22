@@ -25,6 +25,8 @@ export interface AdapterOptions {
   browser?: boolean;
   /** Clock for dating token use; the check-in passes its own time. */
   now?: () => Date;
+  /** Waiting before a call is made again (tests pass one that does not wait). */
+  sleep?: (ms: number) => Promise<void>;
   /** The crisis plan import may use a model of its own (LlmConfig.importModel). */
   purpose?: 'evening' | 'import';
 }
@@ -48,6 +50,7 @@ export function buildAdapter(
     fetch: opts.fetch,
     // In a web browser Anthropic needs its browser header, or the browser stops the call.
     browser: opts.browser ?? typeof document !== 'undefined',
+    sleep: opts.sleep,
   });
 }
 
@@ -215,8 +218,11 @@ export async function runModelTest(
       akut: null,
     });
     onProgress?.(cases.length, suite.cases.length);
-    // A wrong key or address fails every case the same way; stop early and save tokens.
-    if (error && /nyckel|adress|kontakt|hittade inte/i.test(error)) break;
+    // A wrong key or address fails every case the same way; stop early and save tokens. Once the
+    // model has answered, the key and address work, and a lost connection is only that case.
+    const answeredBefore = cases.some((x) => x.got != null && x.akut == null);
+    if (error && /nyckel|adress|hittade inte/i.test(error)) break;
+    if (error && /kontakt/i.test(error) && !answeredBefore) break;
   }
   const passed = cases.filter((c) => c.ok).length;
   return {

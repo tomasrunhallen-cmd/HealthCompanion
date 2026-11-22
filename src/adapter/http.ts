@@ -44,6 +44,8 @@ export interface AdapterConfig {
   browser?: boolean;
   /** How many times a call that hit a rate limit is made again after waiting (default 3), and the wait (tests). */
   rateLimitTries?: number;
+  /** How many times a call that got no connection is made again (default 2). */
+  networkTries?: number;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -93,6 +95,12 @@ async function post(
     });
   } catch (e) {
     if ((e as Error)?.name === 'AbortError') throw new LlmHttpError('timeout', `${label} svarade inte i tid.`);
+    // A dropped connection on a phone is often gone a moment later: try twice more before giving up.
+    const tries = cfg.networkTries ?? 2;
+    if (tries > 0) {
+      await (cfg.sleep ?? defaultSleep)(tries === 2 ? 2_000 : 4_000);
+      return post({ ...cfg, networkTries: tries - 1 }, label, url, headers, body);
+    }
     throw new LlmHttpError('network', `Ingen kontakt med ${label}. Kontrollera nätet och adressen.`, null, String((e as Error)?.message ?? e));
   } finally {
     if (timer) clearTimeout(timer);
@@ -159,17 +167,28 @@ export function anthropicAdapter(cfg: AdapterConfig): LlmAdapter {
         }
         return body;
       };
-      let data: any;
-      try {
-        data = await post(cfg, label, `${base}/v1/messages`, headers, build());
-      } catch (e) {
-        if (!sendTemperature || !rejects(e, 'temperature')) throw e;
-        sendTemperature = false;
-        data = await post(cfg, label, `${base}/v1/messages`, headers, build());
+      const call = async () => {
+        try {
+          return await post(cfg, label, `${base}/v1/messages`, headers, build());
+        } catch (e) {
+          if (!sendTemperature || !rejects(e, 'temperature')) throw e;
+          sendTemperature = false;
+          return post(cfg, label, `${base}/v1/messages`, headers, build());
+        }
+      };
+      const textOf = (d: any) => (Array.isArray(d?.content) ? d.content : []).filter((b: any) => b?.type === 'text').map((b: any) => String(b.text ?? '')).join('');
+      let data: any = await call();
+      let text = textOf(data);
+      // An empty answer is sometimes just that once: ask again before giving up, unless the model declined.
+      if (!text && data?.stop_reason !== 'refusal') {
+        data = await call();
+        text = textOf(data);
       }
-      const blocks: any[] = Array.isArray(data?.content) ? data.content : [];
-      const text = blocks.filter((b) => b?.type === 'text').map((b) => String(b.text ?? '')).join('');
-      if (!text) throw new LlmHttpError('empty', `${label} gav ett tomt svar.`);
+      if (!text) {
+        throw new LlmHttpError('empty', data?.stop_reason === 'refusal'
+          ? `${label} avböjde att svara på texten.`
+          : `${label} gav ett tomt svar${data?.stop_reason ? ` (${data.stop_reason})` : ''}.`, null, String(data?.stop_reason ?? ''));
+      }
       const usage: Usage = { inputTokens: num(data?.usage?.input_tokens), outputTokens: num(data?.usage?.output_tokens) };
       return { text, usage };
     },
