@@ -379,7 +379,7 @@ export function score(input: ScoreInput): ScoreResult {
     signals.push({
       kind: 'sleep_low',
       points: viaSign ? 0 : RULES.points.measured,
-      label: `Sömn ${sv(entry.sleepHours)} h, under din gräns på ${sv(planSettings.sleepThresholdHours)} h${src}${viaSign ? ', räknas redan genom ditt tecken' : ''}`,
+      label: `Sömn ${sv(entry.sleepHours)} h, under gränsen för sömntecken, ${sv(planSettings.sleepThresholdHours)} h${src}${viaSign ? ', räknas redan genom ditt tecken' : ''}`,
       measured: true,
     });
     // Yesterday's sleep from Garmin when there is no entry, so a silent day still counts.

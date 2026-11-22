@@ -7,7 +7,7 @@ import { destinationKey, estimateMonthlyCost, hasConsent, importModelOf, isLocal
 import { secretsPersist } from '../../platform/secrets';
 import { deleteKey, getKey, keysSync, setKey } from '../../services/keys';
 import { buildAdapter, differingCases, LLM_KEY_NAME, runModelTest, type CaseResult, type ModelTestReport } from '../../services/llm';
-import { Button, Card, Chip, Field, P, Row, Screen, Section } from '../components';
+import { Button, Card, Chip, Disclosure, Field, P, Row, Screen, Section } from '../components';
 import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, space, type } from '../theme';
 
@@ -216,15 +216,25 @@ export function LlmSettingsScreen() {
         </Card>
       ) : null}
       <Card tone={active && !keyMissing ? 'green' : undefined}>
-        <Text style={type.h2}>{active ? `${PROVIDERS[saved.provider!].label}: ${saved.model}` : 'Ingen språkmodell'}</Text>
-        <P muted style={{ marginTop: space.xs }}>
+        <Text style={type.label}>AI-STÖD</Text>
+        <Text style={[type.h2, { marginTop: space.xs }]}>{active ? 'På' : 'Av'}</Text>
+        <P style={{ marginTop: space.xs }}>
           {active
-            ? `Tolkar din anteckning mot dina tecken. Nivån räknas alltid i appen.${saved.lastTest ? ` Senaste test: ${saved.lastTest.passed} av ${saved.lastTest.total}.` : ''}`
+            ? 'Letar efter dina tecken i kvällens anteckning, och används i Prata om du skriver där. Nivån räknas alltid i appen.'
             : 'Appen jämför din anteckning med dina tecken genom ordmatchning på telefonen. Ingen text lämnar telefonen.'}
         </P>
+        {active ? (
+          <>
+            <Text style={[type.label, { marginTop: space.m }]}>MOTTAGARE</Text>
+            <P style={{ marginTop: space.xs }}>{saved.provider === 'openai-compatible' ? `Servern ${saved.baseUrl}` : PROVIDERS[saved.provider!].label}{saved.lastTest ? `. Senaste test: ${saved.lastTest.passed} av ${saved.lastTest.total}.` : '.'}</P>
+          </>
+        ) : null}
+        <Text style={[type.label, { marginTop: space.m }]}>DET HÄR SKICKAS</Text>
+        <P style={{ marginTop: space.xs }}>Kvällens anteckning, dina tecken, ditt normalläge och mätvärden, rensade från namn, nummer och adresser. I Prata också samtalet och en sammanfattning ur appen.</P>
+        <P muted style={{ marginTop: space.xs }}>Skickas aldrig: dina önskemål, kontakter, råd till vården, texter som akutregeln stoppat och rader i planen om akut fara.</P>
       </Card>
 
-      <Section title="Leverantör">
+      <Section title="Vart texten går">
         <Row style={{ gap: 6 }}>
           {PROVIDER_ORDER.map((p) => (
             <Chip key={p} label={PROVIDERS[p].label} selected={provider === p} onPress={() => pickProvider(p)} />
@@ -238,18 +248,6 @@ export function LlmSettingsScreen() {
       </Section>
 
       <Section title="Inställningar">
-        {info.needsBaseUrl ? (
-          <Field
-            label="ADRESS (BAS-URL)"
-            value={baseUrl}
-            onChangeText={setBaseUrl}
-            placeholder="http://192.168.1.20:11434/v1"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            hint={baseUrl.trim() ? (local ? 'Din egen server: texten lämnar inte dina enheter.' : 'Adressen ligger utanför ditt nätverk.') : undefined}
-          />
-        ) : null}
 
         {usingSavedKey ? (
           <Card>
@@ -269,6 +267,19 @@ export function LlmSettingsScreen() {
           />
         )}
 
+        <Disclosure title="Avancerat" detail={`Modell ${model.trim() || 'inte vald'}${info.needsBaseUrl ? ` · ${baseUrl.trim() || 'ingen adress'}` : ''}`} defaultOpen={!model.trim() || (info.needsBaseUrl && !baseUrl.trim())}>
+        {info.needsBaseUrl ? (
+          <Field
+            label="ADRESS (BAS-URL)"
+            value={baseUrl}
+            onChangeText={setBaseUrl}
+            placeholder="http://192.168.1.20:11434/v1"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            hint={baseUrl.trim() ? (local ? 'Din egen server: texten lämnar inte dina enheter.' : 'Adressen ligger utanför ditt nätverk.') : undefined}
+          />
+        ) : null}
         <Field
           label="MODELL"
           value={model}
@@ -286,6 +297,7 @@ export function LlmSettingsScreen() {
           </Row>
         ) : null}
 
+        </Disclosure>
         <Button title="Testa modellen" onPress={runTest} busy={busy} disabled={busy} />
         {progress ? <P muted style={{ textAlign: 'center' }}>{progress}</P> : null}
         {missing && !busy ? <P muted>{missing}</P> : null}
@@ -343,7 +355,7 @@ export function LlmSettingsScreen() {
         </Section>
       ) : null}
 
-      <Section title="Kostnad">
+      <Section title="Avancerat: kostnad">
         <Card>
           <P>
             Senaste 30 dagarna: {formatTokens(cost.inputTokens)} tokens in och {formatTokens(cost.outputTokens)} ut.

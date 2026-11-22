@@ -386,7 +386,7 @@ export function TrendScreen() {
             <Button kind="ghost" title="Hämta från Garmin" hint="Öppnar Garmin, där ett år bakåt kan hämtas" onPress={() => nav.push({ name: 'garmin' })} />
           </Card>
         ) : null}
-        <BarChart title="Sömn" points={point((b) => b.sleepHours)} unit="h" averaged={averaged} reference={{ value: limit, label: `Streckad linje: din gräns på ${dec(limit)} h` }} />
+        <BarChart title="Sömn" points={point((b) => b.sleepHours)} unit="h" averaged={averaged} reference={{ value: limit, label: `Streckad linje: gräns för sömntecken, ${dec(limit)} h` }} />
         <BarChart title="Stress" points={point((b) => b.stressAvg)} unit="" averaged={averaged} reference={{ value: RULES.stressHighAt, label: `Streckad linje: ${RULES.stressHighAt}, gränsen för hög stress` }} />
       </Section>
 

@@ -298,7 +298,7 @@ describe('check-in with Garmin and a language model', () => {
     expect(user).toContain('torsdag 29 oktober: sömn 7,2 h, somnade 23:10, stress 30');
     expect(user).not.toContain('Kim');
     // The model's sentence is never shown over the level (15 November 2026): the app's own is.
-    expect(assessment.sentence).toBe('Det som stack ut i dag: sömn 4,5 h, under din gräns på 5 h.');
+    expect(assessment.sentence).toBe('Det som stack ut i dag: sömn 4,5 h, under gränsen för sömntecken, 5 h.');
     // 4.5 h under the 5 h limit, and asleep at 02:40 with no entry the evening before.
     expect(assessment.signals.map((s) => s.kind).sort()).toEqual(['late_sleep_no_entry', 'sleep_low']);
     expect(assessment.level).toBe('yellow');

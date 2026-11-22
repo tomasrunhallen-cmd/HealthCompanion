@@ -27,12 +27,12 @@ export async function offerSleepWindow(
   const limit = Math.max(4, Math.round((windowHours(sleep.start, sleep.end) - 2) * 2) / 2);
   const now = repo.planSettings().sleepThresholdHours;
   const use = await dialog.confirm({
-    title: `Använda sömnfönstret ${sleep.start}–${sleep.end}?`,
+    title: `Räkna gränsen för sömntecken från din sovtid ${sleep.start}–${sleep.end}?`,
     message:
       `Planen säger ”${sleep.text}”. Appen kan räkna sömn under ${String(limit).replace('.', ',')} timmar som ett tidigt tecken, ` +
-      `i stället för ${String(now).replace('.', ',')} timmar i dag. Gränsen är fönstret minus två timmar. Det är appens tolkning, ` +
-      'inte planens, och du kan ändra gränsen under Sömn i Min krisplan.',
-    confirmLabel: 'Använd sömnfönstret',
+      `i stället för ${String(now).replace('.', ',')} timmar i dag. Gränsen för sömntecken blir sovtiden minus två timmar. Det är appens tolkning, ` +
+      'inte planens, och du kan ändra gränsen för sömntecken under Sömn i Min krisplan.',
+    confirmLabel: 'Använd min sovtid',
   });
   if (use) await repo.updatePlanSettings({ sleepWindow: { start: sleep.start, end: sleep.end }, sleepThresholdHours: limit });
 }
@@ -193,16 +193,16 @@ export function PlanScreen() {
           sign, and the sleep the plan aims for. Changing one never changes the other quietly. */}
       <Section title="Sömn">
         <Card>
-          <Text style={[type.body, { fontWeight: '600' }]}>Sömn under detta ger ett tecken</Text>
+          <Text style={[type.body, { fontWeight: '600' }]}>Gräns för sömntecken</Text>
           <Row>
             <Button kind="secondary" title="−" label="Sänk gränsen en halvtimme" onPress={() => { const v = Math.max(2, threshold - 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
-            <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]} accessibilityLabel={`Sömngräns ${threshold} timmar`}>{String(threshold).replace('.', ',')} h</Text>
+            <Text style={[type.h2, { minWidth: 80, textAlign: 'center' }]} accessibilityLabel={`Gräns för sömntecken ${threshold} timmar`}>{String(threshold).replace('.', ',')} h</Text>
             <Button kind="secondary" title="+" label="Höj gränsen en halvtimme" onPress={() => { const v = Math.min(10, threshold + 0.5); setThreshold(v); repo.updatePlanSettings({ sleepThresholdHours: v }); }} />
           </Row>
-          <P muted>Kortare sömn räknas som ett tidigt tecken.</P>
-          <Text style={[type.body, { fontWeight: '600', marginTop: space.m }]}>Sovtid jag vill hålla</Text>
+          <P muted>Sömn under gränsen räknas som ett tidigt tecken och påverkar färgen.</P>
+          <Text style={[type.body, { fontWeight: '600', marginTop: space.m }]}>Min sovtid</Text>
           {ps.sleepWindow ? (
-            <P>{ps.sleepWindow.start}–{ps.sleepWindow.end}, ur planens rutiner. Den ändrar inte gränsen ovan.</P>
+            <P>{ps.sleepWindow.start}–{ps.sleepWindow.end}, ur planens rutiner. En rutin att följa; den ändrar inte gränsen för sömntecken.</P>
           ) : (
             <P muted>Ingen. Står en sovtid bland planens rutiner, till exempel ”Sömn 22:30–07:00”, föreslås den här.</P>
           )}

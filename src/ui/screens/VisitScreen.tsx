@@ -103,7 +103,7 @@ export function VisitScreen() {
                 unit="h"
                 averaged={false}
                 points={s.days.map((d) => ({ key: d.date, short: `${Number(d.date.slice(8))}/${Number(d.date.slice(5, 7))}`, name: formatDateSv(d.date), value: d.sleepHours }))}
-                reference={{ value: repo.planSettings().sleepThresholdHours, label: `Streckad linje: din gräns på ${dec(repo.planSettings().sleepThresholdHours)} h` }}
+                reference={{ value: repo.planSettings().sleepThresholdHours, label: `Streckad linje: gräns för sömntecken, ${dec(repo.planSettings().sleepThresholdHours)} h` }}
               />
             </View>
           ) : null}

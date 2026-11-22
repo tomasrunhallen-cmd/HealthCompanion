@@ -16,7 +16,9 @@ import { signOutUser } from '../../cloud/firebase';
 import { healthAvailable } from '../../platform/health';
 import { PACE_TEXT } from '../../core/analysis/signals';
 import { DAY_SUGGESTION_KEY, modelSuggestionsOn } from '../../services/daySuggestion';
-import { Button, Segmented, Toggle, Card, Field, P, Row, Screen, Section } from '../components';
+import { Button, Segmented, Toggle, Card, Disclosure, Field, P, Row, Screen, Section } from '../components';
+import { storageText } from '../../core/privacy/storageText';
+import { rhythmMode } from '../../services/rhythm';
 import { useNav } from '../nav';
 import { useDialog, useRepo } from '../state';
 import { colors, MIN_TOUCH, space, type } from '../theme';
@@ -136,9 +138,9 @@ export function SettingsScreen() {
 
   const doWipe = async () => {
     const ok = await dialog.confirm({
-      title: 'Radera allt?',
-      message: 'Krisplan, anteckningar, bedömningar, inställningar, Garmin-värden och nycklarna till språkmodellen och Garmin raderas från telefonen. Det går inte att ångra.',
-      confirmLabel: 'Radera allt',
+      title: 'Radera alla uppgifter?',
+      message: `${st.wipe} Det går inte att ångra.`,
+      confirmLabel: 'Radera alla uppgifter',
       danger: true,
     });
     if (!ok) return;
@@ -149,9 +151,12 @@ export function SettingsScreen() {
     nav.reset();
   };
 
+  const st = storageText(repo.storageInfo());
+  const routineReminders = repo.contextOf('routine').filter((e) => e.routine?.reminder).length;
   return (
     <Screen title="Inställningar" back>
-      <Section title="Påminnelser">
+      <P muted>Tryck på ett område för att se och ändra det.</P>
+      <Disclosure title="Påminnelser" detail={`Kvällspåminnelse · ${s.reminderEnabled ? `${pad(s.reminderHour)}.${pad(s.reminderMinute)}` : 'av'} · Rutiner · ${routineReminders} med påminnelse`}>
         <Card>
           {reminderViaCalendar ? (
             <Text style={[type.body, { fontWeight: '600' }]}>Påminn mig på kvällen via telefonens kalender</Text>
@@ -202,12 +207,18 @@ export function SettingsScreen() {
             </>
           ) : null}
           </View>
-          <P muted style={{ marginTop: space.m }}>Påminnelser för enskilda rutiner ställer du in under Rutiner.</P>
+          <Text style={[type.body, { fontWeight: '600', marginTop: space.l }]}>Rutinernas påminnelser</Text>
+          <P muted>{routineReminders ? `${routineReminders} ${routineReminders === 1 ? 'rutin har' : 'rutiner har'} en egen påminnelse.` : 'Ingen rutin har en egen påminnelse.'} Du ställer in dem per rutin under Rutiner.</P>
           <Button kind="ghost" title="Rutinernas påminnelser" onPress={() => nav.push({ name: 'routines' })} />
+          <P muted style={{ marginTop: space.s }}>
+            {reminderViaCalendar
+              ? 'Kalenderpåminnelser ändrar eller tar du bort i telefonens kalender, inte här. Tysta timmar påverkar dem inte.'
+              : 'Tysta timmar gäller bara appens egna notiser. Kvällspåminnelsen och rutinernas påminnelser, som du själv ställt in, kommer som vanligt.'}
+          </P>
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Profilförslag">
+      <Disclosure title="Profilförslag" detail={PACE_TEXT[s.suggestionPace ?? 'direct']}>
         <Card>
           <Segmented
             label="Profilförslag visas"
@@ -217,9 +228,9 @@ export function SettingsScreen() {
           />
           <Text style={[type.small, { marginTop: space.xs }]}>Förslag till din profil, till exempel nya formuleringar eller tidigare perioder. En gång i veckan betyder på måndagar. Bara inför återbesök betyder att de bara visas under Inför återbesök.</Text>
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Applås">
+      <Disclosure title="Applås" detail={s.appLockEnabled && lock?.available ? 'på' : 'av'}>
         <Card>
           <Toggle
             label={usesPin ? 'Lås med kod' : 'Lås med Face ID, fingeravtryck eller kod'}
@@ -243,9 +254,9 @@ export function SettingsScreen() {
             </View>
           ) : null}
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Språkmodell">
+      <Disclosure title="AI-stöd" detail={llm.provider && hasConsent(llm) ? `på · ${PROVIDERS[llm.provider].label}` : 'av · ordmatchning på telefonen'}>
         <Card>
           <P>
             {llmProblem === 'key'
@@ -277,9 +288,9 @@ export function SettingsScreen() {
             </>
           ) : null}
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Klocka och källor">
+      <Disclosure title="Klocka och källor" detail={`Garmin · ${garmin.connected ? 'ansluten' : 'inte ansluten'} · Dygnsrytm · ${({ off: 'av', show: 'visas', use: 'används' } as const)[rhythmMode(repo)]}`}>
         <Card>
           <Text style={[type.body, { fontWeight: '600' }]}>Garmin</Text>
           <P muted>
@@ -295,9 +306,9 @@ export function SettingsScreen() {
             Sömn och stress: det du själv anger i avstämningen går före klockans värde{healthAvailable ? ', och klockan går före Apple Hälsa' : ''}. Bedömningen visar alltid vilken källa som användes.
           </P>
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Namn att rensa bort">
+      <Disclosure title="Namn att rensa bort" detail={s.scrubNames.length ? `${s.scrubNames.length} ${s.scrubNames.length === 1 ? 'namn' : 'namn'}` : 'listan är tom'}>
         <Card>
           <P muted>
             Partner, föräldrar, vårdkontakt, kollegor. Namnen byts mot [NAMN] innan text skickas till en språkmodell.
@@ -330,7 +341,7 @@ export function SettingsScreen() {
             />
           </View>
         </Card>
-      </Section>
+      </Disclosure>
 
       {repo.storageInfo().kind === 'cloud' ? (
         <Section title="Konto">
@@ -350,39 +361,45 @@ export function SettingsScreen() {
         </Section>
       ) : null}
 
-      <Section title="Importera från annan dagbok">
+      <Disclosure title="Importera från annan dagbok" detail={'Bipolär dagbok'}>
         <Card>
           <P muted>Årsrapporter från Bipolär dagbok, med Garmin för samma period. Du kopplar dagbokens punkter till dina tecken innan något sparas.</P>
           <Button kind="secondary" title="Importera dagbok" onPress={() => nav.push({ name: 'importDiary' })} />
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Exportera allt">
+      <Disclosure title="Dela underlag med vården" detail="Inför återbesök och Visa för någon, utan dina anteckningar">
         <Card>
+          <P muted>En sammanfattning av perioden som du själv visar eller sparar som PDF. Anteckningarna följer aldrig med.</P>
+          <Button kind="secondary" title="Inför återbesök" onPress={() => nav.push({ name: 'visit' })} />
+          <Button kind="ghost" title="Visa för någon" onPress={() => nav.push({ name: 'share' })} />
+        </Card>
+      </Disclosure>
+
+      <Disclosure title="Säkerhetskopiera appen" detail="En krypterad fil du sparar själv, och återställning från den">
+        <Card>
+          <Text style={[type.body, { fontWeight: '600' }]}>Spara en säkerhetskopia</Text>
           <P muted>
             En krypterad fil med all din data. Du väljer själv var den sparas. Utan lösenordet går filen inte att öppna.
           </P>
           <View style={{ marginTop: space.m }}>
             <Field label="LÖSENORD (MINST 8 TECKEN)" value={pw} onChangeText={setPw} secureTextEntry autoCapitalize="none" />
             <Field label="SAMMA LÖSENORD IGEN" value={pw2} onChangeText={setPw2} secureTextEntry autoCapitalize="none" />
-            <Button title="Exportera allt" onPress={doExport} busy={busy === 'export'} />
+            <Button title="Spara säkerhetskopia" onPress={doExport} busy={busy === 'export'} />
           </View>
-        </Card>
-      </Section>
-
-      <Section title="Återställ från export">
-        <Card>
+          <Text style={[type.body, { fontWeight: '600', marginTop: space.l }]}>Återställ från en säkerhetskopia</Text>
+          <P muted>Allt som finns i appen nu ersätts av kopian.</P>
           <Field label="EXPORTENS LÖSENORD" value={importPw} onChangeText={setImportPw} secureTextEntry autoCapitalize="none" />
           <Button kind="secondary" title="Välj exportfil" disabled={!importPw} onPress={doImport} busy={busy === 'import'} />
         </Card>
-      </Section>
+      </Disclosure>
 
-      <Section title="Radera allt">
+      <Disclosure title="Radera alla uppgifter" detail={st.mode}>
         <Card>
-          <P muted>Tar bort all data, databasnyckeln och nycklarna till språkmodellen och Garmin från telefonen.</P>
-          <Button kind="danger" title="Radera allt" onPress={doWipe} />
+          <P muted>{st.wipe}</P>
+          <Button kind="danger" title="Radera alla uppgifter" onPress={doWipe} />
         </Card>
-      </Section>
+      </Disclosure>
     </Screen>
   );
 }
