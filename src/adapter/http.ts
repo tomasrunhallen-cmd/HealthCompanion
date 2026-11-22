@@ -154,7 +154,12 @@ export function chatCompletionsAdapter(cfg: AdapterConfig): LlmAdapter {
   const info = PROVIDERS[cfg.provider];
   const label = cfg.provider === 'openai-compatible' ? 'Servern' : info.label;
   const base = normalizeBaseUrl(cfg.provider === 'openai-compatible' ? cfg.baseUrl ?? '' : cfg.baseUrl || info.baseUrl);
+  // Some servers refuse a parameter: JSON mode, max_tokens (newer OpenAI models want
+  // max_completion_tokens) or a temperature other than their default. Each refusal is
+  // remembered, and the call is made again without it.
   let jsonMode = true;
+  let tokenParam: 'max_tokens' | 'max_completion_tokens' = 'max_tokens';
+  let sendTemperature = true;
   return {
     provider: cfg.provider,
     model: cfg.model,
@@ -170,19 +175,24 @@ export function chatCompletionsAdapter(cfg: AdapterConfig): LlmAdapter {
             { role: 'system', content: req.system },
             { role: 'user', content: userText(req) },
           ],
-          temperature: req.temperature,
-          max_tokens: req.maxOutputTokens,
+          [tokenParam]: req.maxOutputTokens,
         };
+        if (sendTemperature) body.temperature = req.temperature;
         if (req.json && jsonMode) body.response_format = { type: 'json_object' };
         return body;
       };
       let data: any;
-      try {
-        data = await post(cfg, label, `${base}/chat/completions`, headers, build());
-      } catch (e) {
-        if (!(req.json && jsonMode && rejects(e, 'response_format'))) throw e;
-        jsonMode = false;
-        data = await post(cfg, label, `${base}/chat/completions`, headers, build());
+      for (let attempt = 0; ; attempt++) {
+        try {
+          data = await post(cfg, label, `${base}/chat/completions`, headers, build());
+          break;
+        } catch (e) {
+          if (attempt >= 3) throw e;
+          if (req.json && jsonMode && rejects(e, 'response_format')) jsonMode = false;
+          else if (tokenParam === 'max_tokens' && rejects(e, 'max_tokens')) tokenParam = 'max_completion_tokens';
+          else if (sendTemperature && rejects(e, 'temperature')) sendTemperature = false;
+          else throw e;
+        }
       }
       const content = data?.choices?.[0]?.message?.content;
       const text = typeof content === 'string'

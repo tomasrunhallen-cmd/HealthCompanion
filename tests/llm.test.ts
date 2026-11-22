@@ -123,6 +123,23 @@ describe('Mistral and OpenAI-compatible adapter', () => {
     expect(f.calls[1].body.response_format).toBeUndefined();
   });
 
+  it('uses max_completion_tokens and the default temperature when a newer OpenAI model refuses them, and remembers it', async () => {
+    const f = fakeFetch([
+      { status: 400, body: { error: { message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead." } } },
+      { status: 400, body: { error: { message: "Unsupported value: 'temperature' does not support 0 with this model. Only the default (1) value is supported." } } },
+      { status: 200, body: { choices: [{ message: { content: ANSWER } }] } },
+      { status: 200, body: { choices: [{ message: { content: ANSWER } }] } },
+    ]);
+    const a = chatCompletionsAdapter({ provider: 'openai-compatible', model: 'gpt-x', apiKey: 'k', baseUrl: 'https://api.openai.com/v1', fetch: f });
+    await a.send(REQ);
+    expect(f.calls[2].body).toMatchObject({ max_completion_tokens: 400, response_format: { type: 'json_object' } });
+    expect(f.calls[2].body.max_tokens).toBeUndefined();
+    expect(f.calls[2].body.temperature).toBeUndefined();
+    await a.send(REQ);
+    expect(f.calls).toHaveLength(4);
+    expect(f.calls[3].body.max_completion_tokens).toBe(400);
+  });
+
   it('reports network failure without leaking the key', async () => {
     const f: FetchLike = async () => { throw new TypeError('Network request failed'); };
     const a = chatCompletionsAdapter({ provider: 'mistral', model: 'm', apiKey: 'secret-key', fetch: f });
