@@ -154,10 +154,11 @@ export function anthropicAdapter(cfg: AdapterConfig): LlmAdapter {
       if (!cfg.apiKey) throw new LlmHttpError('auth', `${label} behöver en nyckel.`);
       const headers: Record<string, string> = { 'x-api-key': cfg.apiKey, 'anthropic-version': ANTHROPIC_VERSION };
       if (cfg.browser) headers['anthropic-dangerous-direct-browser-access'] = 'true';
+      let room = req.maxOutputTokens;
       const build = () => {
         const body: Record<string, unknown> = {
           model: cfg.model,
-          max_tokens: req.maxOutputTokens,
+          max_tokens: room,
           system: req.system,
           messages: [{ role: 'user', content: userText(req) }],
         };
@@ -178,6 +179,11 @@ export function anthropicAdapter(cfg: AdapterConfig): LlmAdapter {
       };
       const textOf = (d: any) => (Array.isArray(d?.content) ? d.content : []).filter((b: any) => b?.type === 'text').map((b: any) => String(b.text ?? '')).join('');
       let data: any = await call();
+      // Cut off at the limit: the JSON is incomplete or missing. Once more with room to finish.
+      if (data?.stop_reason === 'max_tokens') {
+        room = Math.min(4_000, room * 3);
+        data = await call();
+      }
       let text = textOf(data);
       // An empty answer is sometimes just that once: ask again before giving up, unless the model declined.
       if (!text && data?.stop_reason !== 'refusal') {
@@ -187,7 +193,7 @@ export function anthropicAdapter(cfg: AdapterConfig): LlmAdapter {
       if (!text) {
         throw new LlmHttpError('empty', data?.stop_reason === 'refusal'
           ? `${label} avböjde att svara på texten.`
-          : `${label} gav ett tomt svar${data?.stop_reason ? ` (${data.stop_reason})` : ''}.`, null, String(data?.stop_reason ?? ''));
+          : `${label} gav ett tomt svar (${data?.stop_reason ?? 'utan skäl'}, ${num(data?.usage?.output_tokens)} tokens).`, null, String(data?.stop_reason ?? ''));
       }
       const usage: Usage = { inputTokens: num(data?.usage?.input_tokens), outputTokens: num(data?.usage?.output_tokens) };
       return { text, usage };
@@ -214,6 +220,7 @@ export function chatCompletionsAdapter(cfg: AdapterConfig): LlmAdapter {
       if (!base) throw new LlmHttpError('not_found', 'Ingen adress är angiven.');
       if (info.keyRequired && !cfg.apiKey) throw new LlmHttpError('auth', `${label} behöver en nyckel.`);
       const headers: Record<string, string> = cfg.apiKey ? { authorization: `Bearer ${cfg.apiKey}` } : {};
+      let room = req.maxOutputTokens;
       const build = () => {
         const body: Record<string, unknown> = {
           model: cfg.model,
@@ -221,7 +228,7 @@ export function chatCompletionsAdapter(cfg: AdapterConfig): LlmAdapter {
             { role: 'system', content: req.system },
             { role: 'user', content: userText(req) },
           ],
-          [tokenParam]: req.maxOutputTokens,
+          [tokenParam]: room,
         };
         if (sendTemperature) body.temperature = req.temperature;
         if (req.json && jsonMode) body.response_format = { type: 'json_object' };
@@ -239,6 +246,11 @@ export function chatCompletionsAdapter(cfg: AdapterConfig): LlmAdapter {
           else if (sendTemperature && rejects(e, 'temperature')) sendTemperature = false;
           else throw e;
         }
+      }
+      // Cut off at the limit (newer models also spend tokens on reasoning): once more with room to finish.
+      if (data?.choices?.[0]?.finish_reason === 'length' && room < 4_000) {
+        room = Math.min(4_000, room * 3);
+        data = await post(cfg, label, `${base}/chat/completions`, headers, build());
       }
       const content = data?.choices?.[0]?.message?.content;
       const text = typeof content === 'string'

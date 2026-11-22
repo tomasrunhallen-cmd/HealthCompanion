@@ -59,7 +59,7 @@ export function createCompleter(adapter: LlmAdapter, hooks: CompleterHooks = {})
         }
         feedback = `Ditt förra svar följde inte schemat: ${lastErrors.join('; ')}. Svara bara med giltig JSON.`;
       }
-      throw new InvalidAnswerError('Modellens svar följde inte schemat', lastErrors);
+      throw new InvalidAnswerError(`Modellens svar följde inte schemat: ${lastErrors.slice(0, 2).join('; ').slice(0, 200) || 'okänt fel'}`, lastErrors);
     },
   };
 }

@@ -171,6 +171,22 @@ describe('Mistral and OpenAI-compatible adapter', () => {
     expect(waits.slice(0, 2)).toEqual([2000, 4000]);
   });
 
+  it('asks again with more room when the answer was cut off at the limit', async () => {
+    const f = fakeFetch([
+      { status: 200, body: { content: [{ type: 'text', text: '{"matches":[{"sign' }], stop_reason: 'max_tokens' } },
+      { status: 200, body: { content: [{ type: 'text', text: ANSWER }], stop_reason: 'end_turn' } },
+    ]);
+    const res = await anthropicAdapter({ provider: 'anthropic', model: 'claude-haiku-5-5', apiKey: 'k', fetch: f }).send(REQ);
+    expect(res.text).toBe(ANSWER);
+    expect(f.calls.map((c) => c.body.max_tokens)).toEqual([400, 1200]);
+    const g = fakeFetch([
+      { status: 200, body: { choices: [{ message: { content: '' }, finish_reason: 'length' }] } },
+      { status: 200, body: { choices: [{ message: { content: ANSWER }, finish_reason: 'stop' }] } },
+    ]);
+    await chatCompletionsAdapter({ provider: 'openai-compatible', model: 'gpt-x', apiKey: 'k', baseUrl: 'https://api.openai.com/v1', fetch: g }).send(REQ);
+    expect(g.calls.map((c) => c.body.max_tokens)).toEqual([400, 1200]);
+  });
+
   it('asks Anthropic again after an empty answer, and says when the model declined', async () => {
     const empty = { status: 200, body: { content: [], stop_reason: 'end_turn' } };
     const f = fakeFetch([empty, { status: 200, body: { content: [{ type: 'text', text: ANSWER }] } }]);
@@ -272,7 +288,7 @@ describe('Testa modellen', () => {
     expect(report.approved).toBe(false);
     // Only the emergency cases pass, since they never reach the model.
     expect(report.passed).toBe(3);
-    expect(report.cases[0].error).toBe('Modellens svar följde inte schemat');
+    expect(report.cases[0].error).toBe('Modellens svar följde inte schemat: Svaret innehåller ingen JSON');
   });
 
   it('stops after the first case when the key is wrong', async () => {
