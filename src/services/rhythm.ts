@@ -11,7 +11,7 @@
 import { addDays, toDateKey } from '../core/analysis/dates';
 import { assessRhythm, type ActivityDay, type EpisodeStart, type RhythmAssessment, type RhythmMode } from '../core/analysis/rhythm';
 import { recomputeHistory } from '../core/analysis/recompute';
-import { RULES_VERSION } from '../core/analysis/rules';
+import { RULES, RULES_VERSION } from '../core/analysis/rules';
 import { evaluateRhythm, type RhythmEvaluation } from '../core/analysis/rhythmEval';
 import type { DateKey, Level, MeasuredDay, RhythmScoreInput } from '../core/domain/types';
 import { GarminClient, GarminError } from '../garmin/client';
@@ -68,7 +68,9 @@ export interface RhythmFeedback {
 // ---- reading what is stored ----
 
 export function rhythmMode(repo: Repository): RhythmMode {
-  return repo.settings().rhythm ?? 'off';
+  const m = repo.settings().rhythm ?? 'off';
+  // During the first clinical evaluation experimental signals are shown, never counted (rules 1.9.0).
+  return m === 'use' && !RULES.experimentalInLevel ? 'show' : m;
 }
 
 export function activityDays(repo: Repository): Record<DateKey, ActivityDay> {

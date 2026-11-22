@@ -66,7 +66,7 @@ describe('the monthly analysis', () => {
     const shown = shownFindings(repo);
     expect(shown.length).toBeGreaterThanOrEqual(1);
     expect(shown.length).toBeLessThanOrEqual(2);
-    expect(shown[0].later).toEqual({ periods: 0, hits: 0, patternOnly: 0 });
+    expect(shown[0].later).toMatchObject({ periods: 0, hits: 0, patternOnly: 0, shownBeforeFreeze: 0 });
     const card = patternCard(repo)!;
     expect(card.id).toMatch(/^pattern_/);
     await markPatternsSeen(repo);

@@ -15,6 +15,13 @@ import { setSecret } from '../src/platform/secrets';
 import { emptySnapshot, memoryBackend } from '../src/storage/backend';
 import { Repository, SCHEMA_VERSION } from '../src/storage/repository';
 
+// These tests check how the signal counts when it may change the level; rules 1.9.0 keeps it shown
+// only during the first clinical evaluation, which tests/experimental-shown.test.ts checks.
+import { RULES as RULES_FOR_TEST } from '../src/core/analysis/rules';
+beforeAll(() => { (RULES_FOR_TEST as { experimentalInLevel: boolean }).experimentalInLevel = true; });
+afterAll(() => { (RULES_FOR_TEST as { experimentalInLevel: boolean }).experimentalInLevel = false; });
+
+
 jest.mock('../src/platform/secrets', () => {
   const mem = new Map<string, string>();
   return { secretsPersist: false, getSecret: async (n: string) => mem.get(n) ?? null, setSecret: async (n: string, v: string) => void mem.set(n, v), deleteSecret: async (n: string) => void mem.delete(n) };

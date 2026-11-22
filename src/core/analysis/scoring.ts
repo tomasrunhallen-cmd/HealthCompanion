@@ -622,6 +622,8 @@ export function textPatternSignals(observations: TextObservationInput[], others:
     const earlier = observations.filter((x) => signals.some((s) => s.patternId === x.patternId));
     if (earlier.some((x) => x.phenomenon === o.phenomenon)) { skip(o, 'Samma fenomen som ett annat mönster i dag'); continue; }
     if (signals.some((s) => s.quote && overlaps(o.quote, s.quote))) { skip(o, 'Samma citat som ett annat mönster i dag'); continue; }
+    // During the first clinical evaluation the pattern is shown, never counted (rules 1.9.0).
+    if (!RULES.experimentalInLevel) { skip(o, 'Visas bara: under den första kliniska utvärderingen räknas experimentella signaler inte in i färgen'); continue; }
     if (signals.length * T.points + T.points > T.capPerDay) { skip(o, `Högst ${T.capPerDay} poäng om dagen från dina tidigare texter`); continue; }
     signals.push({
       kind: 'text_pattern',

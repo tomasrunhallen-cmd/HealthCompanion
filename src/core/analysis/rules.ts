@@ -52,6 +52,8 @@ export interface Rules {
    * (src/core/analysis/rhythm.ts). Every threshold was set before any evaluation on real data.
    */
   rhythm: RhythmRules;
+  /** Whether experimental signals (Dygnsrytm, Mina tidigare texter) may change the level. False during the first clinical evaluation: they are shown only. */
+  experimentalInLevel: boolean;
   /** Sleep below this is a sign until the person sets an own limit. */
   sleepThresholdHoursDefault: number;
   /** Stress at or above this (Garmin's scale 0–100, which the manual steps follow) ... */

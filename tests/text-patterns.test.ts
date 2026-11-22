@@ -16,6 +16,13 @@ import { excludedBecause, ownLinesOnly, patternsAfterSourceChange, selectReferen
 import { holdOut, nearCopies, summarize } from '../src/core/references/evaluate';
 import { loadPrompt } from '../src/core/prompts/loader';
 
+// These tests check how the signal counts when it may change the level; rules 1.9.0 keeps it shown
+// only during the first clinical evaluation, which tests/experimental-shown.test.ts checks.
+import { RULES as RULES_FOR_TEST } from '../src/core/analysis/rules';
+beforeAll(() => { (RULES_FOR_TEST as { experimentalInLevel: boolean }).experimentalInLevel = true; });
+afterAll(() => { (RULES_FOR_TEST as { experimentalInLevel: boolean }).experimentalInLevel = false; });
+
+
 const NOW = '2026-11-02T20:00:00.000Z';
 const entry = (over: Partial<Entry> = {}): Entry => ({
   id: 'e', date: '2026-11-02', createdAt: '2026-11-02T20:00:00', localTime: '20:00', kind: 'checkin',

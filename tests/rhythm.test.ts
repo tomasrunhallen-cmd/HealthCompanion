@@ -15,6 +15,13 @@ import {
   ACTIVITY_KEY, activityDaysToFetch, explainCourse, markRhythmSeen, rhythmCard, rhythmScoreInput, saveEpisode, updateRhythm,
 } from '../src/services/rhythm';
 
+// These tests check how the signal counts when it may change the level; rules 1.9.0 keeps it shown
+// only during the first clinical evaluation, which tests/experimental-shown.test.ts checks.
+import { RULES as RULES_FOR_TEST } from '../src/core/analysis/rules';
+beforeAll(() => { (RULES_FOR_TEST as { experimentalInLevel: boolean }).experimentalInLevel = true; });
+afterAll(() => { (RULES_FOR_TEST as { experimentalInLevel: boolean }).experimentalInLevel = false; });
+
+
 const END = '2026-11-13';
 const d = (n: number) => addDays(END, -n);
 

@@ -400,8 +400,15 @@ export interface PatternHypothesis {
 export interface FollowUp {
   /** Periods that started after the finding, and how many the pattern came before. */
   periods: number;
+  /** Hits whose pattern could first be shown after the hypothesis was frozen: only these count. */
   hits: number;
   patternOnly: number;
+  /** The counted hits by when the pattern began: days before the period, the same day, or after its start. */
+  when: { before: number; same: number; after: number };
+  /** Periods where the pattern was already showing on or before the day the hypothesis was frozen: not a new hit. */
+  shownBeforeFreeze: number;
+  /** The day the pattern could first be shown, for each counted hit. */
+  firstShown: DateKey[];
 }
 
 export function hypothesisOf(r: CandidateResult, a: PatternAnalysis): PatternHypothesis {
@@ -409,11 +416,31 @@ export function hypothesisOf(r: CandidateResult, a: PatternAnalysis): PatternHyp
 }
 
 /** The same count on data after the day the link was found: nothing that was used to find it. */
+/**
+ * The same count on data after the day the link was found: nothing that was used to find it.
+ * The hypothesis and its test boundary are frozen on `dataThrough`. A period counts only when it
+ * started after it, and a hit only when the pattern could first be shown after it too: a pattern
+ * from 14 November is no new hit for a hypothesis frozen on the 15th, even if the period starts on
+ * the 16th (granskning 22 november).
+ */
 export function followUp(h: PatternHypothesis, a: PatternAnalysis): FollowUp | null {
   const r = a.results.find((x) => x.candidate.id === h.candidateId);
   if (!r) return null;
   const later = r.periods.filter((p) => p.start > h.dataThrough);
-  return { periods: later.length, hits: later.filter((p) => p.hit).length, patternOnly: r.patternOnly.filter((x) => x.from > h.dataThrough).length };
+  const fresh = later.filter((p) => p.hit && p.patternFrom != null && p.patternFrom > h.dataThrough);
+  const shownBeforeFreeze = later.filter((p) => p.hit && p.patternFrom != null && p.patternFrom <= h.dataThrough).length;
+  return {
+    periods: later.length - shownBeforeFreeze,
+    hits: fresh.length,
+    patternOnly: r.patternOnly.filter((x) => x.from > h.dataThrough).length,
+    when: {
+      before: fresh.filter((p) => (p.lead ?? 0) >= 1).length,
+      same: fresh.filter((p) => p.lead === 0).length,
+      after: fresh.filter((p) => (p.lead ?? 0) < 0).length,
+    },
+    shownBeforeFreeze,
+    firstShown: fresh.map((p) => p.patternFrom!),
+  };
 }
 
 /** How the hypothesis has held on data after the day it was found, in one line. */
@@ -421,9 +448,12 @@ export function followUpLine(h: PatternHypothesis, later: FollowUp): string {
   const found = `Sparat som hypotes ${formatDateSvYear(h.foundAt.slice(0, 10))}.`;
   if (!later.periods && !later.patternOnly) return `${found} Prövas på nya data: ingen ny period sedan dess.`;
   const when = h.found.timing === 'before' ? 'före' : 'vid';
-  const periods = later.periods ? ` Sedan dess: mönstret kom ${when} ${num(later.hits)} av ${num(later.periods)} ${later.periods === 1 ? 'ny period' : 'nya perioder'}.` : ' Sedan dess: ingen ny period.';
+  const w = later.when ?? { before: later.hits, same: 0, after: 0 };
+  const split = later.hits ? ` Det började före ${num(w.before)}, samma dag som ${num(w.same)} och efter starten av ${num(w.after)}.` : '';
+  const frozen = later.shownBeforeFreeze ? ` ${later.shownBeforeFreeze === 1 ? 'En period' : `${cap(num(later.shownBeforeFreeze))} perioder`} räknas inte: mönstret syntes redan innan hypotesen sparades.` : '';
+  const periods = later.periods ? ` Sedan dess: mönstret kom ${when} ${num(later.hits)} av ${num(later.periods)} ${later.periods === 1 ? 'ny period' : 'nya perioder'}.${split}` : ' Sedan dess: ingen ny period.';
   const only = later.patternOnly ? ` Det kom ${later.patternOnly === 1 ? 'en gång' : `${num(later.patternOnly)} gånger`} utan att skattningen ändrades.` : '';
-  return `${found}${periods}${only}`;
+  return `${found}${periods}${frozen}${only}`;
 }
 
 // ---- evaluation with a frozen test part (1.1.0) ----

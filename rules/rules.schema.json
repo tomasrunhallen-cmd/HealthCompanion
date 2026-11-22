@@ -10,6 +10,7 @@
     "level",
     "measuredCapPerDay",
     "excusedMeasuredToRed",
+    "experimentalInLevel",
     "textPatterns",
     "sleepThresholdHoursDefault",
     "stressHighAt",
@@ -220,6 +221,9 @@
       "minimum": 0
     },
     "excusedMeasuredToRed": {
+      "type": "boolean"
+    },
+    "experimentalInLevel": {
       "type": "boolean"
     },
     "textPatterns": {

@@ -6,6 +6,7 @@
 // fetch log, the evaluation and the arithmetic are another (Fördjupning).
 // The rated mood, this estimate and the earlier periods are kept apart, here and in storage.
 
+import { RULES } from '../../core/analysis/rules';
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
@@ -48,12 +49,15 @@ function ModeChooser({ mode, onChange }: { mode: RhythmMode; onChange: (m: Rhyth
     <View accessibilityRole="radiogroup" accessibilityLabel="Hur Dygnsrytm används">
       {MODES.map((m) => {
         const on = m === mode;
+        // During the first clinical evaluation the signal is shown only (rules 1.9.0).
+        const locked = m === 'use' && !RULES.experimentalInLevel;
         return (
           <Pressable
             key={m}
+            disabled={locked}
             onPress={() => onChange(m)}
             accessibilityRole="radio"
-            accessibilityState={{ selected: on, checked: on }}
+            accessibilityState={{ selected: on, checked: on, disabled: locked }}
             accessibilityLabel={`${MODE_LABEL[m]}. ${MODE_TEXT[m]}`}
             style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'flex-start', gap: space.m, minHeight: MIN_TOUCH, paddingVertical: space.s, opacity: pressed ? 0.6 : 1 })}
           >
@@ -62,7 +66,7 @@ function ModeChooser({ mode, onChange }: { mode: RhythmMode; onChange: (m: Rhyth
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[type.body, { fontWeight: on ? '600' : '400' }]}>{MODE_LABEL[m]}</Text>
-              <Text style={type.small}>{MODE_TEXT[m]}</Text>
+              <Text style={type.small}>{locked ? 'Inte valbart under den första kliniska utvärderingen: Dygnsrytm visas men räknas inte in i färgen.' : MODE_TEXT[m]}</Text>
             </View>
           </Pressable>
         );

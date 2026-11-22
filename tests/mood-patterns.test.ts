@@ -2,7 +2,7 @@
 // only word a verified result, and its wording is checked.
 import { addDays } from '../src/core/analysis/dates';
 import {
-  analysePatterns, binomialTail, CANDIDATES, evaluatePatterns, evaluationLines, checkExplanation, findingEvidence, findingFacts, findingSummary, findingTitle, followUp, hypothesisOf,
+  analysePatterns, binomialTail, CANDIDATES, evaluatePatterns, evaluationLines, checkExplanation, findingEvidence, findingFacts, findingSummary, findingTitle, followUp, followUpLine, hypothesisOf,
   findingTopic, insufficientLine, methodText, moodPeriods, PATTERN_PARAMS, relatedLine, statusLine, type PatternData,
 } from '../src/core/analysis/moodPatterns';
 import { simulate, simulateRatings, type SimEvent } from '../src/core/analysis/rhythmSim';
@@ -168,9 +168,28 @@ describe('a finding is a hypothesis, tried on later data', () => {
     expect(f.hits).toBe(3);
     const h = hypothesisOf(f, first);
     expect(h).toMatchObject({ candidateId: 'shorter_up', dataThrough: d(100), found: { periods: 3, hits: 3 } });
-    expect(followUp(h, first)).toEqual({ periods: 0, hits: 0, patternOnly: 0 });
+    expect(followUp(h, first)).toMatchObject({ periods: 0, hits: 0, patternOnly: 0, shownBeforeFreeze: 0 });
     const later = analysePatterns(w, END, 'y');
     expect(followUp(h, later)).toMatchObject({ periods: 1, hits: 1 });
+  });
+});
+
+describe('a frozen hypothesis counts only signals shown after it was frozen (granskning 22 november)', () => {
+  it('a pattern from the 14th is no new hit for a hypothesis frozen on the 15th, even for a period starting on the 16th', () => {
+    const candidate = CANDIDATES.find((c) => c.id === 'shorter_up')!;
+    const h = { candidateId: 'shorter_up', foundAt: '2026-11-15T09:00:00.000Z', dataThrough: '2026-11-15', found: { periods: 3, hits: 3, patternOnly: 0, timing: 'before' as const, leadDays: [2, 2, 3] } };
+    const a = { results: [{ candidate, patternOnly: [], periods: [
+      { start: '2026-11-16', end: '2026-11-20', ratedDays: 4, hit: true, patternFrom: '2026-11-14', lead: 2 },
+      { start: '2026-11-25', end: '2026-11-28', ratedDays: 3, hit: true, patternFrom: '2026-11-23', lead: 2 },
+      { start: '2026-12-02', end: '2026-12-05', ratedDays: 3, hit: true, patternFrom: '2026-12-02', lead: 0 },
+      { start: '2026-12-10', end: '2026-12-12', ratedDays: 3, hit: false, patternFrom: null, lead: null },
+    ] }] } as unknown as Parameters<typeof followUp>[1];
+    const f = followUp(h, a)!;
+    expect(f).toMatchObject({ periods: 3, hits: 2, shownBeforeFreeze: 1, when: { before: 1, same: 1, after: 0 }, firstShown: ['2026-11-23', '2026-12-02'] });
+    const line = followUpLine(h, f);
+    expect(line).toContain('Sedan dess: mönstret kom före två av tre nya perioder.');
+    expect(line).toContain('Det började före en, samma dag som en och efter starten av noll.');
+    expect(line).toContain('En period räknas inte: mönstret syntes redan innan hypotesen sparades.');
   });
 });
 
