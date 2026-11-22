@@ -16,6 +16,7 @@ import { AccessibilityInfo, Platform, Pressable, Text, useColorScheme, View } fr
 import { CrisisCard } from './CrisisCard';
 import { Screen } from './components';
 import { PUSHED, useNav, type RouteName } from './nav';
+import { ChatPromptScreen, ChatScreen, SorkScreen } from './screens/ChatScreen';
 import { CheckinScreen } from './screens/CheckinScreen';
 import { CorrectionScreen } from './screens/CorrectionScreen';
 import { GarminScreen } from './screens/GarminScreen';
@@ -96,6 +97,9 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   patterns: PatternsScreen,
   correction: CorrectionRoute,
   crisis: CrisisSheet,
+  chat: ChatScreen,
+  sork: SorkScreen,
+  chatPrompt: ChatPromptScreen,
 };
 
 /** Titles set before the screen renders, so the header never flashes empty. Under 15 characters (HIG). */
@@ -127,6 +131,9 @@ const TITLE: Record<RouteName, string> = {
   patterns: 'Mina mönster',
   correction: 'Stämmer det?',
   crisis: 'Hjälp nu',
+  chat: 'Prata',
+  sork: 'SORK-kort',
+  chatPrompt: 'Prompten',
 };
 
 /** Reduce Motion: stack pushes fade instead of slide. */
@@ -245,6 +252,7 @@ const HomeStack = makeTabStack('home');
 const CheckinStack = makeTabStack('checkin');
 const TrendStack = makeTabStack('trend');
 const MeStack = makeTabStack('me');
+const ChatStack = makeTabStack('chat');
 const PlanSheet = makeSheetStack(['plan', 'planImport']);
 const SuggestionsSheet = makeSheetStack(['suggestions']);
 const CorrectionSheet = makeSheetStack(['correction']);
@@ -275,6 +283,7 @@ function TabsNavigator() {
       <Tabs.Screen name="homeTab" component={HomeStack} options={{ title: 'Hem', tabBarIcon: tabIcon({ ios: 'house.fill', android: 'home', web: 'home' }, '⌂') }} />
       <Tabs.Screen name="checkinTab" component={CheckinStack} options={{ title: 'Avstämning', tabBarIcon: tabIcon({ ios: 'square.and.pencil', android: 'edit_note', web: 'edit_note' }, '✎') }} />
       <Tabs.Screen name="trendTab" component={TrendStack} options={{ title: 'Trend', tabBarIcon: tabIcon({ ios: 'chart.line.uptrend.xyaxis', android: 'monitoring', web: 'monitoring' }, '↗') }} />
+      <Tabs.Screen name="chatTab" component={ChatStack} options={{ title: 'Prata', tabBarIcon: tabIcon({ ios: 'bubble.left.and.bubble.right.fill', android: 'forum', web: 'forum' }, '❞') }} />
       <Tabs.Screen name="meTab" component={MeStack} options={{ title: 'Jag', tabBarIcon: tabIcon({ ios: 'person.crop.circle.fill', android: 'person', web: 'person' }, '◉') }} />
     </Tabs.Navigator>
   );

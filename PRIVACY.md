@@ -57,6 +57,10 @@ Med en språkmodell kopplad följer dagens och veckans sömn och stress med till
 - **Meddelanden.** Från meddelandefiler tas bara personens egna rader med.
 - **Rensat, inte anonymt.** Smeknamn, arbetsplatser och ovanliga händelser kan finnas kvar i det som skickas.
 
+## Prata (experimentellt)
+
+Bara när du skriver i *Prata*, och bara till språkmodellen du själv kopplat och godkänt. Med varje meddelande skickas, rensat av `scrub()`: ditt meddelande, samtalet hittills (högst 20 meddelanden), och ett sammanhang ur appen med nivån från senaste avstämningen, din plans tecken, steg, rutiner och värdeankare, mätvärden, kontextbanken, de sju senaste anteckningarna och korta rader ur Dygnsrytm, Mina mönster och SORK-korten. Önskemål, råd till vården och kontakter skickas aldrig. Ett meddelande som akutregeln stoppar skickas aldrig. Samtalen och SORK-korten sparas på telefonen (krypterat i webbversionen) och kan raderas. Inget sparas i kontextbanken utan att du godkänt det.
+
 ## Kontextbanken och lärandet
 
 Det appen vet om användaren ligger i kontextbanken på telefonen (i webbversionen i användarens Firebase). Inget lärs in i någon modell, och leverantörernas minnesfunktioner används inte. Varje kväll skickas en sammanställning ur banken med till modellen, rensad på samma sätt som anteckningen.

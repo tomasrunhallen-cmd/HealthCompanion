@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "samtal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["svar", "minne", "sork"],
+  "properties": {
+    "svar": { "type": "string", "minLength": 1, "maxLength": 1500 },
+    "minne": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slag", "text", "citat"],
+        "properties": {
+          "slag": { "type": "string", "enum": ["trigger", "routine", "typical_phrase", "course"] },
+          "text": { "type": "string", "maxLength": 200 },
+          "citat": { "type": "string", "maxLength": 200 }
+        }
+      }
+    },
+    "sork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["situation", "organism", "reaktion", "konsekvens"],
+      "properties": {
+        "situation": { "type": "string", "maxLength": 600 },
+        "organism": { "type": "string", "maxLength": 600 },
+        "reaktion": { "type": "string", "maxLength": 600 },
+        "konsekvens": { "type": "string", "maxLength": 600 }
+      }
+    }
+  }
+}

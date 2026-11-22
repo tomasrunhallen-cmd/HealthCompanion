@@ -314,6 +314,18 @@ En passiv modell som letar efter tidiga tecken på en möjlig kommande stämning
 - **Utvärdering:** en uppspelning i tidsordning jämför sömnnotisen, modellen med bara sömn och modellen med sömn och puls, mot dina dokumenterade episodstarter.
 - **Kod och rapport:** koden finns i `src/core/analysis/rhythm.ts`, `rhythmEval.ts` och `rhythmSim.ts`, med reglerna i `rules/README.md`. Vad som faktiskt kunnat utvärderas står i `RYTMRAPPORT.md`. Allt med siffror där är simulerat.
 
+### Prata (experimentell)
+
+Ett samtal med språkmodellen du kopplat till appen, i fliken *Prata*. Ett samtalsstöd med din plan som grund, med KBT och SORK-analys, inte vård. Koden ligger i `src/core/chat/chat.ts` och `src/services/chat.ts`, prompterna i `prompts/samtal-ram.md` (fast ram) och `prompts/samtal.md` (standardtexten).
+
+- **Sammanhang:** modellen får appens nivå från senaste avstämningen, normalläge, tecken, planens steg vid gult och rött, rutiner, värdeankare, mätvärden, kontextbanken, de sju senaste anteckningarna, Dygnsrytm, Mina mönster och de tre senaste SORK-korten. Önskemål, råd till vården och kontakter skickas aldrig. Allt går genom `scrub()`.
+- **Akutregeln** körs på telefonen före varje meddelande. Vid allvarliga ord skickas meddelandet inte, varken nu eller senare som en del av samtalet, och *Hjälp nu* visas. Vid milda ord skickas det och den mildare rutan visas.
+- **Svaret kontrolleras:** diagnoser om personen, doser, råd om att ändra mediciner och nivåer ersätts med appens egen text.
+- **Minne:** modellen kan föreslå högst två rader per svar (utlösare, rutin, typisk formulering, förlopp). En rad räknas bara om dess citat står i det personen själv skrev i samtalet. Den blir ett förslag under *Förslag* och når kontextbanken först när personen godkänt den.
+- **SORK-kort:** när en analys gått igenom och personen bekräftat den sparas den som ett kort under *SORK-kort*. Korten följer med i nästa samtals sammanhang.
+- **Prompten** visas och kan ändras under *Prompten*. Personens text läggs in i en fast ram som inte kan ändras, och skydden ovan ligger i koden. Tidigare versioner sparas (högst tio), och *Återställ standard* tar tillbaka standardtexten.
+- Samtalet ändrar aldrig trafikljuset.
+
 ### Mina mönster (experimentell)
 
 Letar efter samband som återkommer mellan klockans sömn och puls och dina egna skattningar av stämningsläget (−3 till +3). Ingen ny daglig registrering: den läser det som redan är sparat. Den finns under *Jag → Mina mönster*.

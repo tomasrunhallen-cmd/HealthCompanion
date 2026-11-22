@@ -150,7 +150,7 @@ export interface Suggestion {
   id: string;
   /** Same key = same proposal; only one can be pending at a time. */
   key: string;
-  type: 'false_alarm' | 'own_sign' | 'profile' | 'course';
+  type: 'false_alarm' | 'own_sign' | 'profile' | 'course' | 'chat';
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   decidedAt: string | null;
@@ -166,7 +166,9 @@ export interface Suggestion {
   reason: string;
   /** Verbatim quotes the proposal rests on. */
   quotes: string[];
-  source: 'corrections' | 'profile_update';
+  source: 'corrections' | 'profile_update' | 'chat';
+  /** For a proposal from Prata: the conversation it came from. */
+  sessionId?: string;
 }
 
 export const PLAN_KINDS: PlanItemKind[] = ['early', 'serious', 'action_yellow', 'action_red', 'relatives', 'akut'];
