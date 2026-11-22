@@ -149,11 +149,13 @@ function phraseIn(
   phrase: string[],
   /** A core word: the first word only has to start with it. */
   prefix = false,
+  /** Look for an occurrence from this word on, for the next one in the same clause. */
+  from = 0,
 ): { found: boolean; negated: boolean; start?: number; end?: number } {
   if (!phrase.length) return { found: false, negated: false };
   const own = (w: string) => phrase.includes(w);
   let negatedHit = false;
-  for (let start = 0; start < words.length; start++) {
+  for (let start = from; start < words.length; start++) {
     const first = prefix ? !guarded[start] && startsWithCore(words[start], phrase[0]) : tokenEq(words[start], phrase[0], guarded[start]);
     if (!first) continue;
     let pos = start;
@@ -178,11 +180,22 @@ function phraseIn(
 }
 
 /** Clauses: a negation in one clause does not touch a phrase in the next ("mår inte bra, vill dö"). */
+/**
+ * The note in clauses. "men" also starts a new clause: what comes after it is judged on its own,
+ * so "Min vän vill dö men jag vill dö också" and "För tio år sedan mådde jag bra men nu vill jag
+ * dö" are not softened by the other person or the time before "men" (granskning 22 november).
+ */
+const CLAUSE_BREAK = new Set(['men']);
 function clauses(note: string): string[][] {
-  return note
-    .split(/[.!?…,;:\n]+/)
-    .map((c) => tokenize(c))
-    .filter((c) => c.length > 0);
+  const out: string[][] = [];
+  for (const c of note.split(/[.!?…,;:\n]+/)) {
+    let cur: string[] = [];
+    for (const w of tokenize(c)) {
+      if (CLAUSE_BREAK.has(w)) { if (cur.length) out.push(cur); cur = []; } else cur.push(w);
+    }
+    if (cur.length) out.push(cur);
+  }
+  return out;
 }
 
 /** Where a cue occurs in the clause: the index of its first word, or -1. */
@@ -306,13 +319,19 @@ export function akutCheckWith(note: string, lists: AkutLists, userPhrases: strin
   let byContext = false;
   for (const c of candidates) {
     let hit: { found: boolean; negated: boolean; context: boolean } = { found: false, negated: false, context: false };
-    for (let i = 0; i < parts.length; i++) {
-      const h = phraseIn(parts[i], masks[i], c.tokens, c.prefix);
-      if (!h.found) continue;
-      // The person's own phrases are always taken as written.
-      const context = !h.negated && !userPhrases.includes(c.text) && hitInContext(parts[i], h.start ?? 0, h.end ?? 0, kinds);
-      if (!h.negated && !context) { hit = { ...h, context: false }; break; }
-      hit = { found: true, negated: h.negated, context };
+    // Every occurrence is judged in its own context: one about someone else or the past does
+    // not soften another in the same clause.
+    outer: for (let i = 0; i < parts.length; i++) {
+      for (let from = 0; from < parts[i].length;) {
+        const h = phraseIn(parts[i], masks[i], c.tokens, c.prefix, from);
+        if (!h.found) break;
+        // The person's own phrases are always taken as written.
+        const context = !h.negated && !userPhrases.includes(c.text) && hitInContext(parts[i], h.start ?? 0, h.end ?? 0, kinds);
+        if (!h.negated && !context) { hit = { ...h, context: false }; break outer; }
+        hit = { found: true, negated: h.negated, context };
+        if (h.start == null) break; // a negated occurrence: phraseIn has already looked at the rest
+        from = h.start + 1;
+      }
     }
     if (!hit.found) continue;
     if (!hit.negated && !hit.context) full.push(c.text);

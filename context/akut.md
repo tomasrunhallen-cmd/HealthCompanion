@@ -1,6 +1,6 @@
 ---
 id: akut
-version: 0.6.0
+version: 0.7.0
 status: utkast, ska granskas av en människa med klinisk kunskap innan release
 ---
 # Akutordlista
@@ -8,6 +8,8 @@ status: utkast, ska granskas av en människa med klinisk kunskap innan release
 Formuleringar om att inte vilja leva eller att skada sig. Matchas i appen, på telefonen,
 innan något skickas till en språkmodell och oberoende av den. Listan skickas aldrig till
 en modell. Användarens egna formuleringar läggs till från krisplanen.
+
+Varje förekomst bedöms i sitt eget sammanhang, och "men" börjar en ny sats: "Min vän vill dö men jag vill dö också" och "För tio år sedan mådde jag bra men nu vill jag dö" ger den fulla rutan (0.7.0, granskning 22 november).
 
 Fraserna matchas ord för ord. De tål böjningar ("skadar" och "skada"), utdragna
 bokstäver ("döö") och upp till tre ord emellan ("vill verkligen just nu dö"). Kärnorden matchar som början på ett ord,
