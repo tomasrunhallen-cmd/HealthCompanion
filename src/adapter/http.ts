@@ -42,6 +42,9 @@ export interface AdapterConfig {
   timeoutMs?: number;
   /** Adds the header Anthropic requires for calls from a web browser (web preview only). */
   browser?: boolean;
+  /** How many times a call that hit a rate limit is made again after waiting (default 3), and the wait (tests). */
+  rateLimitTries?: number;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -60,7 +63,12 @@ function errorFor(status: number, body: string, label: string): LlmHttpError {
   }
   if (status === 401 || status === 403) return new LlmHttpError('auth', `${label} godtog inte nyckeln.`, status, detail);
   if (status === 404) return new LlmHttpError('not_found', `${label} hittade inte modellen eller adressen. Kontrollera modellnamnet.`, status, detail);
-  if (status === 429) return new LlmHttpError('rate_limit', `${label} säger att det blivit för många anrop, eller att krediten är slut.`, status, detail);
+  if (status === 429) {
+    if (/insufficient_quota|exceeded your current quota|billing|credit balance/i.test(`${body} ${detail}`)) {
+      return new LlmHttpError('rate_limit', `${label} säger att krediten är slut eller saknas. Fyll på hos leverantören (för OpenAI under Billing på platform.openai.com).`, status, `quota: ${detail}`);
+    }
+    return new LlmHttpError('rate_limit', `${label} säger att det blivit för många anrop på kort tid. Vänta en minut och försök igen.`, status, detail);
+  }
   if (status >= 500) return new LlmHttpError('server', `${label} svarar inte som vanligt just nu (fel ${status}).`, status, detail);
   return new LlmHttpError('bad_request', `${label} avvisade anropet (fel ${status}): ${detail}`, status, detail);
 }
@@ -90,12 +98,31 @@ async function post(
     if (timer) clearTimeout(timer);
   }
   const text = await res.text();
-  if (!res.ok) throw errorFor(res.status, text, label);
+  if (!res.ok) {
+    const err = errorFor(res.status, text, label);
+    // Too many calls for the moment (not an empty credit): wait as long as the server asks, and try again.
+    const tries = cfg.rateLimitTries ?? 3;
+    if (err.kind === 'rate_limit' && !err.detail.startsWith('quota:') && tries > 0) {
+      await (cfg.sleep ?? defaultSleep)(waitFor(text));
+      return post({ ...cfg, rateLimitTries: tries - 1 }, label, url, headers, body);
+    }
+    throw err;
+  }
   try {
     return JSON.parse(text);
   } catch {
     throw new LlmHttpError('bad_request', `${label} gav ett svar som inte gick att läsa.`, res.status, text.slice(0, 200));
   }
+}
+
+const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** "Please try again in 1.5s" or "in 300ms": that long and a little more, at most 20 seconds; else 5 seconds. */
+export function waitFor(body: string): number {
+  const m = body.match(/try again in (\d+(?:\.\d+)?)\s*(ms|s)\b/i);
+  if (!m) return 5_000;
+  const ms = Number(m[1]) * (m[2].toLowerCase() === 'ms' ? 1 : 1000);
+  return Math.min(20_000, Math.ceil(ms) + 250);
 }
 
 /** True when a 400 error is about the named request parameter, so we can retry without it. */

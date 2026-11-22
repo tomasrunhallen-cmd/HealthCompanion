@@ -140,6 +140,25 @@ describe('Mistral and OpenAI-compatible adapter', () => {
     expect(f.calls[3].body.max_completion_tokens).toBe(400);
   });
 
+  it('waits and tries again when there were too many calls, but not when the credit is empty', async () => {
+    const waits: number[] = [];
+    const sleep = async (ms: number) => void waits.push(ms);
+    const busy = { status: 429, body: { error: { message: 'Rate limit reached for gpt-x on tokens per min (TPM). Please try again in 1.5s.', code: 'rate_limit_exceeded' } } };
+    const f = fakeFetch([busy, { status: 200, body: { choices: [{ message: { content: ANSWER } }] } }]);
+    await chatCompletionsAdapter({ provider: 'openai-compatible', model: 'gpt-x', apiKey: 'k', baseUrl: 'https://api.openai.com/v1', fetch: f, sleep }).send(REQ);
+    expect(waits).toEqual([1750]);
+    const quota = { status: 429, body: { error: { message: 'You exceeded your current quota, please check your plan and billing details.', code: 'insufficient_quota' } } };
+    const g = fakeFetch([quota]);
+    await expect(chatCompletionsAdapter({ provider: 'openai-compatible', model: 'gpt-x', apiKey: 'k', baseUrl: 'https://api.openai.com/v1', fetch: g, sleep }).send(REQ))
+      .rejects.toMatchObject({ kind: 'rate_limit', message: expect.stringContaining('krediten är slut') });
+    expect(g.calls).toHaveLength(1);
+    // Still busy after three waits: the error is shown.
+    const h = fakeFetch([busy, busy, busy, busy]);
+    await expect(chatCompletionsAdapter({ provider: 'openai-compatible', model: 'gpt-x', apiKey: 'k', baseUrl: 'https://api.openai.com/v1', fetch: h, sleep }).send(REQ))
+      .rejects.toMatchObject({ message: expect.stringContaining('för många anrop på kort tid') });
+    expect(h.calls).toHaveLength(4);
+  });
+
   it('reports network failure without leaking the key', async () => {
     const f: FetchLike = async () => { throw new TypeError('Network request failed'); };
     const a = chatCompletionsAdapter({ provider: 'mistral', model: 'm', apiKey: 'secret-key', fetch: f });
