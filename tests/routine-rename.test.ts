@@ -11,11 +11,11 @@ describe('Byta namn på en rutin', () => {
     const text = '- Promenad 3 gånger i veckan\n- Läser en stund\n  innan jag somnar\n2. Drick ingen alkohol';
     expect(renameLine(text, 'Promenad 3 gånger i veckan', 'kvällspromenad 3 gånger i veckan'))
       .toBe('- Kvällspromenad 3 gånger i veckan\n- Läser en stund\n  innan jag somnar\n2. Drick ingen alkohol');
-    // A line over two rows is replaced whole.
-    expect(renameLine(text, 'Läser en stund innan jag somnar', 'Läser en bok'))
-      .toBe('- Promenad 3 gånger i veckan\n- Läser en bok\n2. Drick ingen alkohol');
+    // Every written row is its own line: renaming one leaves the row under it alone.
+    expect(renameLine(text, 'Läser en stund', 'Läser en bok'))
+      .toBe('- Promenad 3 gånger i veckan\n- Läser en bok\n  innan jag somnar\n2. Drick ingen alkohol');
     expect(renameLine(text, 'Finns inte', 'X')).toBeNull();
-    expect(renameLine(text, 'Läser en stund innan jag somnar', '  ')).toBeNull();
+    expect(renameLine(text, 'Läser en stund', '  ')).toBeNull();
   });
 
   it('keeps the routine\'s id, how often, the reminder and the history', async () => {

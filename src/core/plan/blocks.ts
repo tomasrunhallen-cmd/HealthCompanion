@@ -109,13 +109,14 @@ const MARK = /^\s*(?:[-–—•*·●▪]|(\d{1,2})[.)])\s+/;
  * case continues the line before (text wrapped when pasted). Blank lines only separate.
  */
 /**
- * A row that continues the line before it: one a document broke, never one the person wrote.
- * It starts with a small letter, has no list mark, and is either indented under the line before
- * or follows a long line (a printed page's width) that does not end a sentence. "sover mindre"
- * and "pratar fortare" on two short lines stay two rows.
+ * A row that looks like it continues the line before it, as when a document breaks a long line:
+ * it starts with a small letter, has no list mark, and is either indented under the line before
+ * or follows a long line (a printed page's width) that does not end a sentence. Used only when a
+ * document is imported, and to offer a join the person decides on; never when the plan is read
+ * or saved, so every line the person wrote stays its own row (granskning 23 november).
  */
 export const WRAPPED_LINE_MIN = 55;
-function continues(raw: string, line: string, prev: string | undefined, marked: boolean): boolean {
+export function continues(raw: string, line: string, prev: string | undefined, marked: boolean): boolean {
   if (marked || !prev || !/^[a-zåäö]/.test(line)) return false;
   const indented = /^\s+\S/.test(raw);
   return indented || (prev.length >= WRAPPED_LINE_MIN && !/[.!?:;]$/.test(prev));
@@ -128,9 +129,8 @@ export function blockLines(text: string): { text: string; number: number | null 
     const m = raw.match(MARK);
     const line = raw.replace(MARK, '').trim();
     if (!line) continue;
-    const prev = out[out.length - 1];
-    if (continues(raw, line, prev?.text, !!m)) prev.text = `${prev.text} ${line}`;
-    else out.push({ text: line, number: m?.[1] ? Number(m[1]) : null });
+    // Every line the person wrote is its own row.
+    out.push({ text: line, number: m?.[1] ? Number(m[1]) : null });
   }
   return out;
 }
@@ -153,11 +153,7 @@ export function renameLine(text: string, oldLine: string, newLine: string): stri
     const m = raw.match(MARK);
     const line = raw.replace(MARK, '').trim();
     if (!line) return;
-    const prev = groups[groups.length - 1];
-    if (continues(raw, line, prev?.text, !!m)) {
-      prev.text = `${prev.text} ${line}`;
-      prev.end = i;
-    } else groups.push({ start: i, end: i, text: line, mark: m ? m[0] : raw.match(/^\s*/)![0] });
+    groups.push({ start: i, end: i, text: line, mark: m ? m[0] : raw.match(/^\s*/)![0] });
   });
   const g = groups.find((x) => x.text === oldLine.trim());
   if (!g) return null;
@@ -274,7 +270,10 @@ export function blocksFromRows(
       };
       out.push(b);
     }
-    b.text = b.text ? `${b.text}\n${r.parentId ? '  ' : ''}${r.text}` : r.text;
+    // A document breaks long lines: when it is imported, a row that starts with a small letter
+    // goes on the line before. This is the only place lines are joined by themselves.
+    if (b.text && /^[a-zåäö]/.test(r.text)) b.text = `${b.text} ${r.text}`;
+    else b.text = b.text ? `${b.text}\n${r.parentId ? '  ' : ''}${r.text}` : r.text;
   }
   return out;
 }
@@ -324,4 +323,40 @@ export function diffPlans(old: PlanBlock[], next: PlanBlock[]): BlockChange[] {
     out.push({ heading: o.heading, type: o.type, status: 'removed', added: [], removed: blockLines(o.text).map((l) => l.text), kept: 0 });
   }
   return out;
+}
+
+/**
+ * Lines in a saved block that look like the rest of the line above (a plan imported before lines
+ * were joined at import). Shown to the person, who decides; nothing is joined by itself.
+ */
+export function suspectedBrokenLines(text: string): { line: string; previous: string }[] {
+  const out: { line: string; previous: string }[] = [];
+  let prev: string | undefined;
+  for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
+    if (!raw.trim()) continue;
+    const m = raw.match(MARK);
+    const line = raw.replace(MARK, '').trim();
+    if (!line) continue;
+    if (continues(raw, line, prev, !!m)) out.push({ line, previous: prev! });
+    prev = line;
+  }
+  return out;
+}
+
+/** The block's text with the suspected broken lines joined to the line above: only when the person asks. */
+export function joinBrokenLines(text: string): string {
+  const out: string[] = [];
+  let prev: string | undefined;
+  for (const raw of text.replace(/\r\n?/g, '\n').split('\n')) {
+    const m = raw.match(MARK);
+    const line = raw.replace(MARK, '').trim();
+    if (line && out.length && continues(raw, line, prev, !!m)) {
+      out[out.length - 1] = `${out[out.length - 1]} ${line}`;
+      prev = `${prev} ${line}`;
+      continue;
+    }
+    out.push(raw);
+    if (line) prev = line;
+  }
+  return out.join('\n');
 }

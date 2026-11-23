@@ -32,9 +32,25 @@ describe('lines the person wrote', () => {
     expect(matchSigns('Jag sover mindre nu.', signs).map((m) => m.planItemId)).toEqual([signs[0].id]);
   });
 
-  it('a line a document broke is still joined: indented, or after a long line without a full stop', () => {
-    expect(blockLines('- Läser en stund\n  innan jag somnar').map((l) => l.text)).toEqual(['Läser en stund innan jag somnar']);
-    expect(blockLines('Håll hårt i arbetstider och se över arbetsbelastningen. Ta hjälp av chefen att gå igenom\narbetsuppgifter och prioriteringar.').map((l) => l.text)).toHaveLength(1);
+  it('keeps lines the person wrote apart also after a long line or indented (granskning 23 november)', async () => {
+    const text = 'Har svårt att sitta still och börjar många saker på en gång hela dagen\npratar fortare\n  sover mindre';
+    expect(blockLines(text).map((l) => l.text)).toEqual(['Har svårt att sitta still och börjar många saker på en gång hela dagen', 'pratar fortare', 'sover mindre']);
+    const repo = await Repository.create(memoryBackend());
+    await savePlanBlocks(repo, [block('early_up', text)], NOW);
+    const signs = repo.planOf('early');
+    expect(signs).toHaveLength(3);
+    expect(matchSigns('Jag pratar fortare i dag.', signs).map((m) => m.planItemId)).toEqual([signs[1].id]);
+    expect(matchSigns('Sover mindre nu.', signs).map((m) => m.planItemId)).toEqual([signs[2].id]);
+  });
+
+  it('a document is joined when it is imported, and a saved broken line is only offered to be joined', () => {
+    const { blocksFromRows } = require('../src/core/plan/blocks') as typeof import('../src/core/plan/blocks');
+    const fields = { kind: 'routine' } as never;
+    const [b] = blocksFromRows([
+      { heading: 'Rutiner', text: 'Håll hårt i arbetstider. Ta hjälp av chefen att gå igenom', parentId: null, fields, special: null, source: 'rules' },
+      { heading: 'Rutiner', text: 'arbetsuppgifter och prioriteringar.', parentId: null, fields, special: null, source: 'rules' },
+    ], NOW);
+    expect(blockLines(b.text).map((l) => l.text)).toEqual(['Håll hårt i arbetstider. Ta hjälp av chefen att gå igenom arbetsuppgifter och prioriteringar.']);
   });
 });
 

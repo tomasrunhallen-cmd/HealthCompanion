@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { newId } from '../../core/analysis/assess';
-import { blockLines, isSignBlock, TEMPLATE, BLOCK_TEXT, type BlockType, type PlanBlock } from '../../core/plan/blocks';
+import { blockLines, isSignBlock, joinBrokenLines, suspectedBrokenLines, TEMPLATE, BLOCK_TEXT, type BlockType, type PlanBlock } from '../../core/plan/blocks';
 import { windowHours } from '../../core/plan/importPlan';
 import type { PlanItem } from '../../core/domain/types';
 import { clearBlock, clearPlan, dropPlanBackup, planBackup, planBlocks, removeBlock, restorePlan, saveBlock } from '../../services/planBlocks';
@@ -45,6 +45,7 @@ function BlockCard({ block, template }: { block: PlanBlock; template: boolean })
   const [heading, setHeading] = useState(block.heading);
   const [typeOf, setTypeOf] = useState<BlockType>(block.type);
   const lines = blockLines(block.text);
+  const broken = suspectedBrokenLines(block.text);
   const hint = TEMPLATE.find((t) => t.type === block.type)?.hint ?? '';
 
   const save = async () => {
@@ -101,6 +102,13 @@ function BlockCard({ block, template }: { block: PlanBlock; template: boolean })
           <Text style={{ color: colors.accent, fontWeight: '600', marginTop: space.s }}>{lines.length ? 'Ändra' : 'Skriv'}</Text>
         </Pressable>
       )}
+      {!editing && broken.length ? (
+        // A plan imported before lines were joined at import: offered, never done by itself.
+        <View style={{ marginTop: space.s }}>
+          <P muted>{`${broken.length === 1 ? 'En rad ser ut' : `${broken.length} rader ser ut`} att fortsätta raden ovanför, till exempel ”${broken[0].line}”. Varje rad räknas som en egen sak tills du slår ihop dem.`}</P>
+          <Button kind="ghost" title="Slå ihop dem med raden ovanför" onPress={() => saveBlock(repo, { ...block, text: joinBrokenLines(block.text) })} />
+        </View>
+      ) : null}
       {isSignBlock(block.type) && lines.length ? (
         <Segmented
           label="Vem märker tecknen"

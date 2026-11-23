@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  blockFields, blockLines, blocksFromRows, diffPlans, emptyPlan, planAsText, rowsFromBlock, TEMPLATE, typeFromFields, type PlanBlock,
+  blockFields, blockLines, blocksFromRows, joinBrokenLines, suspectedBrokenLines, diffPlans, emptyPlan, planAsText, rowsFromBlock, TEMPLATE, typeFromFields, type PlanBlock,
 } from '../src/core/plan/blocks';
 import { draftFromText } from '../src/core/plan/importPlan';
 import { routinesToday } from '../src/core/plan/routines';
@@ -50,11 +50,14 @@ describe('the template', () => {
 });
 
 describe('rows from a block', () => {
-  it('makes one row per line, joins wrapped lines and keeps the person\'s words', () => {
+  it('makes one row per written line and keeps the person\'s words; a broken line is only offered to be joined', () => {
     const lines = blockLines(UP_ROUTINES).map((l) => l.text);
-    expect(lines).toHaveLength(8);
+    expect(lines).toHaveLength(9);
     expect(lines[0]).toBe('Upprätthåll rutiner - framförallt sömn. Sömn 22:30 - 07:00.');
-    expect(lines[3]).toBe('Håll hårt i arbetstider och se över arbetsbelastningen. Ta hjälp av chefen att gå igenom arbetsuppgifter och prioriteringar.');
+    expect(suspectedBrokenLines(UP_ROUTINES)).toEqual([{ line: 'arbetsuppgifter och prioriteringar.', previous: 'Håll hårt i arbetstider och se över arbetsbelastningen. Ta hjälp av chefen att gå igenom' }]);
+    const joined = blockLines(joinBrokenLines(UP_ROUTINES)).map((l) => l.text);
+    expect(joined).toHaveLength(8);
+    expect(joined[3]).toBe('Håll hårt i arbetstider och se över arbetsbelastningen. Ta hjälp av chefen att gå igenom arbetsuppgifter och prioriteringar.');
   });
 
   it('gives every row the block\'s fields; a ladder keeps its order and says who acts', () => {
