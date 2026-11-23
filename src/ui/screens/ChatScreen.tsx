@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { CODE_PROTECTIONS, chatPrompts, frameForDisplay, roleText, SORK_LABELS, type ChatSession } from '../../core/chat/chat';
+import { CHAT_MESSAGE_MAX, CODE_PROTECTIONS, chatPrompts, frameForDisplay, roleText, SORK_LABELS, type ChatSession } from '../../core/chat/chat';
 import { formatDateSv, formatTime } from '../../core/analysis/dates';
 import {
   approveSork, chatPromptLabel, chatPromptOverride, deleteSession, deleteSork, latestSession, newSession, saveChatPrompt, sendChat, sorkCards,
@@ -46,6 +46,11 @@ export function ChatScreen() {
     setNotice(null);
     try {
       const t = await sendChat(repo, session?.id ?? null, text);
+      if (t.kind === 'too_long') {
+        // Nothing was sent: the draft stays, and the person shortens it.
+        setError(`Meddelandet är ${t.length} tecken. Korta det till högst ${t.max} och skicka igen; inget har skickats.`);
+        return;
+      }
       setSession(t.session);
       setDraft('');
       if (t.kind === 'no_model') setError('Ingen språkmodell är kopplad. Koppla en under Jag → Språkmodell.');
@@ -87,6 +92,9 @@ export function ChatScreen() {
             accessibilityLabel="Ditt meddelande"
             style={{ minHeight: MIN_TOUCH, maxHeight: 160, borderWidth: 1, borderColor: colors.border, borderRadius: radius.m, padding: space.m, color: colors.text, backgroundColor: colors.surface, fontSize: 17 }}
           />
+          {draft.length > CHAT_MESSAGE_MAX * 0.8 ? (
+            <Text style={[type.small, { color: draft.length > CHAT_MESSAGE_MAX ? colors.danger : colors.textMuted }]} accessibilityLiveRegion="polite">{`${draft.length} av högst ${CHAT_MESSAGE_MAX} tecken`}</Text>
+          ) : null}
           <Button title={busy ? 'Skickar …' : 'Skicka'} onPress={send} busy={busy} disabled={!draft.trim()} />
         </View>
       )}

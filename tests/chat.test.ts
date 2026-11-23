@@ -8,6 +8,7 @@ import { setSecret } from '../src/platform/secrets';
 import {
   approveSork, chatContext, chatPromptOverride, chatSessions, deleteSession, saveChatPrompt, sendChat, sorkCards,
 } from '../src/services/chat';
+import type { ChatTurn } from '../src/services/chat';
 import { decideSuggestion } from '../src/services/corrections';
 import { LLM_KEY_NAME } from '../src/services/llm';
 import { memoryBackend } from '../src/storage/backend';
@@ -17,6 +18,9 @@ jest.mock('../src/platform/secrets', () => {
   const mem = new Map<string, string>();
   return { secretsPersist: false, getSecret: async (n: string) => mem.get(n) ?? null, setSecret: async (n: string, v: string) => void mem.set(n, v), deleteSecret: async (n: string) => void mem.delete(n) };
 });
+
+/** A turn that was sent or stopped: these tests never send a message over the limit. */
+type Sent = Exclude<ChatTurn, { kind: 'too_long' }>;
 
 const NOW = new Date('2026-11-22T19:00:00');
 const empty = { situation: '', organism: '', reaktion: '', konsekvens: '' };
@@ -102,7 +106,7 @@ describe('a conversation', () => {
   it('sends the app’s context and the message scrubbed, and saves both sides', async () => {
     const repo = await setup();
     const m = model([{ svar: 'Det låter jobbigt. Vad hände?', minne: [], sork: empty }]);
-    const t = await sendChat(repo, null, 'Bråkade med Kim i dag, ring 070-123 45 67', m);
+    const t = (await sendChat(repo, null, 'Bråkade med Kim i dag, ring 070-123 45 67', m)) as Sent;
     expect(t.kind).toBe('reply');
     expect(m.sent[0].user).toContain('Sover mindre');
     expect(m.sent[0].user).toContain('Ring mottagningen');
@@ -116,7 +120,7 @@ describe('a conversation', () => {
   it('never sends a message the emergency rule stops, and says so', async () => {
     const repo = await setup();
     const m = model([{ svar: 'x', minne: [], sork: empty }]);
-    const t = await sendChat(repo, null, 'Jag vill inte leva längre', m);
+    const t = (await sendChat(repo, null, 'Jag vill inte leva längre', m)) as Sent;
     expect(t.kind).toBe('akut');
     expect(m.sent).toHaveLength(0);
     expect(t.session.messages[0].akut).toBe('full');
@@ -129,7 +133,7 @@ describe('a conversation', () => {
   it('a broken rule in the reply shows the app’s own text and saves no memory', async () => {
     const repo = await setup();
     const m = model([{ svar: 'Du är nog manisk. Ta 25 mg.', minne: [{ slag: 'trigger', text: 'Bråk', citat: 'bråkade med' }], sork: empty }]);
-    const t = await sendChat(repo, null, 'Jag bråkade med chefen', m);
+    const t = (await sendChat(repo, null, 'Jag bråkade med chefen', m)) as Sent;
     expect(t.session.messages[1]).toMatchObject({ text: REPLACED_REPLY, replaced: true });
     expect(repo.pendingSuggestions()).toHaveLength(0);
   });
@@ -137,7 +141,7 @@ describe('a conversation', () => {
   it('a memory line waits for approval, and only then reaches the bank', async () => {
     const repo = await setup();
     const m = model([{ svar: 'Ska jag föreslå att appen minns det?', minne: [{ slag: 'trigger', text: 'Bråk på jobbet ger sämre sömn', citat: 'sover sämre efter bråk på jobbet' }], sork: empty }]);
-    const t = await sendChat(repo, null, 'Jag sover sämre efter bråk på jobbet', m);
+    const t = (await sendChat(repo, null, 'Jag sover sämre efter bråk på jobbet', m)) as Sent;
     expect(t.kind === 'reply' && t.suggestions).toBe(1);
     expect(repo.contextOf('trigger')).toHaveLength(0);
     await decideSuggestion(repo, repo.pendingSuggestions()[0].id, true);
@@ -161,7 +165,7 @@ describe('a conversation', () => {
 
   it('without a model the message is kept and nothing is sent; a conversation can be deleted', async () => {
     const repo = await Repository.create(memoryBackend());
-    const t = await sendChat(repo, null, 'Hej', model([]));
+    const t = (await sendChat(repo, null, 'Hej', model([]))) as Sent;
     expect(t.kind).toBe('no_model');
     await deleteSession(repo, t.session.id);
     expect(chatSessions(repo)).toHaveLength(0);
@@ -197,5 +201,32 @@ describe('nothing leaks out through background or the editable text (granskning 
     expect(all).toContain('Ta bort det farliga hemma');
     expect(all).toContain('En lugn dag med promenad.');
     expect(m.sent[0].system).toContain('[NAMN] är min kontaktperson. Var kort.');
+  });
+});
+
+describe('a long message (granskning 23 november)', () => {
+  const filler = (n: number) => 'Det har varit en lång och ganska vanlig dag på jobbet. '.repeat(Math.ceil(n / 55)).slice(0, n);
+
+  it.each([
+    ['before the limit', 100],
+    ['across the limit', 1990],
+    ['after the limit', 2600],
+  ])('reads an emergency phrase %s, sends nothing and keeps the whole text', async (_where, at) => {
+    const repo = await setup();
+    const m = model([{ svar: 'x', minne: [], sork: empty }]);
+    const text = `${filler(at)} Jag vill inte leva längre. ${filler(200)}`;
+    const t = await sendChat(repo, null, text, m);
+    expect(t.kind).toBe('akut');
+    expect(m.sent).toHaveLength(0);
+    expect((t as Sent).session.messages[0].text).toBe(text.trim());
+  });
+
+  it('a long message without emergency words is neither saved nor sent: the draft stays to be shortened', async () => {
+    const repo = await setup();
+    const m = model([{ svar: 'x', minne: [], sork: empty }]);
+    const t = await sendChat(repo, null, filler(2500), m);
+    expect(t).toEqual({ kind: 'too_long', length: 2500, max: 2000 });
+    expect(m.sent).toHaveLength(0);
+    expect(chatSessions(repo)).toHaveLength(0);
   });
 });

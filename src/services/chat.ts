@@ -124,7 +124,8 @@ export type ChatTurn =
   | { kind: 'akut'; session: ChatSession }
   | { kind: 'reply'; session: ChatSession; mild: boolean; suggestions: number; sork: SorkCard | null }
   | { kind: 'no_model'; session: ChatSession }
-  | { kind: 'failed'; session: ChatSession; message: string };
+  | { kind: 'failed'; session: ChatSession; message: string }
+  | { kind: 'too_long'; length: number; max: number };
 
 async function saveSession(repo: Repository, s: ChatSession): Promise<void> {
   await repo.kvSet(`${CHAT_SESSION_PREFIX}${s.id}`, s);
@@ -137,9 +138,13 @@ async function saveSession(repo: Repository, s: ChatSession): Promise<void> {
  */
 export async function sendChat(repo: Repository, sessionId: string | null, text: string, opts: AdapterOptions = {}): Promise<ChatTurn> {
   const now = opts.now?.() ?? new Date();
-  const message = text.trim().slice(0, CHAT_MESSAGE_MAX);
-  let session = (sessionId ? (repo.kvGet(`${CHAT_SESSION_PREFIX}${sessionId}`) as ChatSession | undefined) : null) ?? await newSession(repo, now);
+  // The emergency rule reads the whole text, before any limit: the end of a long message can
+  // never be cut away unread (granskning 23 november).
+  const message = text.trim();
   const check = akutCheck(message, repo.contextOf('akut').map((e) => e.text));
+  // Too long and not stopped by the rule: nothing is saved or sent; the draft stays for the person to shorten.
+  if (check.level !== 'full' && message.length > CHAT_MESSAGE_MAX) return { kind: 'too_long', length: message.length, max: CHAT_MESSAGE_MAX };
+  let session = (sessionId ? (repo.kvGet(`${CHAT_SESSION_PREFIX}${sessionId}`) as ChatSession | undefined) : null) ?? await newSession(repo, now);
   const user: ChatMessage = { role: 'user', text: message, at: now.toISOString(), ...(check.level ? { akut: check.level } : {}) };
   const before = session.messages;
   session = { ...session, messages: [...before, user] };
