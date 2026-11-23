@@ -187,9 +187,29 @@ describe('a frozen hypothesis counts only signals shown after it was frozen (gra
     const f = followUp(h, a)!;
     expect(f).toMatchObject({ periods: 3, hits: 2, shownBeforeFreeze: 1, when: { before: 1, same: 1, after: 0 }, firstShown: ['2026-11-23', '2026-12-02'] });
     const line = followUpLine(h, f);
-    expect(line).toContain('Sedan dess: mönstret kom före två av tre nya perioder.');
-    expect(line).toContain('Det började före en, samma dag som en och efter starten av noll.');
+    expect(line).toContain('Sedan dess: mönstret kom vid två av tre nya perioder.');
+    expect(line).toContain('Det började före en och samma dag som en av dem.');
     expect(line).toContain('En period räknas inte: mönstret syntes redan innan hypotesen sparades.');
+  });
+});
+
+describe('the counts drive the words (granskning 23 november)', () => {
+  it('three hits, two before and one after the start: never "före alla tre"', () => {
+    const a = analysePatterns(world([up(330), up(255), up(150), up(60)]), END, 'x');
+    const r = { ...a.findings[0], hits: 3, periods: a.findings[0].periods.slice(0, 3), when: { before: 2, same: 0, after: 1 }, patternOnly: [] };
+    expect(findingTitle(r)).toBe('Kortare sömn och högre stämningsläge: före två perioder, efter starten av en');
+    const summary = findingSummary(r);
+    expect(summary).toBe('Mönstret återkom vid alla tre separata perioder då du skattade högre stämningsläge. Det började före två och efter starten av en av dem.');
+    expect(summary).not.toContain('före alla');
+    const facts = findingFacts(r, a);
+    expect(facts).toContain('Av dem började mönstret före starten: 2, samma dag: 0, efter starten: 1.');
+  });
+
+  it('says "före" only when it began before every period', () => {
+    const a = analysePatterns(world([up(330), up(255), up(150), up(60)]), END, 'x');
+    const r = { ...a.findings[0], hits: 3, periods: a.findings[0].periods.slice(0, 3), when: { before: 3, same: 0, after: 0 }, patternOnly: [] };
+    expect(findingTitle(r)).toBe('Kortare sömn före högre stämningsläge');
+    expect(findingSummary(r)).toBe('Mönstret återkom före alla tre separata perioder då du skattade högre stämningsläge.');
   });
 });
 
@@ -200,7 +220,8 @@ describe('the language model only words a verified result', () => {
 
   it('gets only counts: no dates and nothing the person wrote', () => {
     expect(facts).toContain('Perioder som gick att bedöma: 4.');
-    expect(facts).toContain('Perioder där mönstret fanns före starten: 4.');
+    expect(facts).toContain('Perioder där mönstret fanns: 4.');
+    expect(facts).toMatch(/Av dem började mönstret före starten: \d, samma dag: \d, efter starten: \d\./);
     expect(facts).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     expect(facts).not.toMatch(/januari|februari|mars|april|maj|juni|juli|augusti|september|oktober|november|december/);
   });

@@ -447,9 +447,10 @@ export function followUp(h: PatternHypothesis, a: PatternAnalysis): FollowUp | n
 export function followUpLine(h: PatternHypothesis, later: FollowUp): string {
   const found = `Sparat som hypotes ${formatDateSvYear(h.foundAt.slice(0, 10))}.`;
   if (!later.periods && !later.patternOnly) return `${found} Prövas på nya data: ingen ny period sedan dess.`;
-  const when = h.found.timing === 'before' ? 'före' : 'vid';
+  // "före" only when every counted hit began before the period; otherwise "vid", with the counts after.
+  const when = later.hits > 0 && later.when && later.when.before === later.hits ? 'före' : 'vid';
   const w = later.when ?? { before: later.hits, same: 0, after: 0 };
-  const split = later.hits ? ` Det började före ${num(w.before)}, samma dag som ${num(w.same)} och efter starten av ${num(w.after)}.` : '';
+  const split = later.hits && w.before !== later.hits ? ` Det började ${whenWords(w)} av dem.` : '';
   const frozen = later.shownBeforeFreeze ? ` ${later.shownBeforeFreeze === 1 ? 'En period' : `${cap(num(later.shownBeforeFreeze))} perioder`} räknas inte: mönstret syntes redan innan hypotesen sparades.` : '';
   const periods = later.periods ? ` Sedan dess: mönstret kom ${when} ${num(later.hits)} av ${num(later.periods)} ${later.periods === 1 ? 'ny period' : 'nya perioder'}.${split}` : ' Sedan dess: ingen ny period.';
   const only = later.patternOnly ? ` Det kom ${later.patternOnly === 1 ? 'en gång' : `${num(later.patternOnly)} gånger`} utan att skattningen ändrades.` : '';
@@ -559,33 +560,53 @@ export function findingTopic(r: Pick<CandidateResult, 'candidate'>): string {
 }
 
 /** "Kortare sömn före högre stämningsläge". */
-export function findingTitle(r: Pick<CandidateResult, 'candidate' | 'timing'>): string {
-  return `${cap(FEATURE_WORD[r.candidate.pattern])} ${r.timing === 'before' ? 'före' : 'samtidigt med'} ${MOOD_WORD[r.candidate.mood]}`;
+/** When the pattern began, per hit; older saved results without counts are read from their lead days. */
+function whenOf(r: Pick<CandidateResult, 'hits' | 'leadDays'> & { when?: CandidateResult['when'] }): CandidateResult['when'] {
+  return r.when ?? { before: r.leadDays.length, same: r.hits - r.leadDays.length, after: 0 };
 }
 
-/** One or two sentences with the counts, and that it did not always hold. */
-export function findingSummary(r: CandidateResult): string {
-  const when = r.timing === 'before' ? 'före' : 'vid';
-  const what = `då du skattade ${RATED_WORD[r.candidate.mood]} stämningsläge`;
-  const n = r.periods.length;
-  const split = whenLine(r);
-  if (r.hits < n) return `Mönstret återkom ${when} ${num(r.hits)} av ${num(n)} separata perioder ${what}, men inte varje gång.${split}`;
-  const also = r.patternOnly.length ? ` Det kom också ${r.patternOnly.length === 1 ? 'en gång' : `${num(r.patternOnly.length)} gånger`} utan att skattningen ändrades.` : '';
-  return `Mönstret återkom ${when} alla ${num(n)} separata perioder ${what}.${split}${also}`;
-}
-
-/** " Det började före två av dem och samma dag som en." Empty when every hit has the same timing as the title says. */
-function whenLine(r: CandidateResult): string {
-  const w = r.when ?? { before: r.leadDays.length, same: r.hits - r.leadDays.length, after: 0 };
+/** "före två, samma dag som en och efter starten av en", from the counts; the parts that are zero left out. */
+function whenWords(w: CandidateResult['when']): string {
   const parts = [
     w.before ? `före ${num(w.before)}` : '',
     w.same ? `samma dag som ${num(w.same)}` : '',
     w.after ? `efter starten av ${num(w.after)}` : '',
   ].filter(Boolean);
-  if (parts.length < 2) return '';
-  const list = parts.length === 2 ? parts.join(' och ') : `${parts.slice(0, -1).join(', ')} och ${parts[parts.length - 1]}`;
-  return ` Det började ${list} av dem.`;
+  return parts.length <= 2 ? parts.join(' och ') : `${parts.slice(0, -1).join(', ')} och ${parts[parts.length - 1]}`;
 }
+
+/**
+ * The finding's name, from the actual counts (granskning 23 november): "Kortare sömn före högre
+ * stämningsläge" only when the pattern began before every period it was found at; otherwise the
+ * counts are said, "Kortare sömn och högre stämningsläge: före två perioder, efter starten av en".
+ */
+export function findingTitle(r: Pick<CandidateResult, 'candidate' | 'hits' | 'leadDays'> & { when?: CandidateResult['when'] }): string {
+  const w = whenOf(r);
+  const feature = cap(FEATURE_WORD[r.candidate.pattern]);
+  if (w.before === r.hits && r.hits > 0) return `${feature} före ${MOOD_WORD[r.candidate.mood]}`;
+  if (!w.before && !w.after) return `${feature} samtidigt med ${MOOD_WORD[r.candidate.mood]}`;
+  const parts = [
+    w.before ? `före ${num(w.before)} ${w.before === 1 ? 'period' : 'perioder'}` : '',
+    w.same ? `samma dag som ${num(w.same)}` : '',
+    w.after ? `efter starten av ${num(w.after)}` : '',
+  ].filter(Boolean);
+  return `${feature} och ${MOOD_WORD[r.candidate.mood]}: ${parts.join(', ')}`;
+}
+
+/** One or two sentences with the counts, and that it did not always hold. */
+export function findingSummary(r: CandidateResult): string {
+  const w = whenOf(r);
+  // "före" only when it began before every one of them; otherwise "vid", with the counts.
+  const allBefore = w.before === r.hits && r.hits > 0;
+  const when = allBefore ? 'före' : 'vid';
+  const what = `då du skattade ${RATED_WORD[r.candidate.mood]} stämningsläge`;
+  const n = r.periods.length;
+  const split = allBefore ? '' : ` Det började ${whenWords(w)} av dem.`;
+  if (r.hits < n) return `Mönstret återkom ${when} ${num(r.hits)} av ${num(n)} separata perioder ${what}, men inte varje gång.${split}`;
+  const also = r.patternOnly.length ? ` Det kom också ${r.patternOnly.length === 1 ? 'en gång' : `${num(r.patternOnly.length)} gånger`} utan att skattningen ändrades.` : '';
+  return `Mönstret återkom ${when} alla ${num(n)} separata perioder ${what}.${split}${also}`;
+}
+
 
 /** Other links in the same direction that also hold: named with the finding, not shown as findings of their own. */
 export function relatedLine(r: CandidateResult, a: PatternAnalysis): string | null {
@@ -659,8 +680,9 @@ export function findingFacts(r: CandidateResult, a: PatternAnalysis): string {
     `Mönster i klockans data: ${FEATURE_WORD[r.candidate.pattern]} än personens vanliga, flera nätter i rad.`,
     `Jämfört med: perioder då personen själv skattade ${MOOD_WORD[r.candidate.mood]}.`,
     `Perioder som gick att bedöma: ${r.periods.length}.`,
-    `Perioder där mönstret fanns ${r.timing === 'before' ? 'före starten' : 'vid starten'}: ${r.hits}.`,
-    r.leadDays.length ? `Dygn före starten som mönstret började: ${r.leadDays.join(', ')}.` : 'Mönstret började samtidigt som perioderna.',
+    `Perioder där mönstret fanns: ${r.hits}.`,
+    `Av dem började mönstret före starten: ${whenOf(r).before}, samma dag: ${whenOf(r).same}, efter starten: ${whenOf(r).after}.`,
+    r.leadDays.length ? `Dygn före starten som mönstret började, där det började före: ${r.leadDays.join(', ')}.` : 'Mönstret började aldrig före en period.',
     `Perioder utan mönstret: ${misses}.`,
     `Gånger mönstret fanns utan att skattningen ändrades: ${r.patternOnly.length}.`,
     `Gånger mönstret fanns men skattningar saknades efteråt: ${r.patternUnrated}.`,
