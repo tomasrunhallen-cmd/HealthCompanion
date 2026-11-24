@@ -80,7 +80,7 @@ describe('the editable description', () => {
     expect(frameForDisplay()).toContain('[Din text, nedan]');
     expect(frameForDisplay()).toContain('Ge inga råd om mediciner');
     expect(roleText(null)).toBe(chatPrompts().standard.system.trim());
-    expect(promptVersionLabel(null)).toBe('samtal-ram 1.1.0 + samtal 1.1.0');
+    expect(promptVersionLabel(null)).toBe('samtal-ram 1.1.0 + samtal 1.2.0');
   });
 
   it('saves the own text with the old one kept, and goes back to the standard', async () => {
@@ -228,5 +228,29 @@ describe('a long message (granskning 23 november)', () => {
     expect(t).toEqual({ kind: 'too_long', length: 2500, max: 2000 });
     expect(m.sent).toHaveLength(0);
     expect(chatSessions(repo)).toHaveLength(0);
+  });
+});
+
+describe('several conversations and the SORK start (24 november)', () => {
+  it('a new conversation becomes the open one, an older one can be opened again, and each is named by its first words', async () => {
+    const { currentSession, openSession, newSession } = require('../src/services/chat') as typeof import('../src/services/chat');
+    const { sessionTitle, SORK_STARTER } = require('../src/core/chat/chat') as typeof import('../src/core/chat/chat');
+    const repo = await setup();
+    const first = (await sendChat(repo, null, 'Jag har svårt att sova', model([{ svar: 'Berätta mer.', minne: [], sork: empty }]))) as Sent;
+    await newSession(repo, new Date(NOW.getTime() + 1000));
+    expect(currentSession(repo)!.messages).toHaveLength(0);
+    expect(sessionTitle(currentSession(repo)!)).toBe('Nytt samtal');
+    const m = model([{ svar: 'Okej. Vad hände precis innan?', minne: [], sork: empty }]);
+    await sendChat(repo, currentSession(repo)!.id, SORK_STARTER, m);
+    expect(m.sent[0].user).toContain(SORK_STARTER);
+    expect(chatSessions(repo)).toHaveLength(2);
+    await openSession(repo, first.session.id);
+    expect(sessionTitle(currentSession(repo)!)).toBe('Jag har svårt att sova');
+  });
+
+  it('the conversation is plain: no summary first, one question at a time', () => {
+    const t = chatPrompts().standard.system;
+    expect(t).toContain('Börja inte varje svar med en sammanfattning');
+    expect(t).toContain('bekräfta kort och ställ den första frågan direkt');
   });
 });

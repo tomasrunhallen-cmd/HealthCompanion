@@ -32,13 +32,26 @@ export function chatSessions(repo: Repository): ChatSession[] {
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 }
 
+export const CHAT_CURRENT_KEY = 'chatCurrent';
+
 export function latestSession(repo: Repository): ChatSession | null {
   return chatSessions(repo)[0] ?? null;
+}
+
+/** The conversation open in Prata: the one last chosen, else the newest. */
+export function currentSession(repo: Repository): ChatSession | null {
+  const id = repo.kvGet(CHAT_CURRENT_KEY) as string | undefined;
+  return (id ? chatSessions(repo).find((s) => s.id === id) : null) ?? latestSession(repo);
+}
+
+export async function openSession(repo: Repository, id: string): Promise<void> {
+  await repo.kvSet(CHAT_CURRENT_KEY, id);
 }
 
 export async function newSession(repo: Repository, now = new Date()): Promise<ChatSession> {
   const s: ChatSession = { id: `s${now.getTime()}`, startedAt: now.toISOString(), messages: [] };
   await repo.kvSet(`${CHAT_SESSION_PREFIX}${s.id}`, s);
+  await repo.kvSet(CHAT_CURRENT_KEY, s.id);
   return s;
 }
 

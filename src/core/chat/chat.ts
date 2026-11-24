@@ -166,3 +166,16 @@ export function sorkText(c: SorkCard): string {
   const [s, o, r, k] = SORK_LABELS;
   return [`${s}: ${c.situation}`, c.organism && `${o}: ${c.organism}`, c.reaktion && `${r}: ${c.reaktion}`, c.konsekvens && `${k}: ${c.konsekvens}`].filter(Boolean).join('\n');
 }
+
+/** A conversation's name in the list: its first words, or "Nytt samtal". */
+export function sessionTitle(s: ChatSession): string {
+  const first = s.messages.find((m) => m.role === 'user' && m.akut !== 'full')?.text.replace(/\s+/g, ' ').trim();
+  if (!first) return s.messages.some((m) => m.akut === 'full') ? 'Samtal där Hjälp nu visades' : 'Nytt samtal';
+  return first.length > 48 ? `${first.slice(0, 47).trimEnd()}…` : first;
+}
+
+/** What the button "Gå igenom en händelse" sends: the model then starts the steps with a plain question. */
+export const SORK_STARTER = 'Jag vill gå igenom en händelse steg för steg.';
+
+/** Openers on an empty conversation, so it does not start with a blank page. */
+export const CHAT_OPENERS = ['Jag vill prata om hur dagen varit', 'Något har hänt som jag funderar på', 'Jag har svårt att sova', 'Hjälp mig hitta ett litet steg i dag'];

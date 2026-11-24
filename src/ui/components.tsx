@@ -31,7 +31,8 @@ export function Screen(props: {
     if (props.title) navigation.setOptions({ title: props.title });
   }, [navigation, props.title]);
   const bottom = tabBarHeight ? 0 : insets.bottom;
-  const body = <View style={styles.inner}>{props.children}</View>;
+  // Without its own scroll the body fills the space above the footer, so a scroll view inside can be bounded.
+  const body = <View style={[styles.inner, props.scroll === false && { flex: 1 }]}>{props.children}</View>;
   return (
     <View style={styles.screen}>
       {props.scroll === false ? body : (

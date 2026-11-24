@@ -16,7 +16,7 @@ import { AccessibilityInfo, Platform, Pressable, Text, useColorScheme, View } fr
 import { CrisisCard } from './CrisisCard';
 import { Screen } from './components';
 import { PUSHED, useNav, type RouteName } from './nav';
-import { ChatPromptScreen, ChatScreen, SorkScreen } from './screens/ChatScreen';
+import { ChatPromptScreen, ChatScreen, ChatSessionsScreen, SorkScreen } from './screens/ChatScreen';
 import { CheckinScreen } from './screens/CheckinScreen';
 import { CorrectionScreen } from './screens/CorrectionScreen';
 import { GarminScreen } from './screens/GarminScreen';
@@ -100,6 +100,7 @@ const COMPONENT: Record<RouteName, React.ComponentType> = {
   chat: ChatScreen,
   sork: SorkScreen,
   chatPrompt: ChatPromptScreen,
+  chatSessions: ChatSessionsScreen,
 };
 
 /** Titles set before the screen renders, so the header never flashes empty. Under 15 characters (HIG). */
@@ -134,6 +135,7 @@ const TITLE: Record<RouteName, string> = {
   chat: 'Prata',
   sork: 'SORK-kort',
   chatPrompt: 'Prompten',
+  chatSessions: 'Samtal',
 };
 
 /** Reduce Motion: stack pushes fade instead of slide. */
