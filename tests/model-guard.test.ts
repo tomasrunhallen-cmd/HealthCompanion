@@ -58,12 +58,30 @@ describe('Modellen kan inte gömma ett allvarligt tecken eller styra meningen', 
     expect(a.inputs?.keptByPhone).toBeUndefined();
   });
 
-  it('an early sign with a negation of its own is left to the model, and the difference is shown', async () => {
-    // "Handlar saker jag inte behöver": the phone cannot tell it from a sentence that denies it.
-    const a = await run('Handlar saker jag inte behöver hela dagen.', model({ matches: [], sentence: 'En lugn dag.' }));
+  it('an early sign with a negation of its own is left to the model when the clause has another negation, and the difference is shown', async () => {
+    // "Det är inte så att jag handlar ...": the phone cannot tell what the extra negation does.
+    const a = await run('Det är inte så att jag handlar saker jag inte behöver.', model({ matches: [], sentence: 'En lugn dag.' }));
     expect(a.level).toBe('green');
     expect(a.inputs?.wordOnly?.map((m) => m.planItemId)).toEqual(['e1']);
     expect(explainAssessment(entry('x'), a, null).data).toContain('Ordmatchningen hittade också ”Handlar saker jag inte behöver”, men modellen räknade det inte');
+  });
+
+  it('an early sign with a negation of its own counts when the note states it word for word: the model cannot lower the level (rules 1.10.0)', async () => {
+    // Granskning 25 november: "Svarar inte på sms" and "Jag svarar inte på sms" gave yellow on the phone and green with a model that missed it.
+    const smsPlan: PlanItem[] = [{ id: 'e3', kind: 'early', text: 'Svarar inte på sms', order: 0, approvedAt: null }];
+    const go = (note: string, m: SignMatcher) => assessEntry({ entry: entry(note), plan: smsPlan, planSettings: DEFAULT_PLAN_SETTINGS, history: [], matcher: m, now: new Date('2026-11-02T20:00:00') });
+    const missed = model({ matches: [], sentence: 'En lugn dag.' });
+    for (const note of ['Jag svarar inte på sms.', 'Trött i dag, svarar inte på sms längre.', 'Ringde mamma men svarar inte på sms.']) {
+      const phone = await go(note, wordMatcher);
+      const withModel = await go(note, missed);
+      expect([note, phone.level, phone.points]).toEqual([note, 'yellow', 1]);
+      expect([note, withModel.level, withModel.points]).toEqual([note, 'yellow', 1]);
+      expect(withModel.inputs?.keptByPhone?.map((m) => m.planItemId)).toEqual(['e3']);
+    }
+    // Another negation in the same clause: the model still decides.
+    const denied = await go('Det är inte så att jag svarar inte på sms.', missed);
+    expect(denied.level).toBe('green');
+    expect(denied.inputs?.wordOnly?.map((m) => m.planItemId)).toEqual(['e3']);
   });
 
   it('the model can still add a sign that word matching cannot see', async () => {

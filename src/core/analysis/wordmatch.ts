@@ -28,6 +28,24 @@ export function negatedAgainst(text: string, signText: string): boolean {
   return tokenize(text).some((w) => NEGATIONS.has(w) && !sign.has(w));
 }
 
+/**
+ * True when the note states a sign that has a negation of its own word for word, with no other
+ * negation in the same clause: "Jag svarar inte på sms" confirms "Svarar inte på sms", while "Det
+ * är inte så att jag svarar inte på sms" and "har inte slutat svara" do not (rules 1.10.0). A
+ * clause ends at . ! ? ; , a line break or "men".
+ */
+export function confirmsSign(note: string, signText: string): boolean {
+  const phrase = normalize(signText);
+  if (!phrase) return false;
+  const clauses = note.split(/[.!?;,\n]+|\bmen\b/i).map(normalize).filter(Boolean);
+  return clauses.some((c) => {
+    const at = ` ${c} `.indexOf(` ${phrase} `);
+    if (at < 0) return false;
+    const rest = `${c.slice(0, at)} ${c.slice(at + phrase.length)}`;
+    return !tokenize(rest).some((w) => NEGATIONS.has(w));
+  });
+}
+
 /** True when the text has a negation of its own ("Svarar inte på sms"). */
 export function hasNegation(text: string): boolean {
   return tokenize(text).some((w) => NEGATIONS.has(w));

@@ -1,6 +1,6 @@
 {
   "$schema": "./rules.schema.json",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "points": {
     "earlySign": 1,
     "seriousSign": 2,

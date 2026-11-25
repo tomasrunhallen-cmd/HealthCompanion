@@ -8,7 +8,7 @@ import type {
   AssessmentRhythm, RhythmScoreInput,
 } from '../domain/types';
 import { actionsFor } from '../plan/guidance';
-import { hasNegation, matchSigns } from './wordmatch';
+import { confirmsSign, hasNegation, matchSigns } from './wordmatch';
 import { score, type HistoryDay, type ScoreResult } from './scoring';
 import type { CheckedObservation, TextComparerResult } from '../references/patterns';
 import { addDays } from './dates';
@@ -164,6 +164,8 @@ export async function assessEntry(args: {
   // negated sentences ("sover inte mindre"). The one exception is an early sign that has a
   // negation of its own ("Svarar inte på sms"): the phone cannot tell it from "har inte slutat
   // svara på sms", so there the model decides, and the difference is shown under Så räknade appen.
+  // Unless the note states the sign word for word with no other negation in its clause ("Jag
+  // svarar inte på sms"): that counts whatever the model says (rules 1.10.0, granskning 25 november).
   let matches = result.matches;
   const keptByPhone: SignMatch[] = [];
   const wordOnly: SignMatch[] = [];
@@ -173,7 +175,7 @@ export async function assessEntry(args: {
     for (const m of matchSigns(entry.transcript, signs)) {
       if (have.has(m.planItemId)) continue;
       const sign = signOf.get(m.planItemId);
-      if (sign?.kind === 'serious' || !hasNegation(sign?.text ?? '')) keptByPhone.push(m);
+      if (sign?.kind === 'serious' || !hasNegation(sign?.text ?? '') || confirmsSign(entry.transcript, sign?.text ?? '')) keptByPhone.push(m);
       else wordOnly.push(m);
     }
     matches = [...matches, ...keptByPhone];
