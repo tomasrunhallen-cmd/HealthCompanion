@@ -26,6 +26,10 @@ export interface DaySuggestion {
   model: string | null;
   promptVersion: string | null;
   createdAt: string;
+  /** The night's sleep the suggestion was made with (from 25 November). */
+  sleepHours?: number | null;
+  /** Made again once because the watch's sleep changed after the first one. */
+  remadeForSleep?: boolean;
 }
 
 export interface DayContext {

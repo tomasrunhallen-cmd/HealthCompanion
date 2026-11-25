@@ -74,6 +74,15 @@ export async function disconnectGarmin(repo: Repository): Promise<void> {
   await repo.updateGarminStatus({ connected: false, lastError: null });
 }
 
+/** How far back a sync reaches once to fill in light sleep and time awake (from 25 November). */
+export const PHASE_REFILL_DAYS = 28;
+
+/** Days with sleep from the watch in the last four weeks that were fetched before light sleep was read. */
+export function missingPhases(repo: Repository, today: DateKey): boolean {
+  const from = addDays(today, -PHASE_REFILL_DAYS);
+  return Object.values(repo.garminDays()).some((d) => d.date >= from && d.date < addDays(today, -SYNC_DAYS) && d.sleepHours != null && d.lightMinutes === undefined);
+}
+
 /** Fetches recent days. Never throws: the result and the stored status carry the error. */
 export async function syncGarmin(repo: Repository, opts: GarminOptions & { days?: number } = {}): Promise<SyncResult> {
   if (!repo.garminStatus().connected) return { ok: false, days: [], error: null };
@@ -85,7 +94,9 @@ export async function syncGarmin(repo: Repository, opts: GarminOptions & { days?
   const now = opts.now ?? new Date();
   const today = toDateKey(now);
   try {
-    const days = await fetchRange(clientFor(key, opts), today, opts.days ?? SYNC_DAYS, now);
+    // A normal sync reaches four weeks back once, so the phase means have light sleep too.
+    const span = opts.days ?? (missingPhases(repo, today) ? PHASE_REFILL_DAYS : SYNC_DAYS);
+    const days = await fetchRange(clientFor(key, opts), today, span, now);
     await repo.saveGarminDays(days, today);
     await repo.updateGarminStatus({ lastSyncAt: now.toISOString(), lastError: null });
     await afterSync(repo, clientFor(key, opts), days, today, now, opts.trigger ?? 'manual');

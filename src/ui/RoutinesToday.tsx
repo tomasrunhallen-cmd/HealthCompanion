@@ -13,7 +13,7 @@ import { routineLog, routinesToday } from '../core/plan/routines';
 import { setRoutineDone } from '../services/routines';
 import { routineStatuses } from '../core/plan/routineFrequency';
 import type { DaySuggestion } from '../core/plan/daySuggestion';
-import { daySuggestion, makeDaySuggestion } from '../services/daySuggestion';
+import { daySuggestion, makeDaySuggestion, staleForSleep } from '../services/daySuggestion';
 import { Button, Card, P, Row, Tag } from './components';
 import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
@@ -71,12 +71,14 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
 
   // The hooks come before any early return, so they run in the same order on every render.
   const [suggestion, setSuggestion] = useState<DaySuggestion | null>(() => daySuggestion(repo));
+  // Made again once when the watch has synced a different night since (it may name the hours).
+  const stale = staleForSleep(suggestion, repo);
   useEffect(() => {
-    if (empty || suggestion?.date === today) return;
+    if (empty || (suggestion?.date === today && !stale)) return;
     let live = true;
     makeDaySuggestion(repo, { browser: Platform.OS === 'web' }).then((s) => live && setSuggestion(s)).catch(() => undefined);
     return () => { live = false; };
-  }, [repo, empty, today, suggestion?.date]);
+  }, [repo, empty, today, suggestion?.date, stale]);
   if (empty) return null;
   const status = new Map(routineStatuses(entries, today).map((st) => [st.routine.id, st]));
   const picked = (suggestion?.date === today ? suggestion.items : [])

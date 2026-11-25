@@ -9,7 +9,7 @@ import { checkSuggestion, codeSuggestion, suggestionInput, weekText } from '../s
 import { frequencyOf, frequencyText, rankDue, routineStatuses, suggestFrequency, weekday } from '../src/core/plan/routineFrequency';
 import { destinationKey } from '../src/llm/config';
 import { setSecret } from '../src/platform/secrets';
-import { daySuggestion, makeDaySuggestion } from '../src/services/daySuggestion';
+import { daySuggestion, makeDaySuggestion, staleForSleep } from '../src/services/daySuggestion';
 import { LLM_KEY_NAME } from '../src/services/llm';
 import { memoryBackend } from '../src/storage/backend';
 import { Repository } from '../src/storage/repository';
@@ -139,6 +139,41 @@ describe('Dagens förslag', () => {
     const before = sent.length;
     expect((await makeDaySuggestion(repo, { fetch, force: true }, now)).method).toBe('code');
     expect(sent).toHaveLength(before);
+  });
+});
+
+describe('the suggestion follows the night the watch has synced', () => {
+  const walk = routine('Promenad', { routine: { track: true, reminder: null, frequency: { kind: 'weekly', times: 3 } } });
+  const meds = routine('Tar min medicin klockan 21');
+  it('is made once more when the sleep changes after it, and not again', async () => {
+    const repo = await Repository.create(memoryBackend());
+    for (const r of [walk, meds]) await repo.addContextEntry({ ...r, id: r.id });
+    await repo.updateLlmConfig({ provider: 'mistral', model: 'mistral-small-latest', consentFor: destinationKey('mistral', '') });
+    await setSecret(LLM_KEY_NAME, 'mk');
+    const sent: string[] = [];
+    const fetch: FetchLike = async (_u, init) => {
+      sent.push(JSON.parse(init.body).messages[1].content);
+      return { ok: true, status: 200, text: async () => JSON.stringify({ choices: [{ message: { content: JSON.stringify({ suggestions: [{ routine: 'R2', why: 'Medicinen håller rytmen.' }] }) } }] }) };
+    };
+    const now = new Date(2026, 10, 13, 7, 0);
+    const night = (hours: number) => ({ date: '2026-11-13', source: 'garmin' as const, sleepHours: hours, deepMinutes: null, remMinutes: null, sleepStart: '23:00', sleepEnd: '07:00', stressAvg: null, stressHighMinutes: null, bodyBatteryWake: null, fetchedAt: now.toISOString() });
+    // Half the night synced when Hem opens.
+    await repo.saveGarminDays([night(4.8)], '2026-11-13');
+    const first = await makeDaySuggestion(repo, { fetch }, now);
+    expect(first.sleepHours).toBe(4.8);
+    expect(sent[0]).toContain('Sömn i natt: 4,8 h');
+    // The rest of the night arrives: made once more with the whole night.
+    await repo.saveGarminDays([night(8)], '2026-11-13');
+    expect(staleForSleep(first, repo, now)).toBe(true);
+    const again = await makeDaySuggestion(repo, { fetch }, now);
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).toContain('Sömn i natt: 8 h');
+    expect(again).toMatchObject({ sleepHours: 8, remadeForSleep: true });
+    // Never more than once a day.
+    await repo.saveGarminDays([night(6)], '2026-11-13');
+    expect(staleForSleep(again, repo, now)).toBe(false);
+    await makeDaySuggestion(repo, { fetch }, now);
+    expect(sent).toHaveLength(2);
   });
 });
 

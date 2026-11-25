@@ -5,6 +5,9 @@ import { meanPhases, phasesOf, phasesText } from '../src/core/analysis/sleepPhas
 import { formatMeasurements } from '../src/core/analysis/measurements';
 import type { MeasuredDay } from '../src/core/domain/types';
 import { parseSleep } from '../src/garmin/client';
+import { missingPhases } from '../src/services/garmin';
+import { memoryBackend } from '../src/storage/backend';
+import { Repository } from '../src/storage/repository';
 
 const day = (date: string, deep: number | null, light: number | null, rem: number | null, awake: number | null = 10): MeasuredDay => ({
   date, sleepHours: 7, deepMinutes: deep, remMinutes: rem, lightMinutes: light, awakeMinutes: awake, sleepStart: '23:00', sleepEnd: '06:10',
@@ -59,5 +62,16 @@ describe('less deep sleep, for Mina mönster', () => {
 
   it('cannot be judged with too few earlier nights', () => {
     expect(lessDeep(series(usual.slice(0, 10), [45, 50, 40]), today)).toEqual({ judged: false, found: false });
+  });
+});
+
+describe('filling in the phases of earlier nights', () => {
+  it('reaches four weeks back while older nights lack light sleep, and not after', async () => {
+    const repo = await Repository.create(memoryBackend());
+    const old = { ...day('2026-11-10', 70, null, 90), lightMinutes: undefined, awakeMinutes: undefined };
+    await repo.saveGarminDays([old], '2026-11-25');
+    expect(missingPhases(repo, '2026-11-25')).toBe(true);
+    await repo.saveGarminDays([day('2026-11-10', 70, 230, 90)], '2026-11-25');
+    expect(missingPhases(repo, '2026-11-25')).toBe(false);
   });
 });

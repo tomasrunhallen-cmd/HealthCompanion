@@ -21,13 +21,35 @@ export function modelSuggestionsOn(repo: Repository): boolean {
   return repo.settings().routineSuggestions !== false;
 }
 
+/** The night's sleep as the suggestion would read it now. */
+function sleepNow(repo: Repository, now: Date): number | null {
+  return repo.measuredDay(eveningDateKey(now))?.sleepHours ?? null;
+}
+
+/**
+ * The model's suggestion may name the night's sleep. When the watch syncs the rest of the night
+ * after the suggestion was made, it would name the wrong hours: then it is made once more that day.
+ */
+export function staleForSleep(s: DaySuggestion | null, repo: Repository, now = new Date()): boolean {
+  if (!s || s.method !== 'llm' || s.remadeForSleep || s.date !== eveningDateKey(now)) return false;
+  const was = s.sleepHours ?? null;
+  const is = sleepNow(repo, now);
+  if (is == null) return false;
+  return was == null || Math.abs(is - was) >= 0.5;
+}
+
 /** Makes today's suggestion, unless there is one. Never throws: a model that fails leaves the code's. */
 export async function makeDaySuggestion(repo: Repository, opts: AdapterOptions & { force?: boolean } = {}, now = new Date()): Promise<DaySuggestion> {
   const existing = daySuggestion(repo, now);
-  if (existing && !opts.force) return existing;
+  const remake = staleForSleep(existing, repo, now);
+  if (existing && !opts.force && !remake) return existing;
   const today = eveningDateKey(now);
   const statuses = routineStatuses(repo.contextEntries(), today);
-  const base: DaySuggestion = { date: today, items: codeSuggestion(statuses, today), method: 'code', model: null, promptVersion: null, createdAt: now.toISOString() };
+  const sleepHours = sleepNow(repo, now);
+  const base: DaySuggestion = {
+    date: today, items: codeSuggestion(statuses, today), method: 'code', model: null, promptVersion: null, createdAt: now.toISOString(), sleepHours,
+    ...(remake || existing?.remadeForSleep ? { remadeForSleep: true } : {}),
+  };
   let result = base;
   if (base.items.length && modelSuggestionsOn(repo)) {
     try {
@@ -38,7 +60,7 @@ export async function makeDaySuggestion(repo: Repository, opts: AdapterOptions &
           today,
           weekday: weekday(today),
           yesterdayLevel: yesterday ? repo.assessmentFor(yesterday.id)?.level ?? null : null,
-          sleepHours: repo.measuredDay(today)?.sleepHours ?? null,
+          sleepHours,
           sleepLimit: repo.planSettings().sleepThresholdHours,
         }, namesToScrub(repo));
         const prompt = loadPrompt('dagsforslag');
