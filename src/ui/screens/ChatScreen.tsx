@@ -91,7 +91,6 @@ export function ChatScreen() {
   const pendingFromChat = repo.pendingSuggestions().filter((s) => s.source === 'chat').length;
   const drafts = session ? sorkCards(repo).filter((c) => c.sessionId === session.id && !c.approvedAt) : [];
   const akutShown = session?.messages.some((m) => m.akut === 'full') ?? false;
-  const mildShown = !akutShown && (session?.messages.some((m) => m.akut === 'mild') ?? false);
 
   const send = async (raw: string) => {
     const text = raw.trim();
@@ -108,6 +107,9 @@ export function ChatScreen() {
         setError(`Meddelandet är ${t.length} tecken. Korta det till högst ${t.max} och skicka igen; inget har skickats.`);
         return;
       }
+      // A message the emergency rule stopped: Hjälp nu opens over the conversation at once, so the
+      // help is seen however long the conversation is, and the screen reader starts there.
+      if (t.kind === 'akut') nav.push({ name: 'crisis' });
       if (t.kind === 'no_model') setError('Ingen språkmodell är kopplad. Koppla en under Jag → Inställningar → AI-stöd.');
       if (t.kind === 'failed') setError(`Modellen svarade inte: ${t.message} Ditt meddelande är sparat; skriv igen när du vill.`);
       if (t.kind === 'reply') {
@@ -134,6 +136,10 @@ export function ChatScreen() {
   };
 
   const messages = session?.messages ?? [];
+  // Where the help goes: under the latest stopped message, or the latest gentler one when none was stopped.
+  const lastOf = (kind: 'full' | 'mild') => messages.reduce((at, m, i) => (m.akut === kind ? i : at), -1);
+  const lastFull = lastOf('full');
+  const lastMild = lastOf('mild');
   const empty = !messages.length && !pending;
   const count = chatSessions(repo).length;
 
@@ -184,8 +190,6 @@ export function ChatScreen() {
           </Card>
         ) : null}
 
-        {akutShown ? <View style={{ marginTop: space.m }}><CrisisCard plan={repo.plan()} /></View> : null}
-        {mildShown ? <View style={{ marginTop: space.m }}><CrisisCard plan={repo.plan()} mild /></View> : null}
 
         {empty && ready !== false ? (
           <View style={{ marginTop: space.m }}>
@@ -217,14 +221,18 @@ export function ChatScreen() {
 
         <View style={{ marginTop: space.l, gap: space.s }}>
           {messages.map((m, i) => (
-            <Bubble
-              key={m.at + i}
-              mine={m.role === 'user'}
-              who={m.role === 'user' ? 'Du' : 'Prata'}
-              text={m.text}
-              at={m.at}
-              note={m.akut === 'full' ? ' Skickades inte: Hjälp nu visas i stället.' : m.replaced ? ' Modellens svar bröt mot reglerna och ersattes av appens text.' : undefined}
-            />
+            <React.Fragment key={m.at + i}>
+              <Bubble
+                mine={m.role === 'user'}
+                who={m.role === 'user' ? 'Du' : 'Prata'}
+                text={m.text}
+                at={m.at}
+                note={m.akut === 'full' ? ' Skickades inte: Hjälp nu visas här under.' : m.replaced ? ' Modellens svar bröt mot reglerna och ersattes av appens text.' : undefined}
+              />
+              {/* The help stands right under the message that brought it, where the conversation ends up, not above it. */}
+              {i === lastFull ? <CrisisCard plan={repo.plan()} /> : null}
+              {i === lastMild && !akutShown ? <CrisisCard plan={repo.plan()} mild /> : null}
+            </React.Fragment>
           ))}
           {pending ? (
             <>
