@@ -58,7 +58,7 @@ export function buildAdapter(
 export function trackedCompleter(repo: Repository, adapter: LlmAdapter, now: () => Date = () => new Date()): Completer {
   return createCompleter(adapter, {
     onSent: (req) => void repo.setLastSent(req),
-    onUsage: (u) => void repo.recordUsage(eveningDateKey(now()), u),
+    onUsage: (u, promptId) => void repo.recordUsage(eveningDateKey(now()), u, promptId),
   });
 }
 

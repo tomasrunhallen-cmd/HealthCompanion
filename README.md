@@ -318,7 +318,7 @@ En passiv modell som letar efter tidiga tecken på en möjlig kommande stämning
 
 Ett samtal med språkmodellen du kopplat till appen, i fliken *Prata*. Ett samtalsstöd med din plan som grund, med KBT och SORK-analys, inte vård. Koden ligger i `src/core/chat/chat.ts` och `src/services/chat.ts`, prompterna i `prompts/samtal-ram.md` (fast ram) och `prompts/samtal.md` (standardtexten).
 
-- **Sammanhang:** modellen får appens nivå från senaste avstämningen, normalläge, tecken, planens steg vid gult och rött, rutiner, värdeankare, mätvärden, kontextbanken, de sju senaste anteckningarna, Dygnsrytm, Mina mönster och de tre senaste SORK-korten. Önskemål, råd till vården och kontakter skickas aldrig. Allt går genom `scrub()`.
+- **Sammanhang:** modellen får appens nivå från senaste avstämningen, normalläge, tecken, planens steg vid gult och rött, rutiner, värdeankare, mätvärden, kontextbanken, de tre senaste anteckningarna (korta utdrag), Dygnsrytm, Mina mönster och de tre senaste SORK-korten. Önskemål, råd till vården och kontakter skickas aldrig. Allt går genom `scrub()`.
 - **Akutregeln** körs på telefonen före varje meddelande. Vid allvarliga ord skickas meddelandet inte, varken nu eller senare som en del av samtalet, och *Hjälp nu* visas. Vid milda ord skickas det och den mildare rutan visas.
 - **Svaret kontrolleras:** diagnoser om personen, doser, råd om att ändra mediciner och nivåer ersätts med appens egen text.
 - **Minne:** modellen kan föreslå högst två rader per svar (utlösare, rutin, typisk formulering, förlopp). En rad räknas bara om dess citat står i det personen själv skrev i samtalet. Den blir ett förslag under *Förslag* och når kontextbanken först när personen godkänt den.

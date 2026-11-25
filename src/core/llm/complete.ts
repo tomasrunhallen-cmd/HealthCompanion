@@ -17,7 +17,8 @@ export interface CompleterHooks {
   /** Called once per complete() with the rendered text, before anything is sent. */
   onSent?: (req: SentRequest) => void;
   /** Called after every provider call (also failed retries), so token use can be counted. */
-  onUsage?: (usage: Usage) => void;
+  /** `promptId` says which function the call came from, so use can be shown per function. */
+  onUsage?: (usage: Usage, promptId: string) => void;
 }
 
 export function createCompleter(adapter: LlmAdapter, hooks: CompleterHooks = {}): Completer {
@@ -46,7 +47,7 @@ export function createCompleter(adapter: LlmAdapter, hooks: CompleterHooks = {})
       let lastErrors: string[] = [];
       for (let attempt = 0; attempt < 2; attempt++) {
         const res = await adapter.send({ ...base, errorFeedback: feedback });
-        onUsage?.(res.usage);
+        onUsage?.(res.usage, prompt.meta.id);
         usage = { inputTokens: usage.inputTokens + res.usage.inputTokens, outputTokens: usage.outputTokens + res.usage.outputTokens };
         if (!wantsJson) return { text: res.text, usage };
         try {

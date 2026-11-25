@@ -44,7 +44,7 @@ export interface ChatPromptOverride {
   history: { text: string; savedAt: string }[];
 }
 
-export const CHAT_HISTORY_MESSAGES = 20;
+export const CHAT_HISTORY_MESSAGES = 12;
 export const CHAT_PROMPT_HISTORY = 10;
 export const CHAT_MESSAGE_MAX = 2000;
 

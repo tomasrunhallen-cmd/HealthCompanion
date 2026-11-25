@@ -1,9 +1,9 @@
 // Prata (experimental): what the code guarantees around the conversation. Invented data only.
 import type { FetchLike } from '../src/adapter/http';
 import {
-  frameForDisplay, memorySuggestions, promptVersionLabel, REPLACED_REPLY, replyProblem, roleText, sorkFrom, chatPrompts,
+  frameForDisplay, historyText, memorySuggestions, promptVersionLabel, REPLACED_REPLY, replyProblem, roleText, sorkFrom, chatPrompts,
 } from '../src/core/chat/chat';
-import { destinationKey } from '../src/llm/config';
+import { addPurposeUsage, destinationKey, usageByPurpose } from '../src/llm/config';
 import { setSecret } from '../src/platform/secrets';
 import {
   approveSork, chatContext, chatPromptOverride, chatSessions, deleteSession, saveChatPrompt, sendChat, sorkCards,
@@ -252,5 +252,47 @@ describe('several conversations and the SORK start (24 november)', () => {
     const t = chatPrompts().standard.system;
     expect(t).toContain('Börja inte varje svar med en sammanfattning');
     expect(t).toContain('bekräfta kort och ställ den första frågan direkt');
+  });
+});
+
+describe('what Prata costs', () => {
+  it('sends only the three newest notes, each cut to 300 characters, and twelve messages of history', async () => {
+    const repo = await setup();
+    const dates = ['2026-11-15', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19'];
+    for (const [i, date] of dates.entries()) {
+      await repo.saveEntry({ id: `e${i}`, date, createdAt: `${date}T20:00:00.000Z`, kind: 'checkin', transcript: `Anteckning${i} ${'x'.repeat(500)}`, mood: null, energy: null, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null } as never, { id: `a${i}`, entryId: `e${i}`, date, createdAt: '', level: 'green', points: 0, signals: [], sentence: '', method: 'wordmatch', model: null, promptId: null, promptVersion: null, baseline: { wordsPerMinute: null, stressAvg: null, greenDays: 0 } });
+    }
+    const ctx = chatContext(repo, NOW);
+    expect(ctx).toContain('Anteckning4');
+    expect(ctx).toContain('Anteckning2');
+    expect(ctx).not.toContain('Anteckning1');
+    expect(ctx).not.toMatch(/x{300}/);
+    const many = Array.from({ length: 30 }, (_, i) => ({ role: 'user' as const, text: `m${i}`, at: NOW.toISOString() }));
+    const h = historyText(many);
+    expect(h.split('\n')).toHaveLength(12);
+    expect(h).toContain('m29');
+    expect(h).not.toContain('m17');
+  });
+
+  it('every call is counted under the function that made it', async () => {
+    const repo = await setup();
+    const m = model([{ svar: 'Hur sov du?', minne: [], sork: empty }]);
+    await sendChat(repo, null, 'Hej', { fetch: m.fetch, now: m.now });
+    await sendChat(repo, repo.kvGet('chatCurrent') as string, 'Igen', { fetch: m.fetch, now: m.now });
+    const used = usageByPurpose(repo.purposeLog(), '2026-11-22');
+    expect(used).toEqual([{ purpose: 'samtal-ram', calls: 2, inputTokens: 20, outputTokens: 20 }]);
+  });
+});
+
+describe('the usage log per function', () => {
+  it('adds up the last 30 days, costliest first, and leaves older days out', () => {
+    let log = addPurposeUsage({}, '2026-11-20', 'analys', { inputTokens: 100, outputTokens: 10 });
+    log = addPurposeUsage(log, '2026-11-21', 'analys', { inputTokens: 100, outputTokens: 10 });
+    log = addPurposeUsage(log, '2026-11-21', 'samtal-ram', { inputTokens: 2000, outputTokens: 100 });
+    log = addPurposeUsage(log, '2026-10-01', 'test', { inputTokens: 9999, outputTokens: 0 });
+    expect(usageByPurpose(log, '2026-11-22')).toEqual([
+      { purpose: 'samtal-ram', calls: 1, inputTokens: 2000, outputTokens: 100 },
+      { purpose: 'analys', calls: 2, inputTokens: 200, outputTokens: 20 },
+    ]);
   });
 });

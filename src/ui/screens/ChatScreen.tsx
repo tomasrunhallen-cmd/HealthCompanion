@@ -3,6 +3,7 @@
 // emergency rule, scrubbing and the reply check are in code and are shown, not editable.
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { CHAT_MESSAGE_MAX, CHAT_OPENERS, CODE_PROTECTIONS, chatPrompts, frameForDisplay, roleText, sessionTitle, SORK_LABELS, SORK_STARTER } from '../../core/chat/chat';
 import { formatDateSv, formatTime } from '../../core/analysis/dates';
@@ -68,6 +69,18 @@ export function ChatScreen() {
   // Follows what is stored, so a conversation opened from the list shows at once.
   const session = currentSession(repo);
   const busy = !!pending;
+  const focused = useIsFocused();
+  const sessionId = session?.id ?? null;
+  const hasMessages = !!session?.messages.length;
+
+  // Opening Prata, coming back to the tab, or choosing a conversation in the list lands at the
+  // newest message at once, without an animation through the whole conversation. Content size
+  // does not change on a return to the tab, so this does not rely on onContentSizeChange.
+  useEffect(() => {
+    if (!focused || !hasMessages) return;
+    const id = setTimeout(() => scroll.current?.scrollToEnd({ animated: false }), 0);
+    return () => clearTimeout(id);
+  }, [focused, sessionId, hasMessages]);
 
   useEffect(() => {
     let live = true;
@@ -152,6 +165,7 @@ export function ChatScreen() {
         style={{ flex: 1 }}
         // To the newest message; an empty conversation stays at its greeting.
         onContentSizeChange={() => { if (!empty) scroll.current?.scrollToEnd({ animated: true }); }}
+        onLayout={() => { if (!empty) scroll.current?.scrollToEnd({ animated: false }); }}
         contentContainerStyle={{ paddingBottom: space.l }}
         keyboardShouldPersistTaps="handled"
       >

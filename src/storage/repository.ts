@@ -12,7 +12,7 @@ import { fieldsFromKind } from '../core/plan/fields';
 import { moodFromTen } from '../core/analysis/mood';
 import { moodOf, type DiaryDay } from '../import/bipolarDagbok';
 import type { SentRequest, Usage } from '../core/llm/types';
-import { addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type UsageLog } from '../llm/config';
+import { addPurposeUsage, addUsage, DEFAULT_LLM_CONFIG, pruneUsage, type LlmConfig, type PurposeLog, type UsageLog } from '../llm/config';
 import type { Collection, DocBackend, Snapshot, StorageInfo } from './backend';
 
 export const EXPORT_FORMAT = 'dagsljus-export';
@@ -278,12 +278,22 @@ export class Repository {
     return (this.snap.kv.usage as UsageLog | undefined) ?? {};
   }
 
-  async recordUsage(date: DateKey, usage: Usage): Promise<void> {
+  async recordUsage(date: DateKey, usage: Usage, purpose?: string): Promise<void> {
     if (!usage.inputTokens && !usage.outputTokens) return;
     const next = pruneUsage(addUsage(this.usageLog(), date, usage), date);
     this.snap.kv.usage = next;
     await this.backend.put('kv', 'usage', next);
+    if (purpose) {
+      const byPurpose = Object.fromEntries(Object.entries(addPurposeUsage(this.purposeLog(), date, purpose, usage)).filter(([d]) => d > addDays(date, -60)));
+      this.snap.kv.usageByPurpose = byPurpose;
+      await this.backend.put('kv', 'usageByPurpose', byPurpose);
+    }
     this.changed();
+  }
+
+  /** Calls and tokens per day and function, for the list under Avancerat. */
+  purposeLog(): PurposeLog {
+    return (this.snap.kv.usageByPurpose as PurposeLog | undefined) ?? {};
   }
 
   /** The exact text sent with the latest request, for the prompt library. */

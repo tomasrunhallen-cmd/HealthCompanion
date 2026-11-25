@@ -22,8 +22,9 @@ export const SORK_KEY = 'sorkCards';
 export const CHAT_PROMPT_KEY = 'chatPrompt';
 
 const LEVEL_WORD: Record<Level, string> = { green: 'grön', yellow: 'gul', red: 'röd' };
-const NOTES_SENT = 7;
-const NOTE_MAX = 600;
+// Kept small: Prata sends the context with every message, so it is most of what a conversation costs.
+export const NOTES_SENT = 3;
+export const NOTE_MAX = 300;
 
 // ---- stored state ----
 

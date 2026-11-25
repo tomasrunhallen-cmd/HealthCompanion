@@ -3,7 +3,8 @@ import { Linking, Platform, Pressable, Text, View } from 'react-native';
 import { createCompleter } from '../../core/llm/complete';
 import { PROVIDER_ORDER, PROVIDERS, normalizeBaseUrl, type ProviderId } from '../../adapter/providers';
 import { eveningDateKey } from '../../core/analysis/dates';
-import { destinationKey, estimateMonthlyCost, hasConsent, importModelOf, isLocalDestination } from '../../llm/config';
+import { destinationKey, estimateMonthlyCost, hasConsent, importModelOf, isLocalDestination, PURPOSE_TEXT, usageByPurpose } from '../../llm/config';
+import { loadTestSuite } from '../../core/analysis/testcases';
 import { secretsPersist } from '../../platform/secrets';
 import { deleteKey, getKey, keysSync, setKey } from '../../services/keys';
 import { buildAdapter, differingCases, LLM_KEY_NAME, runModelTest, type CaseResult, type ModelTestReport } from '../../services/llm';
@@ -106,6 +107,9 @@ export function LlmSettingsScreen() {
 
   const runTest = async () => {
     if (missing) return dialog.info('Något saknas', missing);
+    // The test is the costliest single action: say so before it runs.
+    const cases = loadTestSuite().cases.length;
+    if (!(await dialog.confirm({ title: 'Kör testfallen?', message: `Testet gör upp till ${cases} anrop till modellen, ungefär ${formatTokens(cases * 1500)} tokens. Det kostar krediter hos leverantören. Kör det när du byter modell, inte varje gång.`, confirmLabel: 'Kör testet' }))) return;
     if (!(await askConsent())) return;
     setBusy(true);
     setProgress('Kör testfallen…');
@@ -113,7 +117,7 @@ export function LlmSettingsScreen() {
       const key = usingSavedKey ? await getKey(repo, LLM_KEY_NAME) : keyInput.trim() || null;
       const adapter = buildAdapter({ provider, model, baseUrl }, key, { browser: Platform.OS === 'web' });
       // Test calls cost tokens too, so they are counted; they are not "the last assessment".
-      const completer = createCompleter(adapter, { onUsage: (u) => void repo.recordUsage(eveningDateKey(new Date()), u) });
+      const completer = createCompleter(adapter, { onUsage: (u) => void repo.recordUsage(eveningDateKey(new Date()), u, 'test') });
       const r = await runModelTest(
         completer,
         adapter.model,
@@ -198,6 +202,7 @@ export function LlmSettingsScreen() {
   const savePrices = (pin: string, pout: string) =>
     repo.updateLlmConfig({ priceInPerMillion: parsePrice(pin), priceOutPerMillion: parsePrice(pout) });
 
+  const byPurpose = usageByPurpose(repo.purposeLog(), eveningDateKey(new Date()));
   const cost = estimateMonthlyCost(repo.usageLog(), eveningDateKey(new Date()), repo.llmConfig());
   const active = saved.provider && hasConsent(saved);
   // The settings follow the account; the key stays on the device where it was typed.
@@ -355,8 +360,20 @@ export function LlmSettingsScreen() {
         </Section>
       ) : null}
 
-      <Disclosure title="Avancerat: kostnad" detail="Tokens de senaste 30 dagarna och en uppskattning">
+      <Disclosure title="Avancerat: kostnad" detail={`Senaste 30 dagarna: ${formatTokens(cost.inputTokens + cost.outputTokens)} tokens`} defaultOpen={byPurpose.length > 0}>
         <Card>
+          {byPurpose.length ? (
+            <View style={{ marginBottom: space.m }}>
+              <Text style={type.label}>PER FUNKTION, SENASTE 30 DAGARNA</Text>
+              {byPurpose.map((u) => (
+                <Row key={u.purpose} style={{ justifyContent: 'space-between', marginTop: space.xs }}>
+                  <Text style={[type.body, { flexShrink: 1 }]}>{PURPOSE_TEXT[u.purpose] ?? u.purpose}</Text>
+                  <Text style={type.small}>{`${u.calls} anrop · ${formatTokens(u.inputTokens + u.outputTokens)} tokens`}</Text>
+                </Row>
+              ))}
+              <P muted style={{ marginTop: space.s }}>Räknas från 25 november. Prata skickar ditt sammanhang med varje meddelande, så långa samtal kostar mest. Dagens rutinförslag kan stängas av under Inställningar, AI-stöd.</P>
+            </View>
+          ) : null}
           <P>
             Senaste 30 dagarna: {formatTokens(cost.inputTokens)} tokens in och {formatTokens(cost.outputTokens)} ut.
           </P>

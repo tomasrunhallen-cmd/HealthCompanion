@@ -71,6 +71,43 @@ export function pruneUsage(log: UsageLog, today: DateKey, keepDays = 60): UsageL
   return Object.fromEntries(Object.entries(log).filter(([d]) => d > cutoff));
 }
 
+/** Calls and tokens per day and function (the prompt's id; "test" for Testa modellen). */
+export type PurposeLog = Record<DateKey, Record<string, Usage & { calls: number }>>;
+
+export function addPurposeUsage(log: PurposeLog, date: DateKey, purpose: string, u: Usage): PurposeLog {
+  const day = log[date] ?? {};
+  const prev = day[purpose] ?? { inputTokens: 0, outputTokens: 0, calls: 0 };
+  return { ...log, [date]: { ...day, [purpose]: { inputTokens: prev.inputTokens + u.inputTokens, outputTokens: prev.outputTokens + u.outputTokens, calls: prev.calls + 1 } } };
+}
+
+/** What each function used the last 30 days, the costliest first. */
+export function usageByPurpose(log: PurposeLog, today: DateKey): { purpose: string; calls: number; inputTokens: number; outputTokens: number }[] {
+  const from = addDays(today, -29);
+  const sum = new Map<string, { calls: number; inputTokens: number; outputTokens: number }>();
+  for (const [d, day] of Object.entries(log)) {
+    if (d < from || d > today) continue;
+    for (const [p, u] of Object.entries(day)) {
+      const s = sum.get(p) ?? { calls: 0, inputTokens: 0, outputTokens: 0 };
+      sum.set(p, { calls: s.calls + u.calls, inputTokens: s.inputTokens + u.inputTokens, outputTokens: s.outputTokens + u.outputTokens });
+    }
+  }
+  return [...sum.entries()].map(([purpose, s]) => ({ purpose, ...s })).sort((a, b) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens));
+}
+
+/** The functions in words, for the list in Avancerat. */
+export const PURPOSE_TEXT: Record<string, string> = {
+  analys: 'Kvällens bedömning',
+  'samtal-ram': 'Prata',
+  test: 'Testa modellen',
+  dagsforslag: 'Dagens rutinförslag',
+  monsterforklaring: 'Mina mönster, förklaring',
+  textjamforelse: 'Mina tidigare texter, jämförelse',
+  textmonster: 'Mina tidigare texter, mönster',
+  'profil-uppdatering': 'Profilförslag',
+  'krisplan-sortera': 'Krisplansimport',
+  'historik-import': 'Import av dagbok',
+};
+
 export interface CostEstimate {
   inputTokens: number;
   outputTokens: number;

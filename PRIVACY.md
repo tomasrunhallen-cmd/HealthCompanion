@@ -59,7 +59,7 @@ Med en språkmodell kopplad följer dagens och veckans sömn och stress med till
 
 ## Prata (experimentellt)
 
-Bara när du skriver i *Prata*, och bara till språkmodellen du själv kopplat och godkänt. Med varje meddelande skickas, rensat av `scrub()`: ditt meddelande, samtalet hittills (högst 20 meddelanden), och ett sammanhang ur appen med nivån från senaste avstämningen, din plans tecken, steg, rutiner och värdeankare, mätvärden, kontextbanken, de sju senaste anteckningarna och korta rader ur Dygnsrytm, Mina mönster och SORK-korten. Önskemål, råd till vården och kontakter skickas aldrig. Ett meddelande som akutregeln stoppar skickas aldrig. Samtalen och SORK-korten sparas på telefonen (krypterat i webbversionen) och kan raderas. Inget sparas i kontextbanken utan att du godkänt det.
+Bara när du skriver i *Prata*, och bara till språkmodellen du själv kopplat och godkänt. Med varje meddelande skickas, rensat av `scrub()`: ditt meddelande, samtalet hittills (högst 12 meddelanden), och ett sammanhang ur appen med nivån från senaste avstämningen, din plans tecken, steg, rutiner och värdeankare, mätvärden, kontextbanken, de tre senaste anteckningarna i korta utdrag och korta rader ur Dygnsrytm, Mina mönster och SORK-korten. Önskemål, råd till vården och kontakter skickas aldrig. Ett meddelande som akutregeln stoppar skickas aldrig. Samtalen och SORK-korten sparas på telefonen (krypterat i webbversionen) och kan raderas. Inget sparas i kontextbanken utan att du godkänt det.
 
 ## Kontextbanken och lärandet
 
