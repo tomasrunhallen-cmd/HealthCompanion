@@ -1,6 +1,6 @@
 // Sleep phases from the watch: parsing, the shares shown, and less deep sleep in Mina mönster.
 import { addDays } from '../src/core/analysis/dates';
-import { lessDeep } from '../src/core/analysis/moodPatterns';
+import { CANDIDATES, EXPLORATORY, lessDeep } from '../src/core/analysis/moodPatterns';
 import { meanPhases, phasesOf, phasesText } from '../src/core/analysis/sleepPhases';
 import { formatMeasurements } from '../src/core/analysis/measurements';
 import type { MeasuredDay } from '../src/core/domain/types';
@@ -46,14 +46,14 @@ describe('the phases from Garmin', () => {
     expect(m.parts.find((x) => x.phase === 'deep')!.minutes).toBe(80);
   });
 
-  it('sends the phases to the model for the day itself, as background', () => {
+  it('never sends the phases to the model (granskning 25 november)', () => {
     const text = formatMeasurements([{ date: '2026-11-25', sleepHours: 7, sleepSource: 'garmin', sleepStart: '23:00', sleepEnd: '06:10', deepMinutes: 80, remMinutes: 100, lightMinutes: 240, awakeMinutes: 15, stressAvg: null, stressSource: null, stressHighMinutes: null, bodyBatteryWake: null }]);
-    expect(text).toContain('lätt sömn 240 min');
-    expect(text).toContain('vaken 15 min');
+    expect(text).toContain('somnade 23:00, vaknade 06:10');
+    expect(text).not.toMatch(/djup|lätt|REM|vaken/);
   });
 });
 
-describe('less deep sleep, for Mina mönster', () => {
+describe('a lower share of deep sleep, explored apart from Mina mönster', () => {
   const today = '2026-11-25';
   const series = (usual: number[], latest: number[]) => {
     const m = new Map<string, number>();
@@ -61,19 +61,25 @@ describe('less deep sleep, for Mina mönster', () => {
     latest.forEach((v, i) => m.set(addDays(today, -(latest.length - 1 - i)), v));
     return m;
   };
-  const usual = Array.from({ length: 30 }, (_, i) => 80 + (i % 5) * 4);
+  const usual = Array.from({ length: 30 }, (_, i) => 0.18 + (i % 5) * 0.005);
 
-  it('is found when the latest three nights all lie clearly below the usual', () => {
-    expect(lessDeep(series(usual, [45, 50, 40]), today)).toEqual({ judged: true, found: true });
+  it('is found when the latest three nights all have a clearly lower share than usual', () => {
+    expect(lessDeep(series(usual, [0.1, 0.11, 0.09]), today)).toEqual({ judged: true, found: true });
   });
 
-  it('is not found for one low night, nor for nights within the usual spread', () => {
-    expect(lessDeep(series(usual, [85, 40, 84]), today).found).toBe(false);
-    expect(lessDeep(series(usual, [78, 80, 76]), today).found).toBe(false);
+  it('is not found for one low night, nor within the usual spread', () => {
+    expect(lessDeep(series(usual, [0.19, 0.08, 0.19]), today).found).toBe(false);
+    expect(lessDeep(series(usual, [0.17, 0.18, 0.17]), today).found).toBe(false);
   });
 
   it('cannot be judged with too few earlier nights', () => {
-    expect(lessDeep(series(usual.slice(0, 10), [45, 50, 40]), today)).toEqual({ judged: false, found: false });
+    expect(lessDeep(series(usual.slice(0, 10), [0.1, 0.11, 0.09]), today)).toEqual({ judged: false, found: false });
+  });
+
+  it('is not one of the links shown as findings: those are the five decided before', () => {
+    expect(CANDIDATES.map((c) => c.id)).not.toContain('less_deep_share_down');
+    expect(CANDIDATES).toHaveLength(5);
+    expect(EXPLORATORY.map((c) => c.id)).toEqual(['less_deep_share_down']);
   });
 });
 

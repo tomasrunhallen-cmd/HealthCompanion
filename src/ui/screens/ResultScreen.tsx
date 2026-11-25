@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { phasesOf } from '../../core/analysis/sleepPhases';
-import { PHASES_NOTE, SleepPhasesBar } from '../SleepPhases';
+import { SleepPhasesToggle } from '../SleepPhases';
 import { Text, View } from 'react-native';
 import { actionsForLevel, displaySentence, firstStep, priorityStep, seriousActions, seriousIntro } from '../../core/analysis/assess';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvYear, formatTime } from '../../core/analysis/dates';
@@ -289,8 +289,7 @@ export function ResultScreen({ entryId }: { entryId: string }) {
           </P>
           {entry.sleepSource !== 'transcript' && phasesOf(garminDay) ? (
             <>
-              <SleepPhasesBar parts={phasesOf(garminDay)!} label="Sömnfaser i natt" />
-              <P muted style={{ marginTop: space.xs }}>{PHASES_NOTE}</P>
+              <SleepPhasesToggle parts={phasesOf(garminDay)!} label="Sömnfaser i natt" />
             </>
           ) : null}
           <Text style={[type.label, { marginTop: space.s }]}>DIN BASLINJE</Text>

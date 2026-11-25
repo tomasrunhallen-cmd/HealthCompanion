@@ -44,7 +44,7 @@ Om användaren ansluter Garmin hämtar appen sömn (med sömnfaserna djup, lätt
 
 **Mina mönster (experimentell).** Analysen av sömn, puls och de egna skattningarna görs på telefonen, ungefär en gång i månaden och på begäran. Resultatet sparas i appens vanliga lagring. Bara om personen själv slår på *Låt språkmodellen formulera* skickas något, och då bara ett fynds antal (till exempel "Perioder som gick att bedöma: 4"), genom samma rensning som all annan text. Inga datum, inga anteckningar och inga skattningar dag för dag. Sidan visar exakt vad som skickas.
 
-Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning, och för natten innan även minuterna i varje sömnfas. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
+Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Sömnfaserna skickas inte. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
 ## Mina tidigare texter (experimentellt)
 

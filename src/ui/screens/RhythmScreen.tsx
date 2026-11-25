@@ -8,7 +8,7 @@
 
 import { RULES } from '../../core/analysis/rules';
 import { meanPhases, phasesOf } from '../../core/analysis/sleepPhases';
-import { PHASES_NOTE, SleepPhasesBar } from '../SleepPhases';
+import { PHASES_NOTE, SleepPhasesBar, SleepPhasesToggle } from '../SleepPhases';
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
@@ -95,10 +95,11 @@ function SleepPhasesSection() {
   return (
     <Section title="Sömnfaser">
       <Card>
-        <SleepPhasesBar parts={phasesOf(days[last])!} label={`Natten till ${formatDateSv(last)}`} />
-        {week && week.nights > 1 ? <SleepPhasesBar parts={week.parts} nights={week.nights} label={`Snitt senaste veckan, ${week.nights} nätter`} /> : null}
-        {month && week && month.nights > week.nights ? <SleepPhasesBar parts={month.parts} nights={month.nights} label={`Snitt senaste fyra veckorna, ${month.nights} nätter`} /> : null}
-        <P muted style={{ marginTop: space.s }}>{PHASES_NOTE} Mina mönster prövar om mindre djupsömn än vanligt brukar komma före perioder då du skattat lägre.</P>
+        {/* Means first; one night's uncertain split only on request (granskning 25 november). */}
+        {week ? <SleepPhasesBar parts={week.parts} nights={week.nights} label={`Snitt senaste veckan, ${week.nights} ${week.nights === 1 ? 'natt' : 'nätter'} med faser`} /> : null}
+        {month && week && month.nights > week.nights ? <SleepPhasesBar parts={month.parts} nights={month.nights} label={`Snitt senaste fyra veckorna, ${month.nights} nätter med faser`} /> : null}
+        <SleepPhasesToggle parts={phasesOf(days[last])!} label={`Natten till ${formatDateSv(last)}`} note={false} />
+        <P muted style={{ marginTop: space.s }}>{PHASES_NOTE}</P>
       </Card>
     </Section>
   );

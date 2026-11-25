@@ -22,7 +22,7 @@ import { addDays, daysBetween, formatDateSvYear } from './dates';
 import { detect, median, prepare, type RhythmData, type RhythmPattern } from './rhythm';
 import { RULES } from './rules';
 
-export const PATTERNS_VERSION = '1.2.0';
+export const PATTERNS_VERSION = '1.3.0';
 
 /** Every threshold in one place. Product assumptions, set before the analysis was run on real data. */
 export const PATTERN_PARAMS = {
@@ -65,23 +65,25 @@ export const PATTERN_PARAMS = {
   /** The evaluation keeps the latest share of the data as a test part that never sets anything. */
   testShare: 0.5,
   /**
-   * Less deep sleep (1.2.0): the person's own deep sleep the earlier nights (up to `deepBaselineDays`
-   * back, at least `deepBaselineMin` nights) against the latest `deepNights` nights, all of which
-   * must lie `deepZ` robust spreads below, and at least `deepFloorMinutes` below the usual.
+   * A lower share of deep sleep (exploratory, 1.3.0): deep sleep as a share of the night's total
+   * sleep, so a shorter night alone does not count (granskning 25 november). The person's own share
+   * the earlier nights (up to `deepBaselineDays` back, at least `deepBaselineMin` nights) against
+   * the latest `deepNights` nights, all of which must lie `deepZ` robust spreads and at least
+   * `deepFloorShare` below the usual.
    */
   deepBaselineDays: 63,
   deepBaselineMin: 14,
   deepNights: 3,
   deepSpanNights: 4,
   deepZ: 1.5,
-  deepFloorMinutes: 10,
+  deepFloorShare: 0.03,
 } as const;
 
 const P = PATTERN_PARAMS;
 
 export type MoodDirection = 'up' | 'down';
 
-/** The watch's patterns from Dygnsrytm, and less deep sleep, which only Mina mönster looks at. */
+/** The watch's patterns from Dygnsrytm, and a lower share of deep sleep, which only the exploratory analysis looks at. */
 export type MoodPattern = RhythmPattern | 'less_deep';
 
 export interface PatternCandidate {
@@ -97,7 +99,15 @@ export const CANDIDATES: readonly PatternCandidate[] = [
   { id: 'evening_pulse_up', pattern: 'evening_activity', mood: 'up' },
   { id: 'longer_down', pattern: 'longer', mood: 'down' },
   { id: 'shorter_down', pattern: 'shorter', mood: 'down' },
-  { id: 'less_deep_down', pattern: 'less_deep', mood: 'down' },
+];
+
+/**
+ * Tried apart from the five, never shown as a finding and never on Hem: whether a lower share of
+ * deep sleep says anything beyond the length of sleep (granskning 25 november). Its own
+ * correction for chance, and the numbers are shown under Så prövas det.
+ */
+export const EXPLORATORY: readonly PatternCandidate[] = [
+  { id: 'less_deep_share_down', pattern: 'less_deep', mood: 'down' },
 ];
 
 export interface PatternData extends RhythmData {
@@ -177,17 +187,17 @@ function judgedFor(v: DayPatterns | undefined, pattern: MoodPattern): boolean {
   return pattern === 'evening_activity' ? v.pulseJudged : pattern === 'less_deep' ? v.deepJudged : v.judged;
 }
 
-/** Deep sleep in minutes per morning, only from the watch (an own entry has none). */
+/** Deep sleep as a share of the night's sleep per morning, only from the watch (an own entry has none). */
 function deepNights(measured: RhythmData['measured']): Map<DateKey, number> {
   const out = new Map<DateKey, number>();
   for (const [d, m] of Object.entries(measured)) {
     const watch = m.source == null || m.source === 'garmin' || m.source === 'health';
-    if (watch && m.sleepHours != null && m.deepMinutes != null && m.deepMinutes >= 0) out.set(d, m.deepMinutes);
+    if (watch && m.sleepHours != null && m.sleepHours > 0 && m.deepMinutes != null && m.deepMinutes >= 0) out.set(d, m.deepMinutes / (m.sleepHours * 60));
   }
   return out;
 }
 
-/** Less deep sleep the latest nights than the person's own usual, the same way Dygnsrytm judges shorter sleep. */
+/** A lower share of deep sleep the latest nights than the person's own usual, the same way Dygnsrytm judges shorter sleep. */
 export function lessDeep(deep: Map<DateKey, number>, today: DateKey): { judged: boolean; found: boolean } {
   const span = Array.from({ length: P.deepSpanNights }, (_, i) => addDays(today, -(P.deepSpanNights - 1 - i)));
   const recent = span.filter((d) => deep.has(d)).slice(-P.deepNights).map((d) => deep.get(d)!);
@@ -195,8 +205,8 @@ export function lessDeep(deep: Map<DateKey, number>, today: DateKey): { judged: 
   for (let d = addDays(today, -P.deepBaselineDays); d < span[0]; d = addDays(d, 1)) if (deep.has(d)) base.push(deep.get(d)!);
   if (recent.length < P.deepNights || base.length < P.deepBaselineMin) return { judged: false, found: false };
   const mid = median(base);
-  const spread = Math.max(1.4826 * median(base.map((x) => Math.abs(x - mid))), P.deepFloorMinutes);
-  return { judged: true, found: recent.every((x) => (x - mid) / spread <= -P.deepZ && mid - x >= P.deepFloorMinutes) };
+  const spread = Math.max(1.4826 * median(base.map((x) => Math.abs(x - mid))), P.deepFloorShare);
+  return { judged: true, found: recent.every((x) => (x - mid) / spread <= -P.deepZ && mid - x >= P.deepFloorShare) };
 }
 
 export interface Run {
@@ -404,6 +414,8 @@ export interface PatternAnalysis {
   results: CandidateResult[];
   /** At most two, the strongest first: one per direction of mood. */
   findings: CandidateResult[];
+  /** Tried apart, never a finding (1.3.0). Missing in analyses from before. */
+  exploratory?: CandidateResult[];
 }
 
 /** The whole analysis, on what is saved up to and including `to`. */
@@ -431,7 +443,8 @@ export function analysePatterns(data: PatternData, to: DateKey, computedAt: stri
   // often one and the same change, and showing each as a finding of its own would count it thrice.
   const ranked = results.filter((r) => r.qualifies).sort((a, b) => a.chance - b.chance || b.hits - a.hits);
   const findings = ranked.filter((r, i) => ranked.findIndex((x) => x.candidate.mood === r.candidate.mood) === i).slice(0, P.maxFindings);
-  return { ...base, status: findings.length ? 'found' : 'none', results, findings };
+  const exploratory = EXPLORATORY.map((c) => evaluate(c, days, periods, data.ratings, from, to, EXPLORATORY.length));
+  return { ...base, status: findings.length ? 'found' : 'none', results, findings, exploratory };
 }
 
 // ---- a finding as a hypothesis, tried on later data ----
@@ -591,7 +604,7 @@ const num = (n: number) => NUMBER[n] ?? String(n);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export const FEATURE_WORD: Record<MoodPattern, string> = {
-  less_deep: 'mindre djupsömn',
+  less_deep: 'lägre andel djupsömn',
   shorter: 'kortare sömn',
   longer: 'längre sömn',
   later: 'senare insomning',
@@ -715,6 +728,13 @@ export function insufficientLine(a: PatternAnalysis): string | null {
 }
 
 /** How the analysis guards against chance, for the page. */
+/** The exploratory result in one line, for Så prövas det: never a finding, whatever it shows. */
+export function exploratoryLine(r: CandidateResult): string {
+  const subject = `${cap(FEATURE_WORD[r.candidate.pattern])} före ${MOOD_WORD[r.candidate.mood]}`;
+  if (!r.periods.length) return `Utforskande, räknas aldrig som fynd: ${subject.charAt(0).toLowerCase()}${subject.slice(1)}. Inga perioder gick att bedöma än, eftersom klockan saknade nätter med djupsömn runt starterna.`;
+  return `Utforskande, räknas aldrig som fynd: ${subject.charAt(0).toLowerCase()}${subject.slice(1)}. Andelen djupsömn låg lägre än vanligt före eller vid starten av ${num(r.hits)} av ${num(r.periods.length)} perioder som gick att bedöma${r.qualifies ? ', tydligare än under lugna tider' : ', inte tydligt oftare än under lugna tider'}. Andelen räknas mot nattens totala sömn, så att en kortare natt i sig inte räknas.`;
+}
+
 export function methodText(a: Pick<PatternAnalysis, 'tested'>): string {
   return `Appen prövade ${num(a.tested)} samband som bestämts i förväg. Ett visas bara om mönstret kom före minst ${num(P.minHits)} separata perioder och tydligt oftare än under lugna tider, och oftare än när perioderna flyttas i tiden. Det är ett samband i dina data, inte en orsak och ingen förutsägelse. Skattningarna är dina egna skattningar, inte bekräftade episoder.`;
 }

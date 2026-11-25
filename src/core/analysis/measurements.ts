@@ -76,10 +76,8 @@ function sleepText(d: PromptDay, detailed: boolean): string | null {
   else if (d.sleepSource && d.sleepSource !== 'garmin') parts[0] += ` (${SOURCE_TEXT[d.sleepSource]})`;
   if (d.sleepStart) parts.push(`somnade ${d.sleepStart}`);
   if (detailed && d.sleepEnd) parts.push(`vaknade ${d.sleepEnd}`);
-  if (detailed && d.deepMinutes != null) parts.push(`djupsömn ${d.deepMinutes} min`);
-  if (detailed && d.remMinutes != null) parts.push(`REM ${d.remMinutes} min`);
-  if (detailed && d.lightMinutes != null) parts.push(`lätt sömn ${d.lightMinutes} min`);
-  if (detailed && d.awakeMinutes != null) parts.push(`vaken ${d.awakeMinutes} min`);
+  // The sleep phases are not sent: the model looks for the person's signs in the note, and the
+  // watch's estimate of a night's phases adds nothing shown to help there (granskning 25 november).
   return parts.join(', ');
 }
 

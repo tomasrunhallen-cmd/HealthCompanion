@@ -1,10 +1,10 @@
 // One night's sleep phases as a bar, with every phase also in words and minutes, so the colour is
 // never the only carrier. Background only: the phases never count in the day's level.
 
-import React from 'react';
-import { Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { incomplete, minutesText, PHASE_WORD, phasesText, type PhasePart, type SleepPhase } from '../core/analysis/sleepPhases';
-import { colors, radius, space, type } from './theme';
+import { colors, MIN_TOUCH, radius, space, type } from './theme';
 
 /** Shades of the one accent, darkest for deep sleep; awake in the neutral line colour. */
 const FILL: Record<SleepPhase, { color: typeof colors.accent; opacity: number }> = {
@@ -42,5 +42,29 @@ export function SleepPhasesBar(props: { parts: PhasePart[]; label?: string; comp
   );
 }
 
-/** The note that goes with the phases wherever they are shown. */
-export const PHASES_NOTE = 'Klockan skattar faserna ur puls och rörelse. Total sömn och tider är säkrare än fördelningen, så faserna påverkar aldrig nivån.';
+/** The note that goes with the phases wherever they are shown (granskning 25 november). */
+export const PHASES_NOTE = 'Klockan uppskattar sömnfaserna. En enskild natts fördelning är osäker. Faserna ger inga poäng i ampeln.';
+
+/** A single night's phases, behind a tap: sleep times and length come first, the uncertain split after. */
+export function SleepPhasesToggle(props: { parts: PhasePart[]; label?: string; note?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ marginTop: space.xs }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={open ? 'Dölj sömnfaser' : 'Visa sömnfaser'}
+        onPress={() => setOpen((v) => !v)}
+        style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}
+      >
+        <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{open ? 'Dölj sömnfaser' : 'Visa sömnfaser'}</Text>
+      </Pressable>
+      {open ? (
+        <>
+          <SleepPhasesBar parts={props.parts} label={props.label} />
+          {props.note === false ? null : <Text style={[type.small, { marginTop: space.xs }]}>{PHASES_NOTE}</Text>}
+        </>
+      ) : null}
+    </View>
+  );
+}

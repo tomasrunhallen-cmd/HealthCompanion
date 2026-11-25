@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import { formatDateSvYear } from '../../core/analysis/dates';
 import {
-  CANDIDATES, coverageLine, FEATURE_WORD, findingEvidence, findingSummary, findingTitle, followUpLine, insufficientLine, methodText, MOOD_WORD, relatedLine, statusLine,
+  CANDIDATES, coverageLine, exploratoryLine, FEATURE_WORD, findingEvidence, findingSummary, findingTitle, followUpLine, insufficientLine, methodText, MOOD_WORD, relatedLine, statusLine,
   type PatternAnalysis,
 } from '../../core/analysis/moodPatterns';
 import { llmStatus } from '../../services/llm';
@@ -130,6 +130,12 @@ export function PatternsScreen() {
                 {CANDIDATES.map((c) => <P key={c.id}>{FEATURE_WORD[c.pattern].charAt(0).toUpperCase() + FEATURE_WORD[c.pattern].slice(1)} och {MOOD_WORD[c.mood]}.</P>)}
               </>
             )}
+            {a.exploratory?.length ? (
+              <>
+                <Label>Utforskande</Label>
+                {a.exploratory.map((r) => <P key={r.candidate.id} muted>{exploratoryLine(r)}</P>)}
+              </>
+            ) : null}
           </Card>
         </Disclosure>
       ) : null}

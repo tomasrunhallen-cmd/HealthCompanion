@@ -253,7 +253,7 @@ describe('measurements for the model', () => {
     };
     const text = formatMeasurements(measuredDays(entry('2026-10-30'), [{ entry: entry('2026-10-27', { sleepHours: 6, sleepSource: 'transcript', stressAvg: null }), level: 'green' }], garmin), 31);
     expect(text).toContain('I dag, fredag 30 oktober:');
-    expect(text).toContain('- Sömn natten innan: 4,5 h, somnade 02:40, vaknade 07:10, djupsömn 80 min, REM 90 min');
+    expect(text).toContain('- Sömn natten innan: 4,5 h, somnade 02:40, vaknade 07:10');
     expect(text).toContain('- Body Battery vid uppvaknandet: 41 av 100');
     expect(text).toContain('- Stress hittills i dag: snitt 48 av 100, hög stress 45 min');
     expect(text).toContain('- torsdag 29 oktober: sömn 7,2 h, somnade 23:10, stress 30');
