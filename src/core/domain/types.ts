@@ -263,6 +263,9 @@ export interface MeasuredDay {
   sleepHours: number | null;
   deepMinutes: number | null;
   remMinutes: number | null;
+  /** Light sleep and time awake in the night, from the watch. Missing on days fetched before 25 November. */
+  lightMinutes?: number | null;
+  awakeMinutes?: number | null;
   /** Local wall-clock time "HH:MM" when the user fell asleep and woke up. */
   sleepStart: string | null;
   sleepEnd: string | null;

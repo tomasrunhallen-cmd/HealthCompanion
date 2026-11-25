@@ -19,10 +19,10 @@
 
 import type { DateKey } from '../domain/types';
 import { addDays, daysBetween, formatDateSvYear } from './dates';
-import { detect, prepare, type RhythmData, type RhythmPattern } from './rhythm';
+import { detect, median, prepare, type RhythmData, type RhythmPattern } from './rhythm';
 import { RULES } from './rules';
 
-export const PATTERNS_VERSION = '1.1.0';
+export const PATTERNS_VERSION = '1.2.0';
 
 /** Every threshold in one place. Product assumptions, set before the analysis was run on real data. */
 export const PATTERN_PARAMS = {
@@ -64,15 +64,29 @@ export const PATTERN_PARAMS = {
   nullAlpha: 0.05,
   /** The evaluation keeps the latest share of the data as a test part that never sets anything. */
   testShare: 0.5,
+  /**
+   * Less deep sleep (1.2.0): the person's own deep sleep the earlier nights (up to `deepBaselineDays`
+   * back, at least `deepBaselineMin` nights) against the latest `deepNights` nights, all of which
+   * must lie `deepZ` robust spreads below, and at least `deepFloorMinutes` below the usual.
+   */
+  deepBaselineDays: 63,
+  deepBaselineMin: 14,
+  deepNights: 3,
+  deepSpanNights: 4,
+  deepZ: 1.5,
+  deepFloorMinutes: 10,
 } as const;
 
 const P = PATTERN_PARAMS;
 
 export type MoodDirection = 'up' | 'down';
 
+/** The watch's patterns from Dygnsrytm, and less deep sleep, which only Mina mönster looks at. */
+export type MoodPattern = RhythmPattern | 'less_deep';
+
 export interface PatternCandidate {
   id: string;
-  pattern: RhythmPattern;
+  pattern: MoodPattern;
   mood: MoodDirection;
 }
 
@@ -83,6 +97,7 @@ export const CANDIDATES: readonly PatternCandidate[] = [
   { id: 'evening_pulse_up', pattern: 'evening_activity', mood: 'up' },
   { id: 'longer_down', pattern: 'longer', mood: 'down' },
   { id: 'shorter_down', pattern: 'shorter', mood: 'down' },
+  { id: 'less_deep_down', pattern: 'less_deep', mood: 'down' },
 ];
 
 export interface PatternData extends RhythmData {
@@ -151,7 +166,37 @@ interface DayPatterns {
   judged: boolean;
   /** Enough evenings with pulse to judge it. */
   pulseJudged: boolean;
-  patterns: RhythmPattern[];
+  /** Enough nights with deep sleep from the watch to judge it. */
+  deepJudged: boolean;
+  patterns: MoodPattern[];
+}
+
+/** Whether a day could be judged for a pattern: pulse and deep sleep need their own data. */
+function judgedFor(v: DayPatterns | undefined, pattern: MoodPattern): boolean {
+  if (!v) return false;
+  return pattern === 'evening_activity' ? v.pulseJudged : pattern === 'less_deep' ? v.deepJudged : v.judged;
+}
+
+/** Deep sleep in minutes per morning, only from the watch (an own entry has none). */
+function deepNights(measured: RhythmData['measured']): Map<DateKey, number> {
+  const out = new Map<DateKey, number>();
+  for (const [d, m] of Object.entries(measured)) {
+    const watch = m.source == null || m.source === 'garmin' || m.source === 'health';
+    if (watch && m.sleepHours != null && m.deepMinutes != null && m.deepMinutes >= 0) out.set(d, m.deepMinutes);
+  }
+  return out;
+}
+
+/** Less deep sleep the latest nights than the person's own usual, the same way Dygnsrytm judges shorter sleep. */
+export function lessDeep(deep: Map<DateKey, number>, today: DateKey): { judged: boolean; found: boolean } {
+  const span = Array.from({ length: P.deepSpanNights }, (_, i) => addDays(today, -(P.deepSpanNights - 1 - i)));
+  const recent = span.filter((d) => deep.has(d)).slice(-P.deepNights).map((d) => deep.get(d)!);
+  const base: number[] = [];
+  for (let d = addDays(today, -P.deepBaselineDays); d < span[0]; d = addDays(d, 1)) if (deep.has(d)) base.push(deep.get(d)!);
+  if (recent.length < P.deepNights || base.length < P.deepBaselineMin) return { judged: false, found: false };
+  const mid = median(base);
+  const spread = Math.max(1.4826 * median(base.map((x) => Math.abs(x - mid))), P.deepFloorMinutes);
+  return { judged: true, found: recent.every((x) => (x - mid) / spread <= -P.deepZ && mid - x >= P.deepFloorMinutes) };
 }
 
 export interface Run {
@@ -162,15 +207,19 @@ export interface Run {
 /** The same model as Dygnsrytm, played over the history: what it would have shown each morning. */
 function patternDays(data: RhythmData, from: DateKey, to: DateKey): Map<DateKey, DayPatterns> {
   const p = prepare(data.measured, data.activity, addDays(from, -(RULES.rhythm.baselineDays + 1)), to);
+  const deep = deepNights(data.measured);
   const out = new Map<DateKey, DayPatterns>();
   for (let d = from; d <= to; d = addDays(d, 1)) {
     const r = detect(p, d, data.episodes.filter((e) => e.start <= d), true);
-    out.set(d, { judged: r.status !== 'insufficient', pulseJudged: r.status !== 'insufficient' && r.activityUsed, patterns: r.changes.map((c) => c.pattern) });
+    const dp = lessDeep(deep, d);
+    const patterns: MoodPattern[] = r.changes.map((c) => c.pattern);
+    if (dp.found) patterns.push('less_deep');
+    out.set(d, { judged: r.status !== 'insufficient', pulseJudged: r.status !== 'insufficient' && r.activityUsed, deepJudged: dp.judged, patterns });
   }
   return out;
 }
 
-function runsOf(days: Map<DateKey, DayPatterns>, pattern: RhythmPattern): Run[] {
+function runsOf(days: Map<DateKey, DayPatterns>, pattern: MoodPattern): Run[] {
   const runs: Run[] = [];
   for (const [d, v] of days) {
     if (!v.patterns.includes(pattern)) continue;
@@ -273,8 +322,7 @@ function evaluate(
   to: DateKey,
   tested: number,
 ): CandidateResult {
-  const pulse = candidate.pattern === 'evening_activity';
-  const judged = (d: DateKey) => { const v = days.get(d); return !!v && (pulse ? v.pulseJudged : v.judged); };
+  const judged = (d: DateKey) => judgedFor(days.get(d), candidate.pattern);
   const windowLength = P.leadDays + P.afterDays + 1;
   const need = Math.ceil(windowLength * P.minJudgedShare);
   const judgedWindow = (d: DateKey) => {
@@ -506,11 +554,10 @@ export function evaluatePatterns(data: PatternData, to: DateKey): PatternEvaluat
     const r = evaluate(f.candidate, days, periods, data.ratings, from, to, CANDIDATES.length);
     const inTest = r.periods.filter((p) => p.start >= testFrom);
     const all = periods.filter((p) => p.direction === f.candidate.mood && p.start >= testFrom).length;
-    const pulse = f.candidate.pattern === 'evening_activity';
     let judgedDays = 0, shown = 0;
     for (let d = testFrom; d <= to; d = addDays(d, 1)) {
       const v = days.get(d);
-      if (!v || !(pulse ? v.pulseJudged : v.judged)) continue;
+      if (!v || !judgedFor(v, f.candidate.pattern)) continue;
       judgedDays++;
       if (v.patterns.includes(f.candidate.pattern)) shown++;
     }
@@ -543,7 +590,8 @@ const NUMBER = ['noll', 'en', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta
 const num = (n: number) => NUMBER[n] ?? String(n);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
-export const FEATURE_WORD: Record<RhythmPattern, string> = {
+export const FEATURE_WORD: Record<MoodPattern, string> = {
+  less_deep: 'mindre djupsömn',
   shorter: 'kortare sömn',
   longer: 'längre sömn',
   later: 'senare insomning',
@@ -637,7 +685,7 @@ export function findingEvidence(r: CandidateResult, a: PatternAnalysis): Evidenc
     ...r.patternOnly.map((x) => `${cap(feature)} ${span(x.from, x.to)}, utan att skattningen ändrades efteråt.`),
   ];
   const missing: string[] = [];
-  if (r.periodsUnjudged) missing.push(`${cap(num(r.periodsUnjudged))} ${r.periodsUnjudged === 1 ? 'period' : 'perioder'} gick inte att bedöma: klockan saknade nätter${r.candidate.pattern === 'evening_activity' ? ' eller puls' : ''} runt starten.`);
+  if (r.periodsUnjudged) missing.push(`${cap(num(r.periodsUnjudged))} ${r.periodsUnjudged === 1 ? 'period' : 'perioder'} gick inte att bedöma: klockan saknade nätter${r.candidate.pattern === 'evening_activity' ? ' eller puls' : r.candidate.pattern === 'less_deep' ? ' med djupsömn' : ''} runt starten.`);
   if (r.periodsStartUnknown) missing.push(`${cap(num(r.periodsStartUnknown))} ${r.periodsStartUnknown === 1 ? 'period' : 'perioder'} räknas inte: det saknas skattningar strax före, så starten är okänd.`);
   if (r.patternUnrated) missing.push(`${cap(num(r.patternUnrated))} ${r.patternUnrated === 1 ? 'gång' : 'gånger'} fanns mönstret men skattningar saknades efteråt.`);
   missing.push(coverageLine(a));

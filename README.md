@@ -133,6 +133,8 @@ Du behöver en Personal API-nyckel från Garmin Connect på webben, under Instä
 1. Öppna *Inställningar* och tryck *Anslut Garmin*. Klistra in nyckeln och tryck *Anslut*.
 2. Appen hämtar de senaste två veckorna. Kontrollera under *Senaste veckan* att sömn, insomningstid och stress stämmer med Garmin Connect.
 3. Gör *Kvällens avstämning*. Rutan *Från Garmin* ska visa nattens sömn och dagens stress.
+
+**Sömnfaser.** Appen hämtar djup sömn, lätt sömn, REM och vaken tid ur samma svar som sömnen. Fördelningen visas som en stapel med minuter och procent under *Senaste veckan*, i bedömningens underlag och under *Dygnsrytm → Sömnfaser* (senaste natten, veckans och fyra veckors snitt). Nattens faser följer med till språkmodellen som bakgrund. Faserna påverkar aldrig nivån: en klocka vid handleden är säkrare på total sömn och tider än på vilken fas som är vilken. Lätt sömn och vaken tid finns bara för dagar som hämtats från 25 november; äldre dagar har bara djup sömn och REM och visas utan stapel.
 4. Efter att du sparat ska bedömningen visa sömnen märkt *(Garmin)* och dagens stress.
 5. Med språkmodell kopplad finns texten som skickades kvar på telefonen. Den innehåller avsnittet *Mätvärden* med dagens värden och veckan dag för dag.
 6. Prova en felaktig nyckel. Appen ska säga att Garmin inte godtog den, och inget ska sparas.
@@ -333,7 +335,7 @@ Letar efter samband som återkommer mellan klockans sömn och puls och dina egna
 - **När:** av sig själv ungefär en gång i månaden när appen öppnas, om det finns minst 30 nätter och 30 skattade dagar, och när du trycker *Analysera nu*.
 - **Koden räknar allt** (`src/core/analysis/moodPatterns.ts`): perioder då du skattade högre eller lägre, vilka klockmönster som fanns före eller vid starten, hur många dygn före, hur mycket data som fanns och motexemplen. Klockmönstren är samma som i Dygnsrytm.
 - **Mot slumpfynd:**
-    - Bara fem samband, bestämda i förväg, prövas: kortare sömn, senare insomning och förhöjd puls senare på kvällen mot högre skattning, och längre respektive kortare sömn mot lägre.
+    - Bara sex samband, bestämda i förväg, prövas: kortare sömn, senare insomning och förhöjd puls senare på kvällen mot högre skattning, och längre respektive kortare sömn och mindre djupsömn mot lägre. Mindre djupsömn (version 1.2.0) räknas som Dygnsrytm räknar kortare sömn: de tre senaste nätterna ligger alla minst 1,5 spridningar och minst 10 minuter under din egen djupsömn de 63 dagarna innan, med minst 14 nätter att jämföra med. Den finns bara i Mina mönster, inte i Dygnsrytm eller nivån.
     - Ett samband visas bara om mönstret kom före minst tre separata perioder, minst dubbelt så ofta som under lugna tider, och sannolikheten för resultatet under lugna tiders takt är högst 0,05 delat med antalet prövade samband.
     - Skifttest (version 1.1.0): alla periodstarter flyttas lika många dagar genom datan, tre dagar i taget och minst två veckor från sin plats. Sambandet måste vara starkare än i minst 95 % av de flyttade kopiorna. Det prövar slumpen utan att lita på takten under lugna tider.
     - Varje träff delas upp i om mönstret började före, samma dag som eller efter periodens start, och texten säger det när de skiljer sig. Andra samband i samma riktning sägs som att de *sammanföll med* perioderna, inte att de kom före.

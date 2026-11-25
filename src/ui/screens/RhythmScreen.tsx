@@ -7,6 +7,8 @@
 // The rated mood, this estimate and the earlier periods are kept apart, here and in storage.
 
 import { RULES } from '../../core/analysis/rules';
+import { meanPhases, phasesOf } from '../../core/analysis/sleepPhases';
+import { PHASES_NOTE, SleepPhasesBar } from '../SleepPhases';
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { addDays, formatDateSv, formatDateSvYear, formatTime, toDateKey } from '../../core/analysis/dates';
@@ -81,6 +83,27 @@ const hoursWord = (h: number) => `${String(h).replace('.', ',')} h`;
  * The latest seven nights as bars from falling asleep to waking, on a field that shows the usual
  * night. Later and shorter sleep are both visible at a glance; the exact values are one tap away.
  */
+/** The latest night's phases, the week's mean and the month's mean, as background next to the nights. */
+function SleepPhasesSection() {
+  const repo = useRepo();
+  const days = repo.measuredDays();
+  const dates = Object.keys(days).filter((d) => phasesOf(days[d])).sort();
+  const last = dates[dates.length - 1];
+  if (!last) return null;
+  const week = meanPhases(days, addDays(last, -6), last);
+  const month = meanPhases(days, addDays(last, -27), last);
+  return (
+    <Section title="Sömnfaser">
+      <Card>
+        <SleepPhasesBar parts={phasesOf(days[last])!} label={`Natten till ${formatDateSv(last)}`} />
+        {week && week.nights > 1 ? <SleepPhasesBar parts={week.parts} label={`Snitt senaste veckan, ${week.nights} nätter`} /> : null}
+        {month && week && month.nights > week.nights ? <SleepPhasesBar parts={month.parts} label={`Snitt senaste fyra veckorna, ${month.nights} nätter`} /> : null}
+        <P muted style={{ marginTop: space.s }}>{PHASES_NOTE} Mina mönster prövar om mindre djupsömn än vanligt brukar komma före perioder då du skattat lägre.</P>
+      </Card>
+    </Section>
+  );
+}
+
 function NightsChart({ a }: { a: RhythmAssessment }) {
   const repo = useRepo();
   const [exact, setExact] = useState(false);
@@ -358,6 +381,8 @@ export function RhythmScreen() {
           <Card><NightsChart a={a} /></Card>
         </Section>
       ) : null}
+
+      <SleepPhasesSection />
 
       <Section title="Jämfört med tidigare perioder">
         <Card>

@@ -38,13 +38,13 @@ Om modellen inte svarar, eller svarar fel två gånger, gör appen bedömningen 
 
 Varje bedömning sparar på telefonen det den räknades fram ur: anteckningen som den skickades till modellen (rensad), modellens svar, mätvärdena och vilka regler och vilken prompt som användes. Det gör att bedömningen kan räknas om med nya regler och granskas i efterhand. Uppgifterna sparas på samma sätt som anteckningen och följer med exporten.
 
-Om användaren ansluter Garmin hämtar appen sömn, stress och Body Battery från användarens eget konto med användarens egen Personal API-nyckel. Hämtningen sker från telefonen direkt till Garmin. Appen skickar bara nyckeln och vilka datum den vill ha. Inget av det användaren skriver skickas till Garmin. Garmins Personal API är avsett för personligt bruk av den egna datan.
+Om användaren ansluter Garmin hämtar appen sömn (med sömnfaserna djup, lätt, REM och vaken), stress och Body Battery från användarens eget konto med användarens egen Personal API-nyckel. Hämtningen sker från telefonen direkt till Garmin. Appen skickar bara nyckeln och vilka datum den vill ha. Inget av det användaren skriver skickas till Garmin. Garmins Personal API är avsett för personligt bruk av den egna datan.
 
 **Dygnsrytm (experimentell, av som standard).** När den är påslagen hämtar appen också pulsen över dygnet från Garmin, ett anrop per dag och bara för de senaste dagarna, och för tidigare dagar med sömn från klockan, av sig själv medan appen är öppen. Pulsen räknas om på telefonen till minuter med förhöjd puls per timme. Själva pulsen sparas inte. Det sparade, appens uppskattning per morgon och de tidigare perioder personen lägger in ligger i appens vanliga lagring, krypterat som allt annat. Inget av det skickas till någon språkmodell. Modellen tar inte emot anteckningar eller avstämningar.
 
 **Mina mönster (experimentell).** Analysen av sömn, puls och de egna skattningarna görs på telefonen, ungefär en gång i månaden och på begäran. Resultatet sparas i appens vanliga lagring. Bara om personen själv slår på *Låt språkmodellen formulera* skickas något, och då bara ett fynds antal (till exempel "Perioder som gick att bedöma: 4"), genom samma rensning som all annan text. Inga datum, inga anteckningar och inga skattningar dag för dag. Sidan visar exakt vad som skickas.
 
-Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
+Med en språkmodell kopplad följer dagens och veckans sömn och stress med till kvällens bedömning, och för natten innan även minuterna i varje sömnfas. Värdena skickas som siffror och datum, går genom samma rensning som all annan text, och visas i texten som sparas för promptbiblioteket.
 
 ## Mina tidigare texter (experimentellt)
 

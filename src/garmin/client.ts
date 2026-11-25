@@ -109,6 +109,8 @@ export interface SleepRow {
   sleepHours: number | null;
   deepMinutes: number | null;
   remMinutes: number | null;
+  lightMinutes: number | null;
+  awakeMinutes: number | null;
   sleepStart: string | null;
   sleepEnd: string | null;
   /** GMT epoch ms of waking, used to find Body Battery after waking. */
@@ -134,6 +136,8 @@ export function parseSleep(data: unknown): SleepRow[] {
       sleepHours: round1(r.sleepTimeSeconds / 3600),
       deepMinutes: num(r.deepSleepSeconds) != null ? Math.round(r.deepSleepSeconds / 60) : null,
       remMinutes: num(r.remSleepSeconds) != null ? Math.round(r.remSleepSeconds / 60) : null,
+      lightMinutes: num(r.lightSleepSeconds) != null ? Math.round(r.lightSleepSeconds / 60) : null,
+      awakeMinutes: num(r.awakeSleepSeconds) != null ? Math.round(r.awakeSleepSeconds / 60) : null,
       sleepStart: localClock(r.sleepStartTimestampLocal),
       sleepEnd: localClock(r.sleepEndTimestampLocal),
       wakeGmtMs: num(r.sleepEndTimestampGMT),
@@ -259,6 +263,8 @@ export function mergeDays(
       sleepHours: sl?.sleepHours ?? null,
       deepMinutes: sl?.deepMinutes ?? null,
       remMinutes: sl?.remMinutes ?? null,
+      lightMinutes: sl?.lightMinutes ?? null,
+      awakeMinutes: sl?.awakeMinutes ?? null,
       sleepStart: sl?.sleepStart ?? null,
       sleepEnd: sl?.sleepEnd ?? null,
       stressAvg: st?.stressAvg ?? null,

@@ -29,7 +29,7 @@ export function stressWord(v: number): 'låg' | 'medel' | 'hög' {
   return v < 38 ? 'låg' : v < 63 ? 'medel' : 'hög';
 }
 
-const SLEEP_FIELDS = ['sleepHours', 'deepMinutes', 'remMinutes', 'sleepStart', 'sleepEnd', 'bodyBatteryWake'] as const;
+const SLEEP_FIELDS = ['sleepHours', 'deepMinutes', 'remMinutes', 'lightMinutes', 'awakeMinutes', 'sleepStart', 'sleepEnd', 'bodyBatteryWake'] as const;
 
 function mergeDay(date: DateKey, days: Partial<Record<MeasureSource, MeasuredDay>>): MeasuredDay | null {
   const ordered = SOURCE_ORDER.filter((s) => days[s]).map((s) => ({ s, d: days[s]! }));

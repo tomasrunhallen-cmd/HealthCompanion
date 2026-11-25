@@ -1,4 +1,6 @@
 import React, { useRef, useState } from 'react';
+import { phasesOf } from '../../core/analysis/sleepPhases';
+import { PHASES_NOTE, SleepPhasesBar } from '../SleepPhases';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { addDays, formatDateSv, formatTime, toDateKey } from '../../core/analysis/dates';
 import { GARMIN_KEY_PAGE } from '../../garmin/client';
@@ -149,10 +151,11 @@ export function GarminScreen() {
                     ].filter(Boolean).join(', ')
                   : 'Inga värden'}
               </Text>
+              {phasesOf(g) ? <SleepPhasesBar parts={phasesOf(g)!} label="Sömnfaser" /> : null}
             </View>
           ))}
           <P muted style={{ marginTop: space.s }}>
-            Sömnen hör till morgonen du vaknade. Värdena skickas med som bakgrund när din språkmodell gör kvällens bedömning.
+            Sömnen hör till morgonen du vaknade. {PHASES_NOTE} Värdena skickas med som bakgrund när din språkmodell gör kvällens bedömning.
           </P>
         </Card>
       </Section>

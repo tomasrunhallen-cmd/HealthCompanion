@@ -18,6 +18,8 @@ export interface PromptDay {
   sleepEnd: string | null;
   deepMinutes: number | null;
   remMinutes: number | null;
+  lightMinutes?: number | null;
+  awakeMinutes?: number | null;
   stressAvg: number | null;
   stressSource: MeasureSource | null;
   stressHighMinutes: number | null;
@@ -34,6 +36,8 @@ function dayFor(date: DateKey, entry: Entry | undefined, g: GarminDay | undefine
     sleepEnd: g?.sleepEnd ?? null,
     deepMinutes: g?.deepMinutes ?? null,
     remMinutes: g?.remMinutes ?? null,
+    lightMinutes: g?.lightMinutes ?? null,
+    awakeMinutes: g?.awakeMinutes ?? null,
     stressAvg: g?.stressAvg ?? entry?.stressAvg ?? null,
     stressSource: g?.stressAvg != null ? stressSourceOf(g) : entry?.stressAvg != null ? entry.stressSource ?? 'garmin' : null,
     stressHighMinutes: g?.stressHighMinutes ?? null,
@@ -74,6 +78,8 @@ function sleepText(d: PromptDay, detailed: boolean): string | null {
   if (detailed && d.sleepEnd) parts.push(`vaknade ${d.sleepEnd}`);
   if (detailed && d.deepMinutes != null) parts.push(`djupsömn ${d.deepMinutes} min`);
   if (detailed && d.remMinutes != null) parts.push(`REM ${d.remMinutes} min`);
+  if (detailed && d.lightMinutes != null) parts.push(`lätt sömn ${d.lightMinutes} min`);
+  if (detailed && d.awakeMinutes != null) parts.push(`vaken ${d.awakeMinutes} min`);
   return parts.join(', ');
 }
 
