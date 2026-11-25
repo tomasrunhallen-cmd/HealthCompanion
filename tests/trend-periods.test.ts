@@ -4,6 +4,7 @@
 import { addDays } from '../src/core/analysis/dates';
 import { bucketTrend, buildTrend, isoWeek, PERIOD_DAYS, PERIOD_GRAIN } from '../src/core/analysis/trend';
 import type { Assessment, ContextEntry, Entry } from '../src/core/domain/types';
+import { countedRoutineIds, routineShare } from '../src/core/plan/routines';
 
 const TODAY = '2026-11-08'; // a Sunday, week 45
 
@@ -25,6 +26,15 @@ describe('Trendens perioder', () => {
     expect(isoWeek('2026-01-01')).toBe(1);
     expect(isoWeek('2027-01-01')).toBe(53);
     expect(isoWeek('2024-12-30')).toBe(1);
+  });
+
+  it('counts every counted routine on an evening with answers, so an unticked one is a miss, not nothing (granskning 25 november)', () => {
+    // Only ticks are saved: on 2 November "a" was ticked, "b" and "c" were not.
+    const ctx = [done('2026-11-02', 'a', true), done('2026-11-03', 'a', true), done('2026-11-03', 'b', true)];
+    const t = buildTrend([], [], {}, TODAY, 14, ctx, ['a', 'b', 'c']);
+    expect(t.days.find((d) => d.date === '2026-11-02')!.routines).toEqual({ done: 1, answered: 3 });
+    expect(t.days.find((d) => d.date === '2026-11-03')!.routines).toEqual({ done: 2, answered: 3 });
+    expect(t.days.find((d) => d.date === '2026-11-04')!.routines).toBeNull();
   });
 
   it('counts routines per day, and groups days into weeks and months with means', () => {
@@ -67,5 +77,18 @@ describe('Garmins värden sparas', () => {
     expect(Object.keys(repo.garminDays()).sort()).toEqual(['2026-11-01', '2026-11-08']);
     expect(Object.keys(repo.garminArchive()).sort()).toEqual(['2026-05-01', '2026-07-01']);
     expect(Object.keys(repo.allMeasuredDays()).sort()).toEqual(['2026-05-01', '2026-07-01', '2026-11-01', '2026-11-08']);
+  });
+});
+
+describe('the share of routines done, as Hem and Trend show it', () => {
+  it('counts each counted routine on each evening with answers, and leaves out a routine never offered', () => {
+    const r = (id: string, polarity: 'both' | 'up') => ({ id, layer: 'grund', kind: 'routine', text: id, order: id.length, approvedAt: '2026-11-01', plan: { polarity }, ...(polarity === 'both' ? { routine: { track: true, reminder: null } } : {}) }) as unknown as ContextEntry;
+    // up1 is a routine for the up direction that the person has not chosen to tick every day.
+    const ctx = [r('a', 'both'), r('b', 'both'), r('up1', 'up'), done('2026-11-02', 'a', true), done('2026-11-03', 'a', true), done('2026-11-03', 'b', true)];
+    const ids = countedRoutineIds(ctx, null, '2026-11-02', '2026-11-08');
+    expect(ids).toEqual(['a', 'b']);
+    expect(routineShare(ctx, ids, '2026-11-02', '2026-11-08')).toEqual({ done: 3, possible: 4, evenings: 2 });
+    // Following the up direction, its routine is offered and counts.
+    expect(countedRoutineIds(ctx, { direction: 'up' }, '2026-11-02', '2026-11-08')).toEqual(['a', 'b', 'up1']);
   });
 });

@@ -30,16 +30,31 @@ export function buildTrend(
   length: number,
   /** The context bank's daily rows; the routine answers among them are counted per day. */
   context: ContextEntry[] = [],
+  /**
+   * The routines counted: on an evening with any answer, each of them counts as one chance, done
+   * when ticked. A routine not ticked is saved as nothing, so counting only the saved answers gave
+   * nearly 100 % every day (granskning 25 november, the person's screenshot).
+   */
+  routineIds?: string[],
 ): Trend {
   const entryOn = new Map(entries.map((e) => [e.date, e]));
   const routineDays = new Map<DateKey, { done: number; answered: number }>();
+  const counted = routineIds ? new Set(routineIds) : null;
+  const doneOn = new Map<DateKey, Set<string>>();
   for (const c of context) {
     if (c.kind !== 'routine_done' || !c.date || c.done == null) continue;
+    if (counted) {
+      const s = doneOn.get(c.date) ?? new Set<string>();
+      if (c.done && c.routineId && counted.has(c.routineId)) s.add(c.routineId);
+      doneOn.set(c.date, s);
+      continue;
+    }
     const r = routineDays.get(c.date) ?? { done: 0, answered: 0 };
     r.answered++;
     if (c.done) r.done++;
     routineDays.set(c.date, r);
   }
+  if (counted && counted.size) for (const [d, s] of doneOn) routineDays.set(d, { done: s.size, answered: counted.size });
   const levelOf = new Map(assessments.map((a) => [a.entryId, a.level]));
   const days: TrendDay[] = [];
   for (let i = length - 1; i >= 0; i--) {

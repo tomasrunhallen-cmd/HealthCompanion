@@ -7,7 +7,7 @@ import {
 } from '../../core/analysis/trend';
 import { MOOD_MAX, moodStep, moodText } from '../../core/analysis/mood';
 import { RULES } from '../../core/analysis/rules';
-import { routineStats, trackedRoutines } from '../../core/plan/routines';
+import { countedRoutineIds, routineStats } from '../../core/plan/routines';
 import { Button, Card, Dot, P, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -249,16 +249,27 @@ function LevelCells({ days }: { days: TrendDay[] }) {
   );
 }
 
+/**
+ * The routines the trend counts: those the check-in offers today (the daily ones, and the
+ * direction's when the person follows one), and any other ticked in the period. A routine from
+ * another direction that was never offered is left out, not shown as 0 of 7.
+ */
+function countedRoutineStats(repo: ReturnType<typeof useRepo>, today: string, days: number) {
+  const ctx = repo.contextEntries();
+  const ids = new Set(countedRoutineIds(ctx, repo.settings().planMode ?? null, addDays(today, -(days - 1)), today));
+  return routineStats(ctx, today, days).filter((s) => ids.has(s.routine.id));
+}
+
 /** How well the routines were kept: the share for the period, over time, and per routine. */
 function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; days: number }) {
   const repo = useRepo();
   const nav = useNav();
   const ctx = repo.contextEntries();
-  const tracked = trackedRoutines(ctx);
-  const stats = routineStats(ctx, props.today, props.days).filter((s) => s.done > 0 || tracked.some((t) => t.id === s.routine.id));
-  const done = props.buckets.reduce((n, b) => n + (b.routines?.done ?? 0), 0);
-  const answered = props.buckets.reduce((n, b) => n + (b.routines?.answered ?? 0), 0);
-  const evenings = props.buckets.reduce((n, b) => n + b.days.filter((d) => d.routines).length, 0);
+  const stats = countedRoutineStats(repo, props.today, props.days);
+  // The same count as the rows below: every counted routine on every evening with an answer.
+  const done = stats.reduce((n, s) => n + s.done, 0);
+  const answered = stats.reduce((n, s) => n + s.answered, 0);
+  const evenings = stats[0]?.answered ?? 0;
   if (!stats.length) {
     return (
       <Card>
@@ -278,10 +289,10 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
   return (
     <>
       <Card>
-        <View accessible accessibilityLabel={`${pct} procent av rutinerna hölls, räknat på ${evenings} ${evenings === 1 ? 'kväll' : 'kvällar'} du bockade av`}>
+        <View accessible accessibilityLabel={`${pct} procent av rutinerna gjordes: ${done} avbockade av ${answered} möjliga, ${evenings} ${evenings === 1 ? 'kväll' : 'kvällar'}`}>
           <Text style={[type.title, { color: colors.text }]}>{pct} %</Text>
-          <Text style={type.body}>av rutinerna hölls</Text>
-          <Text style={type.small}>Räknat på {evenings === 1 ? 'en kväll' : `${evenings} kvällar`} du bockade av. En kväll utan avstämning räknas inte som missad.</Text>
+          <Text style={type.body}>av rutinerna gjordes</Text>
+          <Text style={type.small}>{`${done} avbockade av ${answered} möjliga: ${stats.length} ${stats.length === 1 ? 'rutin' : 'rutiner'} × ${evenings === 1 ? 'en kväll' : `${evenings} kvällar`} med avbockning. En kväll utan avstämning räknas inte som missad.`}</Text>
         </View>
         {stats.map((s) => {
           const share = s.answered ? s.done / s.answered : 0;
@@ -332,7 +343,7 @@ export function TrendScreen() {
   const days = PERIOD_DAYS[period];
   const grain = PERIOD_GRAIN[period];
   const trend = useMemo(
-    () => buildTrend(repo.entries(), repo.assessments(), repo.allMeasuredDays(), today, days, repo.contextEntries()),
+    () => buildTrend(repo.entries(), repo.assessments(), repo.allMeasuredDays(), today, days, repo.contextEntries(), countedRoutineStats(repo, today, days).map((r) => r.routine.id)),
     [repo, repo.revision, today, days],
   );
   const buckets = useMemo(() => bucketTrend(trend.days, grain), [trend, grain]);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { countedRoutineIds, routineShare } from '../../core/plan/routines';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
 import { weekCounts } from '../../core/analysis/levelWords';
@@ -407,8 +408,9 @@ function WeekSummary({ week, fontScale, today }: { week: { date: string; level: 
   const limited = week.filter((d) => d.limited).length;
   const missing = week.filter((d) => !d.level).length;
   const moods = repo.entries().filter((e) => e.date >= from && e.date <= today && e.mood != null).map((e) => e.mood!);
-  const answers = repo.contextOf('routine_done').filter((e) => e.date && e.date >= from && e.date <= today && e.done != null);
-  const kept = answers.length ? Math.round((answers.filter((e) => e.done).length / answers.length) * 100) : null;
+  const ctx = repo.contextEntries();
+  const share = routineShare(ctx, countedRoutineIds(ctx, repo.settings().planMode ?? null, from, today), from, today);
+  const kept = share ? Math.round((share.done / share.possible) * 100) : null;
   const signedMood = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
   const lo = moods.length ? Math.min(...moods) : null;
   const hi = moods.length ? Math.max(...moods) : null;

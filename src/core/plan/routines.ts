@@ -84,6 +84,32 @@ export function routineStats(entries: ContextEntry[], today: DateKey, days = 14)
   }));
 }
 
+/**
+ * The routines the share is counted on: those the check-in offers (the daily ones, and the
+ * direction's when the person follows one), and any other ticked between the dates. A routine
+ * from another direction that was never offered is left out instead of counting as missed.
+ */
+export function countedRoutineIds(entries: ContextEntry[], mode: PlanMode, from: DateKey, to: DateKey): string[] {
+  const { daily, extra } = routinesToday(entries, mode);
+  const ids = new Set([...daily, ...extra].map((r) => r.id));
+  for (const e of entries) if (e.kind === 'routine_done' && e.done && e.routineId && e.date && e.date >= from && e.date <= to) ids.add(e.routineId);
+  return routines(entries).map((r) => r.id).filter((id) => ids.has(id));
+}
+
+/**
+ * The share of routines done between two dates: every counted routine on every evening with any
+ * answer is one chance, done when ticked. Only ticks are saved, so counting the saved answers
+ * alone gave nearly 100 % (granskning 25 november).
+ */
+export function routineShare(entries: ContextEntry[], ids: string[], from: DateKey, to: DateKey): { done: number; possible: number; evenings: number } | null {
+  const counted = new Set(ids);
+  const answers = entries.filter((e) => e.kind === 'routine_done' && e.date && e.date >= from && e.date <= to && e.done != null);
+  const evenings = new Set(answers.map((e) => e.date)).size;
+  if (!evenings || !counted.size) return null;
+  const done = new Set(answers.filter((e) => e.done && e.routineId && counted.has(e.routineId)).map((e) => `${e.date}|${e.routineId}`)).size;
+  return { done, possible: evenings * counted.size, evenings };
+}
+
 /** The day's line on the result screen, in positive words: what was done. Null when nothing was answered. */
 export function routineSummary(entries: ContextEntry[], date: DateKey, total?: number): { done: string[]; answered: number } | null {
   const log = routineLog(entries, date);
