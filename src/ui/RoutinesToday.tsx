@@ -71,14 +71,24 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
 
   // The hooks come before any early return, so they run in the same order on every render.
   const [suggestion, setSuggestion] = useState<DaySuggestion | null>(() => daySuggestion(repo));
-  // Made again once when the watch has synced a different night since (it may name the hours).
+  // The first suggestion of the day waits for the sync that runs when the app opens, so it reads
+  // the night the watch has now, not the half night of an earlier fetch. At most 15 seconds.
+  const garmin = repo.garminStatus();
+  const [atOpen] = useState(() => ({ syncAt: garmin.lastSyncAt, recent: !!garmin.lastSyncAt && Date.now() - new Date(garmin.lastSyncAt).getTime() < 30 * 60_000 }));
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setWaited(true), 15_000);
+    return () => clearTimeout(t);
+  }, []);
+  const watchReady = !garmin.connected || atOpen.recent || garmin.lastSyncAt !== atOpen.syncAt || !!garmin.lastError || waited;
+  // Checked again on every render, so after each sync: made once more when the night differs from the one it used.
   const stale = staleForSleep(suggestion, repo);
   useEffect(() => {
-    if (empty || (suggestion?.date === today && !stale)) return;
+    if (empty || !watchReady || (suggestion?.date === today && !stale)) return;
     let live = true;
     makeDaySuggestion(repo, { browser: Platform.OS === 'web' }).then((s) => live && setSuggestion(s)).catch(() => undefined);
     return () => { live = false; };
-  }, [repo, empty, today, suggestion?.date, stale]);
+  }, [repo, empty, today, suggestion?.date, stale, watchReady]);
   if (empty) return null;
   const status = new Map(routineStatuses(entries, today).map((st) => [st.routine.id, st]));
   const picked = (suggestion?.date === today ? suggestion.items : [])
