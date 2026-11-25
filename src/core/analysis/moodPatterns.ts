@@ -736,7 +736,7 @@ export function exploratoryLine(r: CandidateResult): string {
 }
 
 export function methodText(a: Pick<PatternAnalysis, 'tested'>): string {
-  return `Appen prövade ${num(a.tested)} samband som bestämts i förväg. Ett visas bara om mönstret kom före minst ${num(P.minHits)} separata perioder och tydligt oftare än under lugna tider, och oftare än när perioderna flyttas i tiden. Det är ett samband i dina data, inte en orsak och ingen förutsägelse. Skattningarna är dina egna skattningar, inte bekräftade episoder.`;
+  return `Appen prövade ${num(a.tested)} samband som bestämts i förväg. Ett visas bara om mönstret fanns före eller vid starten av minst ${num(P.minHits)} separata perioder, från ${num(P.leadDays)} dygn före till ${num(P.afterDays)} dygn efter starten. Det ska också ha funnits tydligt oftare än under lugna tider, och oftare än när perioderna flyttas i tiden. Ett fynd är därför ingen förvarning; texten säger hur ofta mönstret började före starten. Det är ett samband i dina data, inte en orsak och ingen förutsägelse. Skattningarna är dina egna skattningar, inte bekräftade episoder.`;
 }
 
 // ---- the language model: wording only ----
