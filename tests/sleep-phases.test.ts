@@ -27,6 +27,18 @@ describe('the phases from Garmin', () => {
     expect(phasesOf(day('2026-11-24', 80, null, 100))).toBeNull();
   });
 
+  it('shows missing time awake as missing, never 0, and gives the shares of what is known', () => {
+    const p = phasesOf(day('2026-11-25', 80, 240, 100, null))!;
+    expect(p.find((x) => x.phase === 'awake')).toEqual({ phase: 'awake', minutes: null, share: null });
+    expect(phasesText(p)).toBe('djup 1 h 20 min (19 %), lätt 4 h (57 %), rem 1 h 40 min (24 %), vaken saknas');
+  });
+
+  it('averages each phase over the nights that have it, and says how many (granskning 25 november)', () => {
+    const m = meanPhases({ '2026-11-20': day('2026-11-20', 60, 200, 90, null), '2026-11-21': day('2026-11-21', 100, 240, 110, 40) }, '2026-11-20', '2026-11-21')!;
+    const awake = m.parts.find((x) => x.phase === 'awake')!;
+    expect([awake.minutes, awake.nights, m.nights]).toEqual([40, 1, 2]);
+  });
+
   it('averages only the nights that have phases', () => {
     const days = { a: day('2026-11-20', 60, 200, 90), b: day('2026-11-21', 100, 240, 110), c: day('2026-11-22', 70, null, 90) };
     const m = meanPhases({ '2026-11-20': days.a, '2026-11-21': days.b, '2026-11-22': days.c }, '2026-11-20', '2026-11-22')!;

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Text, View } from 'react-native';
-import { minutesText, PHASE_WORD, phasesText, type PhasePart, type SleepPhase } from '../core/analysis/sleepPhases';
+import { incomplete, minutesText, PHASE_WORD, phasesText, type PhasePart, type SleepPhase } from '../core/analysis/sleepPhases';
 import { colors, radius, space, type } from './theme';
 
 /** Shades of the one accent, darkest for deep sleep; awake in the neutral line colour. */
@@ -14,26 +14,30 @@ const FILL: Record<SleepPhase, { color: typeof colors.accent; opacity: number }>
   awake: { color: colors.border, opacity: 1 },
 };
 
-export function SleepPhasesBar(props: { parts: PhasePart[]; label?: string; compact?: boolean }) {
-  const { parts } = props;
+export function SleepPhasesBar(props: { parts: PhasePart[]; label?: string; compact?: boolean; nights?: number }) {
+  const { parts, nights } = props;
+  // A phase the watch did not give is "saknas", never 0, and the bar then shows only what is known.
+  const known = parts.filter((p) => p.minutes != null && (p.share ?? 0) > 0);
+  const coverage = (p: PhasePart) => (nights && p.nights != null && p.nights < nights ? ` · ${p.nights} av ${nights} nätter` : '');
   return (
     <View accessible accessibilityLabel={`${props.label ? `${props.label}: ` : ''}${phasesText(parts)}`} style={{ marginTop: space.xs }}>
       {props.label ? <Text style={type.small}>{props.label}</Text> : null}
       <View style={{ flexDirection: 'row', height: props.compact ? 10 : 14, borderRadius: radius.xs, overflow: 'hidden', backgroundColor: colors.surfaceAlt, marginTop: space.xs }}>
-        {parts.filter((p) => p.share > 0).map((p) => (
-          <View key={p.phase} style={{ flex: p.share, backgroundColor: FILL[p.phase].color, opacity: FILL[p.phase].opacity }} />
+        {known.map((p) => (
+          <View key={p.phase} style={{ flex: p.share ?? 0, backgroundColor: FILL[p.phase].color, opacity: FILL[p.phase].opacity }} />
         ))}
       </View>
       {props.compact ? null : (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: space.xs, columnGap: space.m, rowGap: space.xs }}>
           {parts.map((p) => (
             <View key={p.phase} style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: FILL[p.phase].color, opacity: FILL[p.phase].opacity, marginRight: space.xs }} />
-              <Text style={type.small}>{`${PHASE_WORD[p.phase]} ${minutesText(p.minutes)} · ${Math.round(p.share * 100)} %`}</Text>
+              {p.minutes != null ? <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: FILL[p.phase].color, opacity: FILL[p.phase].opacity, marginRight: space.xs }} /> : null}
+              <Text style={type.small}>{p.minutes == null ? `${PHASE_WORD[p.phase]} saknas` : `${PHASE_WORD[p.phase]} ${minutesText(p.minutes)} · ${Math.round((p.share ?? 0) * 100)} %${coverage(p)}`}</Text>
             </View>
           ))}
         </View>
       )}
+      {!props.compact && incomplete(parts) ? <Text style={[type.small, { marginTop: space.xs }]}>Andelarna gäller bara faserna som finns.</Text> : null}
     </View>
   );
 }

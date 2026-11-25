@@ -96,8 +96,8 @@ function SleepPhasesSection() {
     <Section title="Sömnfaser">
       <Card>
         <SleepPhasesBar parts={phasesOf(days[last])!} label={`Natten till ${formatDateSv(last)}`} />
-        {week && week.nights > 1 ? <SleepPhasesBar parts={week.parts} label={`Snitt senaste veckan, ${week.nights} nätter`} /> : null}
-        {month && week && month.nights > week.nights ? <SleepPhasesBar parts={month.parts} label={`Snitt senaste fyra veckorna, ${month.nights} nätter`} /> : null}
+        {week && week.nights > 1 ? <SleepPhasesBar parts={week.parts} nights={week.nights} label={`Snitt senaste veckan, ${week.nights} nätter`} /> : null}
+        {month && week && month.nights > week.nights ? <SleepPhasesBar parts={month.parts} nights={month.nights} label={`Snitt senaste fyra veckorna, ${month.nights} nätter`} /> : null}
         <P muted style={{ marginTop: space.s }}>{PHASES_NOTE} Mina mönster prövar om mindre djupsömn än vanligt brukar komma före perioder då du skattat lägre.</P>
       </Card>
     </Section>

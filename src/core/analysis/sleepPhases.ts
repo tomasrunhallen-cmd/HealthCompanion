@@ -12,9 +12,12 @@ export const PHASE_WORD: Record<SleepPhase, string> = { deep: 'Djup', light: 'L�
 
 export interface PhasePart {
   phase: SleepPhase;
-  minutes: number;
-  /** Share of the night (all four phases), 0–1. */
-  share: number;
+  /** Null when the watch gave no value for this phase (often time awake): missing, never 0. */
+  minutes: number | null;
+  /** Share of the phases that have a value, 0–1; null when the phase is missing. */
+  share: number | null;
+  /** In a mean: how many nights had this phase. */
+  nights?: number;
 }
 
 type PhaseDay = Pick<MeasuredDay, 'deepMinutes' | 'remMinutes' | 'lightMinutes' | 'awakeMinutes'>;
@@ -24,14 +27,27 @@ function minutesOf(d: PhaseDay, p: SleepPhase): number | null {
   return typeof v === 'number' && v >= 0 ? v : null;
 }
 
-/** The night's phases, or null when the watch gave no deep, light and REM sleep (older days have only deep and REM). */
+function withShares(parts: { phase: SleepPhase; minutes: number | null; nights?: number }[]): PhasePart[] {
+  const total = parts.reduce((a, p) => a + (p.minutes ?? 0), 0);
+  return parts.map((p) => ({ ...p, share: p.minutes == null || !total ? null : p.minutes / total }));
+}
+
+/**
+ * The night's phases, or null when the watch gave no deep, light and REM sleep (older days have
+ * only deep and REM). Time awake may be missing: it is then shown as missing, and the shares are
+ * of the three sleep phases only.
+ */
 export function phasesOf(d: PhaseDay | null | undefined): PhasePart[] | null {
   if (!d) return null;
-  const mins = PHASE_ORDER.map((p) => ({ phase: p, minutes: minutesOf(d, p) }));
-  if (['deep', 'light', 'rem'].some((p) => mins.find((m) => m.phase === p)!.minutes == null)) return null;
-  const total = mins.reduce((a, m) => a + (m.minutes ?? 0), 0);
-  if (total <= 0) return null;
-  return mins.map((m) => ({ phase: m.phase, minutes: m.minutes ?? 0, share: (m.minutes ?? 0) / total }));
+  const parts = PHASE_ORDER.map((phase) => ({ phase, minutes: minutesOf(d, phase) }));
+  if (parts.some((p) => p.phase !== 'awake' && p.minutes == null)) return null;
+  if (parts.reduce((a, p) => a + (p.minutes ?? 0), 0) <= 0) return null;
+  return withShares(parts);
+}
+
+/** True when a phase is missing, so the shares are not of the whole night. */
+export function incomplete(parts: PhasePart[]): boolean {
+  return parts.some((p) => p.minutes == null);
 }
 
 /** "1 h 20 min", "45 min". */
@@ -40,16 +56,24 @@ export function minutesText(m: number): string {
   return r >= 60 ? `${Math.floor(r / 60)} h${r % 60 ? ` ${r % 60} min` : ''}` : `${r} min`;
 }
 
-/** "djup 1 h 20 min (18 %), lätt …": for a line of text and for the screen reader. */
+/** "djup 1 h 20 min (18 %), …, vaken saknas": for a line of text and for the screen reader. */
 export function phasesText(parts: PhasePart[]): string {
-  return parts.map((p) => `${PHASE_WORD[p.phase].toLowerCase()} ${minutesText(p.minutes)} (${Math.round(p.share * 100)} %)`).join(', ');
+  return parts.map((p) => {
+    const word = PHASE_WORD[p.phase].toLowerCase();
+    return p.minutes == null ? `${word} saknas` : `${word} ${minutesText(p.minutes)} (${Math.round((p.share ?? 0) * 100)} %)`;
+  }).join(', ');
 }
 
-/** The mean night over the nights that have phases between two dates, and how many nights it rests on. */
+/**
+ * The mean night between two dates. Each phase is averaged over the nights that have it, never
+ * with a missing value counted as 0, and says how many nights that was.
+ */
 export function meanPhases(days: Record<DateKey, MeasuredDay>, from: DateKey, to: DateKey): { parts: PhasePart[]; nights: number } | null {
   const nights = Object.entries(days).filter(([d]) => d >= from && d <= to).map(([, m]) => phasesOf(m)).filter((p): p is PhasePart[] => !!p);
   if (!nights.length) return null;
-  const mean = PHASE_ORDER.map((phase) => nights.reduce((a, n) => a + n.find((x) => x.phase === phase)!.minutes, 0) / nights.length);
-  const total = mean.reduce((a, b) => a + b, 0);
-  return { parts: PHASE_ORDER.map((phase, i) => ({ phase, minutes: Math.round(mean[i]), share: total ? mean[i] / total : 0 })), nights: nights.length };
+  const parts = PHASE_ORDER.map((phase) => {
+    const values = nights.map((n) => n.find((x) => x.phase === phase)!.minutes).filter((v): v is number => v != null);
+    return { phase, minutes: values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null, nights: values.length };
+  });
+  return { parts: withShares(parts), nights: nights.length };
 }
