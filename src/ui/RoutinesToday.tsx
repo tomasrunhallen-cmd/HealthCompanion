@@ -15,6 +15,7 @@ import { routineStatuses } from '../core/plan/routineFrequency';
 import type { DaySuggestion } from '../core/plan/daySuggestion';
 import { daySuggestion, makeDaySuggestion, staleForSleep } from '../services/daySuggestion';
 import { Button, Card, P, Row, Tag } from './components';
+import { RoutineWeekLines } from './StatusToday';
 import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
 
@@ -130,6 +131,7 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
         </View>
         {collapsible ? <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{open ? 'Färre ▲' : hidden > 0 ? `Alla ${counted.length} ▼` : '▼'}</Text> : null}
       </Pressable>
+      {collapsible ? <RoutineWeekLines open={open} /> : null}
       {picked.length ? (
         <View style={{ marginTop: space.s }}>
           <Row style={{ justifyContent: 'space-between' }}>

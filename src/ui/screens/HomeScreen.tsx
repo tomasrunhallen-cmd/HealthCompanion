@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StatusToday } from '../StatusToday';
+import { StatusHelp } from '../StatusToday';
 import { countedRoutineIds, routineShare } from '../../core/plan/routines';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
@@ -338,11 +338,11 @@ export function HomeScreen() {
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
-      {/* Senaste veckan, dina rutiner: first on a calm day; on a yellow or red day after the week's levels. */}
-      <StatusToday place="top" />
-      <RhythmToday />
+      {/* A week when Hjälp nu was shown: where help is, first. */}
+      <StatusHelp />
+      {/* Senaste veckan, Dygnsrytm, Rutiner i dag (with the week's routines in it), Kvällens avstämning. */}
       <WeekSummary week={week} fontScale={fontScale} today={today} />
-      <StatusToday place="after" />
+      <RhythmToday />
       <RoutinesToday collapsible foldedMax={rhythmNow ? 1 : undefined} />
 
       {card ? (
