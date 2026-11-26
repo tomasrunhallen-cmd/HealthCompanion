@@ -124,7 +124,6 @@ export function HomeScreen() {
     return (
       <Screen title="Dagsljus">
         <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
-      <StatusToday place="top" />
         <Card tone="accent">
           <Text style={type.h2} accessibilityRole="header">Välkommen</Text>
           <P style={{ marginTop: space.xs }}>
@@ -339,6 +338,8 @@ export function HomeScreen() {
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
+      {/* Senaste veckan, dina rutiner: first on a calm day; on a yellow or red day after the week's levels. */}
+      <StatusToday place="top" />
       <RhythmToday />
       <WeekSummary week={week} fontScale={fontScale} today={today} />
       <StatusToday place="after" />
