@@ -305,6 +305,7 @@ Några meningar på startsidan om hur det går, en gång om dagen. Koden ligger 
 - **Texten ska flyta:** prompten (version 1.1.0) ber om ett sammanhängande litet stycke med naturliga övergångar och rutinen nämnd med sitt mål, med ett exempel på ton.
 - **Tonen följer läget.** Uppmuntran bara en lugn vecka. En gul eller röd dag, eller när du följer planens rutiner vid uppvarvning, blir texten lugn och lyfter inget. En vecka då akutregeln visat *Hjälp nu* sammanfattar kortet inget och visar *Hjälp nu*.
 - **Modellen formulerar bara.** Den får fakta och veckans tre senaste anteckningar, rensade och förkortade. Svaret kontrolleras: inga siffror utöver fakta, högst tre meningar, inga diagnosord, ingen nivå, inga krav och ingen uppsluppenhet en lugn dag. Annars visar kortet appens egna ord. *Vad bygger det på?* visar fakta.
+- **Överst på startsidan, ihopfällt:** en rad med början av texten; ett tryck visar hela texten och *Vad bygger det på?*. En vecka då *Hjälp nu* visats står knappen till Hjälp nu synlig även ihopfällt.
 - **Görs om** när fakta ändras, till exempel efter kvällens avstämning, högst två gånger om dagen. Väntar högst 15 sekunder på hämtningen från klockan när appen öppnas. Kan stängas av under *AI-stöd*.
 
 ### Dygnsrytm (experimentell)

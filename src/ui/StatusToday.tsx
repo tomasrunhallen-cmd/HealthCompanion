@@ -15,6 +15,8 @@ export function StatusToday() {
   const nav = useNav();
   const [status, setStatus] = useState<Status | null>(() => statusToday(repo));
   const [why, setWhy] = useState(false);
+  // Folded by default at the top of Hem: one line, the whole text a tap away.
+  const [open, setOpen] = useState(false);
   // The facts as they are now; the text is made again when they change (at most twice a day).
   const facts = statusFacts(statusInput(repo));
   const key = JSON.stringify([facts.tone, facts.lines]);
@@ -39,10 +41,25 @@ export function StatusToday() {
   if (!hasData || !status) return null;
 
   return (
-    <Card style={{ marginTop: space.m }}>
-      <Text style={type.label} accessibilityRole="header">LÄGET I DAG</Text>
-      <P style={{ marginTop: space.xs }}>{status.text}</P>
-      {status.tone === 'plan' ? <Button kind="secondary" title="Hjälp nu" onPress={() => nav.push({ name: 'crisis' })} /> : null}
+    <Card style={{ marginTop: space.s }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={open ? 'Läget i dag, dölj' : `Läget i dag: ${status.text}`}
+        onPress={() => setOpen((v) => !v)}
+        style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}
+      >
+        <Text style={type.label}>{`LÄGET I DAG  ${open ? '▲' : '▼'}`}</Text>
+        {open ? null : <Text style={[type.small, { marginTop: 2 }]} numberOfLines={1}>{status.text}</Text>}
+      </Pressable>
+      {open || status.tone === 'plan' ? (
+        <>
+          {open ? <P style={{ marginTop: space.xs }}>{status.text}</P> : null}
+          {status.tone === 'plan' ? <Button kind="secondary" title="Hjälp nu" onPress={() => nav.push({ name: 'crisis' })} /> : null}
+        </>
+      ) : null}
+      {open ? (
+      <>
       {status.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
       <Pressable
         accessibilityRole="button"
@@ -59,6 +76,8 @@ export function StatusToday() {
             Appen räknar fram det här själv. {status.method === 'llm' ? 'Språkmodellen formulerar bara meningarna, och de kontrolleras: inga siffror utöver dessa, inga diagnoser och ingen nivå.' : 'Ingen språkmodell användes.'} Tonen följer läget: uppmuntran bara en lugn vecka.
           </P>
         </>
+      ) : null}
+      </>
       ) : null}
     </Card>
   );

@@ -124,6 +124,7 @@ export function HomeScreen() {
     return (
       <Screen title="Dagsljus">
         <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
+      <StatusToday />
         <Card tone="accent">
           <Text style={type.h2} accessibilityRole="header">Välkommen</Text>
           <P style={{ marginTop: space.xs }}>
@@ -340,7 +341,6 @@ export function HomeScreen() {
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
       <RhythmToday />
       <WeekSummary week={week} fontScale={fontScale} today={today} />
-      <StatusToday />
       <RoutinesToday collapsible foldedMax={rhythmNow ? 1 : undefined} />
 
       {card ? (
