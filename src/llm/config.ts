@@ -100,7 +100,6 @@ export const PURPOSE_TEXT: Record<string, string> = {
   'samtal-ram': 'Prata',
   test: 'Testa modellen',
   dagsforslag: 'Dagens rutinförslag',
-  lagesbild: 'Läget i dag',
   monsterforklaring: 'Mina mönster, förklaring',
   textjamforelse: 'Mina tidigare texter, jämförelse',
   textmonster: 'Mina tidigare texter, mönster',

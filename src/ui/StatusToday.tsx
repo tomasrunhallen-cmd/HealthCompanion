@@ -1,83 +1,56 @@
-// Läget i dag on Hem: two or three sentences on how things are going, with what they rest on one
-// tap away. See services/status.ts and core/plan/status.ts.
+// Senaste veckan on Hem: what the person has done with their routines, in the app's own words,
+// folded to one line. Silent when there is nothing concrete. See core/plan/status.ts.
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, Text } from 'react-native';
-import { statusFacts } from '../core/plan/status';
-import { makeStatus, statusInput, statusToday, type StatusToday as Status } from '../services/status';
-import { Button, Card, P, Tag } from './components';
+import React, { useState } from 'react';
+import { Pressable, Text } from 'react-native';
+import { statusFacts, type StatusTone } from '../core/plan/status';
+import { statusInput } from '../services/status';
+import { Button, Card, P } from './components';
 import { useNav } from './nav';
 import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
 
-export function StatusToday() {
+/** `place`: on a calm day the card stands first on Hem; on a yellow or red day after the week's levels. */
+export function StatusToday({ place }: { place: 'top' | 'after' }) {
   const repo = useRepo();
   const nav = useNav();
-  const [status, setStatus] = useState<Status | null>(() => statusToday(repo));
-  const [why, setWhy] = useState(false);
-  // Folded by default at the top of Hem: one line, the whole text a tap away.
   const [open, setOpen] = useState(false);
-  // The facts as they are now; the text is made again when they change (at most twice a day).
-  const facts = statusFacts(statusInput(repo));
-  const key = JSON.stringify([facts.tone, facts.lines]);
-  const hasData = facts.lines.length > 1 || !facts.lines[0]?.includes('inga avstämningar');
-  // Like the day's routine suggestion: wait, at most 15 seconds, for the watch's sync when the app opens.
-  const garmin = repo.garminStatus();
-  const [atOpen] = useState(() => ({ syncAt: garmin.lastSyncAt, recent: !!garmin.lastSyncAt && Date.now() - new Date(garmin.lastSyncAt).getTime() < 30 * 60_000 }));
-  const [waited, setWaited] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setWaited(true), 15_000);
-    return () => clearTimeout(t);
-  }, []);
-  const watchReady = !garmin.connected || atOpen.recent || garmin.lastSyncAt !== atOpen.syncAt || !!garmin.lastError || waited;
-  const stale = !status || (status.key !== key && status.remakes < 2);
-  useEffect(() => {
-    if (!hasData || !watchReady || !stale) return;
-    let live = true;
-    makeStatus(repo, { browser: Platform.OS === 'web' }).then((s) => live && setStatus(s)).catch(() => undefined);
-    return () => { live = false; };
-  }, [repo, hasData, watchReady, stale, key]);
-  const lines = useMemo(() => status?.facts ?? [], [status]);
-  if (!hasData || !status) return null;
+  const [why, setWhy] = useState(false);
+  // Drawn from what is saved every time, so a red check-in or a stopped note shows at once.
+  const f = statusFacts(statusInput(repo));
+  const wanted: StatusTone[] = place === 'top' ? ['open', 'plan'] : ['quiet'];
+  if (!wanted.includes(f.tone)) return null;
+
+  if (f.tone === 'plan') {
+    return (
+      <Card style={{ marginTop: space.s }}>
+        <P>Den här veckan visade appen Hjälp nu. Din plan och hjälpen finns här.</P>
+        <Button kind="secondary" title="Hjälp nu" onPress={() => nav.push({ name: 'crisis' })} />
+      </Card>
+    );
+  }
+  if (!f.lines.length) return null;
 
   return (
     <Card style={{ marginTop: space.s }}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel={open ? 'Läget i dag, dölj' : `Läget i dag: ${status.text}`}
+        accessibilityLabel={open ? 'Senaste veckan, dina rutiner. Dölj' : `Senaste veckan, dina rutiner: ${f.lines.map((l) => l.text).join(' ')}`}
         onPress={() => setOpen((v) => !v)}
         style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}
       >
-        <Text style={type.label}>{`LÄGET I DAG  ${open ? '▲' : '▼'}`}</Text>
-        {open ? null : <Text style={[type.small, { marginTop: 2 }]} numberOfLines={1}>{status.text}</Text>}
+        <Text style={type.label}>{`SENASTE VECKAN · DINA RUTINER  ${open ? '▲' : '▼'}`}</Text>
+        {open ? null : <Text style={[type.small, { marginTop: 2 }]} numberOfLines={1}>{f.lines[0].text}</Text>}
       </Pressable>
-      {open || status.tone === 'plan' ? (
-        <>
-          {open ? <P style={{ marginTop: space.xs }}>{status.text}</P> : null}
-          {status.tone === 'plan' ? <Button kind="secondary" title="Hjälp nu" onPress={() => nav.push({ name: 'crisis' })} /> : null}
-        </>
-      ) : null}
       {open ? (
-      <>
-      {status.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: why }}
-        onPress={() => setWhy((v) => !v)}
-        style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}
-      >
-        <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{why ? 'Dölj vad det bygger på' : 'Vad bygger det på?'}</Text>
-      </Pressable>
-      {why ? (
         <>
-          {lines.map((l) => <P key={l} muted style={{ marginTop: space.xs }}>{`• ${l}`}</P>)}
-          <P muted style={{ marginTop: space.s }}>
-            Appen räknar fram det här själv. {status.method === 'llm' ? 'Språkmodellen formulerar bara meningarna, och de kontrolleras: inga siffror utöver dessa, inga diagnoser och ingen nivå.' : 'Ingen språkmodell användes.'} Tonen följer läget: uppmuntran bara en lugn vecka.
-          </P>
+          {f.lines.map((l) => <P key={l.text} style={{ marginTop: space.xs }}>{l.text}</P>)}
+          <Pressable accessibilityRole="button" accessibilityState={{ expanded: why }} onPress={() => setWhy((v) => !v)} style={{ minHeight: MIN_TOUCH, justifyContent: 'center' }}>
+            <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{why ? 'Dölj vad det bygger på' : 'Vad bygger det på?'}</Text>
+          </Pressable>
+          {why ? f.basis.map((b) => <P key={b} muted style={{ marginTop: space.xs }}>{b}</P>) : null}
         </>
-      ) : null}
-      </>
       ) : null}
     </Card>
   );
