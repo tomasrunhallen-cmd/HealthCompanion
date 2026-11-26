@@ -10,7 +10,8 @@
 
 import { addDays, formatDateSv } from '../analysis/dates';
 import { replyProblem } from '../chat/chat';
-import type { DateKey, Level } from '../domain/types';
+import type { DateKey, Level, RoutineFrequency } from '../domain/types';
+import { frequencyText, weekday } from './routineFrequency';
 
 export interface StatusDay {
   date: DateKey;
@@ -25,8 +26,8 @@ export interface StatusInput {
   today: DateKey;
   /** The days with a check-in or a measured night, any order. */
   days: StatusDay[];
-  /** The routines counted, as Hem and Trend count them. */
-  routines: { id: string; text: string }[];
+  /** The routines counted, as Hem and Trend count them, each with its goal. */
+  routines: { id: string; text: string; frequency: RoutineFrequency }[];
   /** Ticked routines. */
   ticks: { date: DateKey; routineId: string }[];
   /** Evenings with any routine answer. */
@@ -55,12 +56,13 @@ const within = (d: DateKey, from: DateKey, to: DateKey) => d >= from && d <= to;
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 export const STATUS_PARAMS = {
-  /** A routine has begun to go better: at least this many evenings this week, and this many more than the week before. */
-  betterMin: 3,
-  betterGain: 2,
-  /** A routine is kept: at least this share of the evenings with answers, two weeks running, with at least this many evenings each. */
-  keptShare: 0.85,
-  keptEvenings: 4,
+  /** A routine has begun to go better: at least this share of its goal the latest 7 days, and this much more than the 7 before. */
+  betterShare: 0.6,
+  betterGain: 0.3,
+  /** A routine is kept: its goal reached in both of the latest two 7-day spans. */
+  keptShare: 1,
+  /** A daily routine needs at least this many evenings with answers in a span to be judged. */
+  minEvenings: 3,
   /** The days after an event are looked at from this many days after it, up to a week. */
   eventMinDays: 2,
   eventMaxDays: 7,
@@ -83,18 +85,34 @@ export function statusFacts(input: StatusInput): StatusFacts {
       ? 'calm'
       : 'pepp';
 
-  // Routines: begun to go better, or kept two weeks running.
-  const evWeek = new Set(input.answeredDates.filter((d) => within(d, weekFrom, today))).size;
-  const evPrev = new Set(input.answeredDates.filter((d) => within(d, prevFrom, prevTo))).size;
+  // Routines against their own goals: begun to go better, or the goal kept two weeks running.
+  // A day without the app is not a miss: a daily routine's goal is the evenings with answers,
+  // a weekday routine's its planned days that had an answer, a weekly goal is its number.
+  const answered = new Set(input.answeredDates);
   const ticked = (id: string, from: DateKey, to: DateKey) => new Set(input.ticks.filter((t) => t.routineId === id && within(t.date, from, to)).map((t) => t.date)).size;
+  const goalIn = (f: RoutineFrequency, from: DateKey, to: DateKey): number => {
+    const days: DateKey[] = [];
+    for (let d = from; d <= to; d = addDays(d, 1)) if (answered.has(d)) days.push(d);
+    if (f.kind === 'weekly') return days.length ? f.times : 0;
+    if (f.kind === 'weekdays') return days.filter((d) => f.days.includes(weekday(d))).length;
+    return days.length >= P.minEvenings ? days.length : 0;
+  };
   const better: string[] = [];
   const kept: string[] = [];
+  let reachedCount = 0, judgedCount = 0;
   for (const r of input.routines) {
     const now = ticked(r.id, weekFrom, today), before = ticked(r.id, prevFrom, prevTo);
-    if (now >= P.betterMin && now >= before + P.betterGain) {
-      better.push(`”${r.text}”: ${now} av ${evWeek} kvällar den senaste veckan, mot ${before} av ${evPrev} veckan innan.`);
-    } else if (evWeek >= P.keptEvenings && evPrev >= P.keptEvenings && now / evWeek >= P.keptShare && before / evPrev >= P.keptShare) {
-      kept.push(`”${r.text}”: ${now} av ${evWeek} kvällar den senaste veckan och ${before} av ${evPrev} veckan innan.`);
+    const gNow = goalIn(r.frequency, weekFrom, today), gBefore = goalIn(r.frequency, prevFrom, prevTo);
+    if (!gNow) continue;
+    judgedCount++;
+    const share = Math.min(now / gNow, 1), shareBefore = gBefore ? Math.min(before / gBefore, 1) : 0;
+    if (share >= P.keptShare) reachedCount++;
+    const goal = frequencyText(r.frequency);
+    const count = (n: number, g: number) => (r.frequency.kind === 'weekly' ? `${n} ${n === 1 ? 'gång' : 'gånger'}` : `${n} av ${g} ${r.frequency.kind === 'daily' ? 'kvällar' : 'planerade dagar'}`);
+    if (gBefore && share >= P.keptShare && shareBefore >= P.keptShare) {
+      kept.push(`Du har nått målet för ”${r.text}” (${goal}) två veckor i rad: ${count(now, gNow)} den senaste veckan och ${count(before, gBefore)} veckan innan.`);
+    } else if (share >= P.betterShare && share >= shareBefore + P.betterGain) {
+      better.push(`”${r.text}” (mål: ${goal}) har kommit igång: ${count(now, gNow)} den senaste veckan, mot ${gBefore ? count(before, gBefore) : 'inga'} veckan innan${share >= P.keptShare ? ', så målet är nått' : ''}.`);
     }
   }
 
@@ -106,7 +124,7 @@ export function statusFacts(input: StatusInput): StatusFacts {
     const levels = since.filter((d) => d.level);
     if (levels.length < 2 || since.some((d) => d.akut) || levels.some((d) => d.level !== 'green')) continue;
     const sleeps = since.map((d) => d.sleepHours).filter((h): h is number => h != null);
-    after.push(`Efter ”${e.text}” ${formatDateSv(e.date)}: ${levels.length} avstämningar sedan dess, alla gröna${sleeps.length >= 2 ? `, sömn i snitt ${dec(mean(sleeps))} h` : ''}.`);
+    after.push(`Dagarna efter ”${e.text}” ${formatDateSv(e.date)} har sett bra ut: ${levels.length} avstämningar sedan dess, alla gröna${sleeps.length >= 2 ? `, och sömn i snitt ${dec(mean(sleeps))} h` : ''}.`);
   }
   const highlights = tone === 'pepp' ? [...better, ...after, ...kept].slice(0, P.maxHighlights) : [];
 
@@ -125,10 +143,7 @@ export function statusFacts(input: StatusInput): StatusFacts {
   const sleepWeek = week.map((d) => d.sleepHours).filter((h): h is number => h != null);
   const sleepBefore = input.days.filter((d) => within(d.date, addDays(today, -27), prevTo)).map((d) => d.sleepHours).filter((h): h is number => h != null);
   if (sleepWeek.length >= 3) lines.push(`Sömn i snitt ${dec(mean(sleepWeek))} h senaste veckan${sleepBefore.length >= 7 ? `, ${dec(mean(sleepBefore))} h de tre veckorna innan` : ''}.`);
-  if (evWeek) {
-    const done = input.routines.reduce((n, r) => n + ticked(r.id, weekFrom, today), 0);
-    lines.push(`Rutiner: ${done} avbockade av ${evWeek * input.routines.length} möjliga senaste veckan.`);
-  }
+  if (judgedCount) lines.push(`Rutinerna mot sina mål senaste veckan: målet nått för ${reachedCount} av ${judgedCount}.`);
   // Something today the person might like to hear about, also when it is not lifted.
   if (tone !== 'pepp' && (better.length || kept.length)) lines.push(...[...better, ...kept].slice(0, 1));
   return { tone, highlights, lines };

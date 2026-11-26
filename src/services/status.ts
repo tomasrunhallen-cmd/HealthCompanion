@@ -4,6 +4,7 @@
 
 import { addDays, eveningDateKey } from '../core/analysis/dates';
 import { akutCheck } from '../core/context/akut';
+import { frequencyOf } from '../core/plan/routineFrequency';
 import { countedRoutineIds } from '../core/plan/routines';
 import { checkStatus, codeStatusText, statusFacts, TONE_TEXT, type StatusFacts, type StatusInput, type StatusTone } from '../core/plan/status';
 import { loadPrompt } from '../core/prompts/loader';
@@ -59,12 +60,12 @@ export function statusInput(repo: Repository, now = new Date()): StatusInput {
   }
   const ctx = repo.contextEntries();
   const ids = countedRoutineIds(ctx, repo.settings().planMode ?? null, addDays(today, -13), today);
-  const routineText = new Map(ctx.filter((e) => e.kind === 'routine').map((e) => [e.id, e.text]));
+  const routineOf = new Map(ctx.filter((e) => e.kind === 'routine').map((e) => [e.id, e]));
   const answers = ctx.filter((e) => e.kind === 'routine_done' && e.date && e.date >= addDays(today, -13) && e.date <= today && e.done != null);
   return {
     today,
     days: [...byDate.values()],
-    routines: ids.map((id) => ({ id, text: routineText.get(id) ?? '' })).filter((r) => r.text),
+    routines: ids.map((id) => routineOf.get(id)).filter((r): r is NonNullable<typeof r> => !!r?.text).map((r) => ({ id: r.id, text: r.text, frequency: frequencyOf(r) })),
     ticks: answers.filter((e) => e.done && e.routineId).map((e) => ({ date: e.date!, routineId: e.routineId! })),
     answeredDates: answers.map((e) => e.date!),
     events: ctx.filter((e) => e.kind === 'event' && e.date).map((e) => ({ date: e.date!, text: e.text })),

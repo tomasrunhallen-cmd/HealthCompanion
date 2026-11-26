@@ -17,8 +17,8 @@ jest.mock('../src/platform/secrets', () => {
 const TODAY = '2026-11-26';
 const back = (n: number) => addDays(TODAY, -n);
 const green = (n: number, over: Partial<StatusDay> = {}): StatusDay => ({ date: back(n), level: 'green', mood: 0, sleepHours: 7.5, akut: false, ...over });
-const R = [{ id: 'sleep', text: 'Sömn 23-07' }, { id: 'meds', text: 'Medicin' }, { id: 'walk', text: 'Promenad' }];
-// Evenings answered: all of the last 14. Sleep ticked 5 of 7 now, 2 before; Medicin every evening; Promenad twice.
+const R = [{ id: 'sleep', text: 'Sömn 23-07', frequency: { kind: 'daily' as const } }, { id: 'meds', text: 'Medicin', frequency: { kind: 'daily' as const } }, { id: 'walk', text: 'Promenad', frequency: { kind: 'weekly' as const, times: 1 } }];
+// Evenings answered: all of the last 14. Sleep (every day) 5 of 7 now, 2 before; Medicin every evening; Promenad (once a week) once in each week.
 const answered = Array.from({ length: 14 }, (_, i) => back(i));
 const ticks = [
   ...[0, 1, 2, 4, 5].map((n) => ({ date: back(n), routineId: 'sleep' })), ...[8, 11].map((n) => ({ date: back(n), routineId: 'sleep' })),
@@ -30,20 +30,30 @@ const input = (over: Partial<StatusInput> = {}): StatusInput => ({
 });
 
 describe('what is lifted, and in which tone', () => {
-  it('lifts a routine begun to go better before one kept, on a calm week', () => {
+  it('judges each routine against its own goal, and lifts one begun to go better before one kept', () => {
     const f = statusFacts(input());
     expect(f.tone).toBe('pepp');
     expect(f.highlights).toEqual([
-      '”Sömn 23-07”: 5 av 7 kvällar den senaste veckan, mot 2 av 7 veckan innan.',
-      '”Medicin”: 7 av 7 kvällar den senaste veckan och 7 av 7 veckan innan.',
+      '”Sömn 23-07” (mål: varje dag) har kommit igång: 5 av 7 kvällar den senaste veckan, mot 2 av 7 kvällar veckan innan.',
+      'Du har nått målet för ”Medicin” (varje dag) två veckor i rad: 7 av 7 kvällar den senaste veckan och 7 av 7 kvällar veckan innan.',
+      'Du har nått målet för ”Promenad” (en gång i veckan) två veckor i rad: 1 gång den senaste veckan och 1 gång veckan innan.',
     ]);
+    expect(f.lines).toContain('Rutinerna mot sina mål senaste veckan: målet nått för 2 av 3.');
     expect(f.lines).toContain('Senaste 7 dagarna: 7 gröna.');
-    expect(codeStatusText(f)).toBe(f.highlights.join(' '));
+    expect(codeStatusText(f)).toBe(f.highlights.slice(0, 2).join(' '));
+  });
+
+  it('a weekly goal is the goal, not every evening: the same short of it is not lifted, reaching it is', () => {
+    const gym = [{ id: 'gym', text: 'Träning', frequency: { kind: 'weekly' as const, times: 3 } }];
+    const t = (ns: number[]) => ns.map((n) => ({ date: back(n), routineId: 'gym' }));
+    expect(statusFacts(input({ routines: gym, ticks: t([0, 2, 4, 8]) })).highlights).toEqual(['”Träning” (mål: 3 gånger i veckan) har kommit igång: 3 gånger den senaste veckan, mot 1 gång veckan innan, så målet är nått.']);
+    // Twice of three, as the week before: short of the goal and no change, so nothing is lifted.
+    expect(statusFacts(input({ routines: gym, ticks: t([0, 2, 8, 10]) })).highlights).toEqual([]);
   });
 
   it('lifts the days after a larger event when they all look good', () => {
     const f = statusFacts(input({ events: [{ date: back(4), text: 'Flytten' }] }));
-    expect(f.highlights).toContain('Efter ”Flytten” söndag 22 november: 4 avstämningar sedan dess, alla gröna, sömn i snitt 7,5 h.');
+    expect(f.highlights).toContain('Dagarna efter ”Flytten” söndag 22 november har sett bra ut: 4 avstämningar sedan dess, alla gröna, och sömn i snitt 7,5 h.');
     const yellowAfter = statusFacts(input({ events: [{ date: back(4), text: 'Flytten' }], days: [green(0), green(1, { level: 'yellow' }), ...Array.from({ length: 19 }, (_, i) => green(i + 2))] }));
     expect(yellowAfter.highlights.join(' ')).not.toContain('Flytten');
   });
@@ -65,7 +75,7 @@ describe('what is lifted, and in which tone', () => {
 describe('the model only words the facts', () => {
   const f = statusFacts(input());
   it('keeps a text that uses the facts', () => {
-    expect(checkStatus({ text: 'Sömnen 23-07 blev av 5 av 7 kvällar, mot 2 veckan innan. Medicinen har du tagit varje kväll i två veckor.' }, f)).not.toBeNull();
+    expect(checkStatus({ text: 'Sömnen 23-07 har kommit igång, fem av sju kvällar mot två veckan innan. Och medicinen har du tagit varje kväll två veckor i rad.' }, f)).not.toBeNull();
   });
   it('drops a number not in the facts, a diagnosis word, a demand or a level of its own', () => {
     for (const text of ['Du sov 9 timmar i natt.', 'Du verkar mindre deprimerad nu.', 'Du måste fortsätta så här.', 'Du ligger på grön nivå i dag.', 'Ett. Två. Tre. Fyra.']) {

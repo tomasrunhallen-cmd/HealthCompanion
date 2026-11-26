@@ -1,6 +1,6 @@
 ---
 id: lagesbild
-version: 1.0.0
+version: 1.1.0
 temperature: 0.3
 max_output_tokens: 400
 response: json
@@ -17,11 +17,16 @@ Svara bara med JSON enligt schemat:
 
 Regler:
 - Ton: {{ton}}
-- Bygg på fakta. Använd bara siffror som står i fakta, och hellre en siffra för mycket än ett ord som överdriver.
-- Lyft i första hand det som står först i fakta. Anteckningarna får bara färga ordvalet, aldrig ge nya fakta.
-- Skriv på svenska, med "du", högst tre korta meningar och högst 300 tecken.
+- Skriv ett sammanhängande litet stycke, som en vänlig och saklig coach som känner personen: knyt ihop meningarna med naturliga övergångar, variera ordvalet och skriv inte av fakta rad för rad. Ingen lista, inga citattecken runt hela meningar.
+- Nämn en rutin med sitt mål, till exempel "målet tre gånger i veckan" eller "varje kväll". Använd hellre ord än bråk när det låter naturligt, men bara siffror och antal som står i fakta.
+- Lyft i första hand det som står först i fakta, och högst två saker. Anteckningarna får bara färga ordvalet, aldrig ge nya fakta.
+- Skriv på svenska, med "du", två eller tre meningar och högst 300 tecken.
 - Inga diagnosord, inga ord om orsaker, risker eller vad som kommer att hända, inga råd om mediciner, ingen nivå eller färg av din egen, och inga ord som "måste", "bör" eller "borde".
 - Inga förebråelser. Det som inte blev av nämns inte.
+
+Exempel på ton och flyt (andra fakta än personens):
+Fakta: Du har nått målet för ”Promenad” (3 gånger i veckan) två veckor i rad: 4 gånger den senaste veckan och 3 gånger veckan innan.
+Svar: {"text":"Promenaderna har satt sig: målet tre gånger i veckan har du klarat två veckor i rad, och den senaste veckan blev det till och med fyra. Det är en vana som bär."}
 
 # User
 
