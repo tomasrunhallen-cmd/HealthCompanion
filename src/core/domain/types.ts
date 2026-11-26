@@ -517,6 +517,8 @@ export interface AppSettings {
   textPatterns?: { enabled: boolean; consentAt: string | null } | null;
   /** The day's routine suggestion on Hem worded by the language model. Missing: on when a model is set up. */
   routineSuggestions?: boolean;
+  /** Läget i dag on Hem worded by the language model. Missing: on when a model is set up. */
+  statusSummary?: boolean;
   /** The person's own name in message files, so only their own lines are imported. */
   ownMessageName?: string | null;
   /** Dygnsrytm (experimental): off, shown only, or used in the day's level. Missing: off. */

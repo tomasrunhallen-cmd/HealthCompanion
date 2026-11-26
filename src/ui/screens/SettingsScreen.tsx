@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { STATUS_KEY, statusOn } from '../../services/status';
 import { Pressable, Text, View } from 'react-native';
 import { decryptBackup, encryptBackup, type BackupFile } from '../../backup/crypto';
 import { pickImportFile, randomBytes, saveExportFile } from '../../platform/files';
@@ -279,6 +280,15 @@ export function SettingsScreen() {
                     await repo.kvSet(DAY_SUGGESTION_KEY, null);
                   }}
                   hint="Väljer och motiverar dagens rutiner på Hem utifrån rutinernas ord, rensade, och hur ofta de gjorts. Inga anteckningar skickas. Avstängt väljer appen själv."
+                />
+                <Toggle
+                  label="Läget i dag"
+                  value={statusOn(repo)}
+                  onChange={async (on) => {
+                    await repo.updateSettings({ statusSummary: on });
+                    await repo.kvSet(STATUS_KEY, null);
+                  }}
+                  hint="Formulerar några meningar på Hem om hur det går, en gång om dagen. Appen räknar fakta själv (rutiner, nivåer, sömn, händelser) och skickar dem med veckans tre senaste anteckningar, rensade och förkortade. Samtalen i Prata skickas inte. Avstängt skriver appen själv."
                 />
               </View>
               <P style={{ marginTop: space.s }}>Jämförelse med tidigare texter: {s.textPatterns?.enabled ? 'på' : 'av'}.</P>

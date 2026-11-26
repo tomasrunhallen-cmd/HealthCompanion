@@ -297,6 +297,15 @@ Raderna som appen behöver görs i koden, en per rad i blocket. Tecken ger poän
 
 **Dagens förslag** står överst i *Rutiner i dag* på startsidan: en till tre rutiner som passar i dag, med en kort motivering. Koden räknar efterlevnaden: hur ofta rutinen ska göras (*varje dag*, *3 gånger i veckan* eller *mån, ons och fre*), hur många gånger den gjorts den här veckan mot målet, när den gjordes senast och andelen de senaste fyra veckorna (räknat på kvällar med svar). Med en kopplad språkmodell väljer modellen bland de rutiner som är aktuella i dag och skriver motiveringen; den får rutinernas ord, rensade, siffrorna, veckodagen, gårdagens nivå och nattens sömn, men inga anteckningar (`prompts/dagsforslag.md`). Svaret kontrolleras: bara rutiner ur listan, högst tre, korta motiveringar, annars används kodens eget val. Utan modell, eller avstängt under *Rutiner*, väljer koden de rutiner som ligger efter: ett veckomål som inte nåtts, en planerad veckodag, eller en daglig rutin som blivit av mindre än 85 % av gångerna eller inte i går. Förslaget görs en gång per dag och märks *Formulerat av AI* när modellen skrev det. Rutiner som inte är planerade i dag eller redan nått veckomålet visas varken på startsidan eller i avstämningen.
 
+### Läget i dag
+
+Några meningar på startsidan om hur det går, en gång om dagen. Koden ligger i `src/core/plan/status.ts` och `src/services/status.ts`, prompten i `prompts/lagesbild.md`.
+
+- **Koden räknar och väljer** vad som är värt att lyfta: en rutin som börjat gå bättre (minst 3 av kvällarna den senaste veckan och minst 2 fler än veckan innan), en rutin som hållits (minst 85 % av kvällarna två veckor i rad), och dagarna efter en egen händelse med datum när alla avstämningar sedan dess är gröna. Därtill veckans nivåer, stämningens spann, sömnen och andelen rutiner.
+- **Tonen följer läget.** Uppmuntran bara en lugn vecka. En gul eller röd dag, eller när du följer planens rutiner vid uppvarvning, blir texten lugn och lyfter inget. En vecka då akutregeln visat *Hjälp nu* sammanfattar kortet inget och visar *Hjälp nu*.
+- **Modellen formulerar bara.** Den får fakta och veckans tre senaste anteckningar, rensade och förkortade. Svaret kontrolleras: inga siffror utöver fakta, högst tre meningar, inga diagnosord, ingen nivå, inga krav och ingen uppsluppenhet en lugn dag. Annars visar kortet appens egna ord. *Vad bygger det på?* visar fakta.
+- **Görs om** när fakta ändras, till exempel efter kvällens avstämning, högst två gånger om dagen. Väntar högst 15 sekunder på hämtningen från klockan när appen öppnas. Kan stängas av under *AI-stöd*.
+
 ### Dygnsrytm (experimentell)
 
 En passiv modell som letar efter tidiga tecken på en möjlig kommande stämningsepisod i sömn och dygnsrytm från klockan. Den fungerar en vecka utan en enda anteckning eller avstämning. Den slås på under *Inställningar → Dygnsrytm*, med tre lägen: *Av* (standard), *Visa mönster* och *Använd i bedömningen*.

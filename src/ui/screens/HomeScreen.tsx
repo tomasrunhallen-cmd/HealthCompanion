@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { StatusToday } from '../StatusToday';
 import { countedRoutineIds, routineShare } from '../../core/plan/routines';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
@@ -339,6 +340,7 @@ export function HomeScreen() {
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
       <RhythmToday />
       <WeekSummary week={week} fontScale={fontScale} today={today} />
+      <StatusToday />
       <RoutinesToday collapsible foldedMax={rhythmNow ? 1 : undefined} />
 
       {card ? (

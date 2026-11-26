@@ -22,7 +22,7 @@ Android-backup är avstängd. På iOS kan databasfilen hamna i iCloud-backup til
 
 Utan språkmodell lämnar ingenting telefonen. Bedömningen görs då med ordmatchning på telefonen.
 
-Med en språkmodell kopplad skickas **rensad text** till den leverantör användaren själv har valt, med användarens egen nyckel. Det gäller kvällens anteckning, normalläget, planens tecken och, vid import, raderna under rubriker i krisplanen som appen inte känner igen. För dagens förslag på startsidan skickas en gång per dag rutinernas ord, rensade, hur ofta de gjorts, veckodagen, gårdagens nivå och nattens sömn, men inga anteckningar. Det kan stängas av under *Rutiner*. Rensningen tar alltid bort:
+Med en språkmodell kopplad skickas **rensad text** till den leverantör användaren själv har valt, med användarens egen nyckel. Det gäller kvällens anteckning, normalläget, planens tecken och, vid import, raderna under rubriker i krisplanen som appen inte känner igen. För dagens förslag på startsidan skickas en gång per dag rutinernas ord, rensade, hur ofta de gjorts, veckodagen, gårdagens nivå och nattens sömn, men inga anteckningar. Det kan stängas av under *Rutiner*. För *Läget i dag* på startsidan skickas en gång om dagen, och igen högst två gånger om fakta ändras: siffror som appen räknat (rutiner, nivåer, stämningens spann, sömn, egna händelser med datum) och veckans tre senaste anteckningar, högst 200 tecken var. Anteckningar som akutregeln stoppat skickas aldrig, inte heller samtalen i Prata. Det kan stängas av under *AI-stöd*. Rensningen tar alltid bort:
 
 - personnummer, telefonnummer, e-postadresser, gatuadresser, postnummer och länkar
 - namn från användarens egen lista och namn som hittas i krisplanen
