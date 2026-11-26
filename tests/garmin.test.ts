@@ -107,6 +107,13 @@ describe('Garmin client', () => {
     expect(data.every((x) => /^Bearer .+\..+\..+$/.test(x.headers.Authorization))).toBe(true);
   });
 
+  it('asks for a range longer than 28 days in parts, since Garmin answers 400 to it (25 November)', async () => {
+    const f = garminFetch({ sleep: [], stress: [] });
+    await new GarminClient({ apiKey: 'k', fetch: f }).days('2026-10-28', '2026-11-25');
+    const stress = f.calls.map((x) => x.url.replace(GARMIN_BASE_URL, '')).filter((u) => u.includes('/stats/stress/'));
+    expect(stress.sort()).toEqual(['/usersummary-service/stats/stress/daily/2026-10-28/2026-10-28', '/usersummary-service/stats/stress/daily/2026-10-29/2026-11-25']);
+  });
+
   it('reads the expiry from the token and accepts a quoted token', async () => {
     expect(jwtExpiryMs(jwt(2_000_000_000))).toBe(2_000_000_000_000);
     const f = garminFetch({ token: { status: 200, body: `"${jwt(2_000_000_000)}"\n` } });

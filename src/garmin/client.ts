@@ -19,6 +19,10 @@
 //   open-source clients of the same API and are parsed defensively.
 
 import type { DateKey, GarminDay } from '../core/domain/types';
+import { addDays } from '../core/analysis/dates';
+
+/** The longest range Garmin answers in one request (stress: 28 days). */
+export const MAX_RANGE_DAYS = 28;
 
 export const GARMIN_BASE_URL = 'https://personal.connectapi.garmin.com';
 export const GARMIN_TOKEN_PATH = '/personalapitoken-service/personal-api/personal-api-key/token';
@@ -365,8 +369,22 @@ export class GarminClient {
     throw new GarminError('auth', 'Garmin godtog inte nyckeln.', 401);
   }
 
-  /** Sleep, stress and Body Battery for an inclusive date range of at most 28 days. */
+  /**
+   * Sleep, stress and Body Battery for an inclusive date range. Garmin answers 400 to a range of
+   * more than 28 days, which reads like a refused key, so a longer range is asked for in parts
+   * (25 November: the four-week refill of sleep phases asked for 29 days).
+   */
   async days(start: DateKey, end: DateKey, fetchedAt = new Date().toISOString()): Promise<GarminDay[]> {
+    const out: GarminDay[] = [];
+    for (let to = end; to >= start; to = addDays(to, -MAX_RANGE_DAYS)) {
+      const from = addDays(to, -(MAX_RANGE_DAYS - 1)) < start ? start : addDays(to, -(MAX_RANGE_DAYS - 1));
+      out.unshift(...(await this.range(from, to, fetchedAt)));
+    }
+    return out;
+  }
+
+  /** One request per source, for at most 28 days. */
+  private async range(start: DateKey, end: DateKey, fetchedAt: string): Promise<GarminDay[]> {
     const sleep = parseSleep(await this.get('/sleep-service/sleep/dailySleepSummariesByDate', { startDate: start, endDate: end }));
     const stress = parseStress(await this.get(`/usersummary-service/stats/stress/daily/${start}/${end}`));
     // Body Battery is a nice-to-have: a failure there must not lose sleep and stress.

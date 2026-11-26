@@ -75,7 +75,7 @@ export async function disconnectGarmin(repo: Repository): Promise<void> {
 }
 
 /** How far back a sync reaches once to fill in light sleep and time awake (from 25 November). */
-export const PHASE_REFILL_DAYS = 28;
+export const PHASE_REFILL_DAYS = 27;
 
 /** Days with sleep from the watch in the last four weeks that were fetched before light sleep was read. */
 export function missingPhases(repo: Repository, today: DateKey): boolean {
