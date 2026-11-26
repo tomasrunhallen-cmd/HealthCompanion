@@ -315,7 +315,7 @@ En passiv modell som letar efter tidiga tecken på en möjlig kommande stämning
 - **När:** efter varje lyckad hämtning från Garmin och när appen öppnas. Appen kan inte hämta när den är stängd, och skärmen säger det. Varje hämtning loggas med om appen var öppen.
 - **Äldre puls** hämtas av sig själv för varje dag med sömn från klockan, medan appen är öppen och på vilken skärm som helst. Ett anrop per dag och en paus mellan, så att det tar ungefär en sekund per dag. Hämtningen fortsätter där den slutade. Pulsen sparas en post per månad.
 - **Två besked, hållna isär:**
-    - vad klockan visar mot dina egna nätter (tre nätter i rad, median och robust spridning), till exempel *Senare och kortare sömn* eller *Inget tydligt nytt mönster*
+    - vad klockan visar mot dina egna nätter (tre nätter i rad, median och robust spridning), till exempel *Senare och kortare sömn* eller *Din vanliga rytm* (mot dina egna nätter, inte en norm för alla)
     - om det liknar tiden före en tidigare period du lagt in, till exempel *Liknar mönstret före en tidigare uppvarvad period*. Sidan säger att likhet inte betyder att en ny period börjar.
   Svaret kan också vara *för lite data*. Ingen procentsats visas.
 - **På Hem** står bara vad som ändrats, hur många nätter, ett steg ur planen och hur färskt det är. Inga motiveringar, värden eller pulsandelar. En ny förändring märks *Ny* tills detaljerna öppnats.

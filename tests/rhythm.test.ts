@@ -155,7 +155,7 @@ describe('the short words for Hem', () => {
   it('a stable answer does not claim that nothing changed', () => {
     const a = assessRhythm(simulate({ end: END, days: 60 }), END, 'x');
     expect(a.status).toBe('stable');
-    expect(a.text.change).toMatch(/^Inget tydligt nytt mönster/);
+    expect(a.text.change).toMatch(/^De senaste nätterna ligger inom din vanliga rytm/);
   });
 });
 

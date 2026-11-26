@@ -565,7 +565,8 @@ export function changeScope(changes: RhythmChange[]): string {
   return `${NUM[n] ?? n} ${unit} i rad.`;
 }
 
-export const STABLE_TITLE = 'Inget tydligt nytt mönster';
+/** Said against the person's own nights, never a norm for everyone: "vanliga", not "normal". */
+export const STABLE_TITLE = 'Din vanliga rytm';
 
 function changeText(a: Omit<RhythmAssessment, 'text'>): string {
   if (a.status === 'insufficient') {
@@ -575,7 +576,7 @@ function changeText(a: Omit<RhythmAssessment, 'text'>): string {
     return `För lite data. Klockan har sömn för ${i.have} av de ${R.windowSpanNights} senaste nätterna. Har klockan inte burits, eller inte synkat?`;
   }
   if (a.status === 'stable') {
-    const base = `${STABLE_TITLE} i sömn och dygnsrytm de senaste nätterna.`;
+    const base = 'De senaste nätterna ligger inom din vanliga rytm: insomning och sömnlängd som du brukar ha.';
     return a.singleShort ? `${base} En natt var kort (${h1(a.singleShort.hours)} timmar), men det är en enstaka natt, inte en förändring.` : base;
   }
   const later = a.changes.find((c) => c.pattern === 'later');
