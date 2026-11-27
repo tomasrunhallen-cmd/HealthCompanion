@@ -24,7 +24,7 @@ export function RoutineRow({ r, done, onSet, detail }: { r: ContextEntry; done: 
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
-      accessibilityLabel={`${r.text}${on ? ', klar' : ''}${detail ? `. ${detail}` : ''}`}
+      accessibilityLabel={`${r.text}${on ? ', gjord i dag' : ''}${detail ? `. ${detail}` : ''}`}
       onPress={() => onSet(on ? null : true)}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: MIN_TOUCH, paddingVertical: space.xs }}
     >
@@ -35,8 +35,8 @@ export function RoutineRow({ r, done, onSet, detail }: { r: ContextEntry; done: 
         <Text style={type.body}>{r.text}</Text>
         {detail ? <Text style={type.small}>{detail}</Text> : null}
       </View>
-      {/* Done is said in words too, not by the filled box alone. */}
-      {on ? <Text style={[type.small, { color: colors.green, fontWeight: '600' }]}>✓ Klar</Text> : null}
+      {/* Done today, in words too: not the week's goal, which "Klar" could be read as (28 November). */}
+      {on ? <Text style={[type.small, { color: colors.green, fontWeight: '600' }]}>Gjord i dag</Text> : null}
     </Pressable>
   );
 }

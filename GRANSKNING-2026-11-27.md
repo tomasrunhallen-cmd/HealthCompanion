@@ -60,7 +60,7 @@ Ordning (`src/ui/screens/HomeScreen.tsx`):
 2. **Senaste veckan**: bara de sju dagssymbolerna (form och färg). *Kommentar* fäller ut en rad om tomma ringar ("I dag: ingen avstämning än") och veckans iakttagelse. VoiceOver läser varje dag som "tisdag 24 november, gul nivå".
 3. En gul eller röd kväll: nivån och första steget i planen (`firstStep`).
 4. **Sömn och dygnsrytm** (`src/ui/SleepAndRhythm.tsx`): ett kort där hela raden är en knapp. Senaste natten, Dygnsrytms rubrik och ett plansteg vid förändring, sömnnotisen. Hämtningstiden visas bara när natten saknas, data är äldre än ett dygn eller hämtningen misslyckades.
-5. **Rutiner i dag** (`src/ui/RoutinesToday.tsx`): en kort lista, dagens förslag först med modellens kommentar, *✓ Klar* i ord vid en avbockad rutin, inga versalrubriker, resten bakom *Visa alla rutiner (N)*.
+5. **Rutiner i dag** (`src/ui/RoutinesToday.tsx`): en kort lista, dagens förslag först med modellens kommentar, *Gjord i dag* i ord vid en avbockad rutin, inga versalrubriker, resten bakom *Visa alla rutiner (N)*.
 6. Kortkön (krisplan, förslag med mera) och kvällens avstämning.
 
 Granskat i webbversionen en grön dag med påhittade rutiner och en manuellt angiven natt. Den gula och röda vyn och stor text är inte sedda.
