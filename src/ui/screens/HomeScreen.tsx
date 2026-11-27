@@ -124,11 +124,33 @@ export function HomeScreen() {
     }
   };
 
+  // A yellow or red evening has a fixed place first, with the plan's first step when there is one
+  // (granskning 27 november), on the first day too.
+  const levelCard = levelToday ? (
+        <Card tone={levelToday} style={{ marginTop: space.s }}>
+          <Pressable
+            onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
+            accessibilityRole="button"
+            accessibilityLabel={`I kväll: ${LEVEL_TEXT[levelToday]}.${todayStep ? ` Första steget i din plan: ${todayStep.text}` : ''}`}
+            accessibilityHint="Visar bedömningen"
+            style={{ minHeight: MIN_TOUCH }}
+          >
+            <Row style={{ alignItems: 'center' }}>
+              <Dot level={levelToday} size={20} />
+              <Text style={[type.h2, { color: levelColor(levelToday), flex: 1 }]}>I kväll: {LEVEL_TEXT[levelToday]}</Text>
+              <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa ›</Text>
+            </Row>
+            {todayStep ? <P style={{ marginTop: space.xs }}>Första steget i din plan: {todayStep.text}</P> : null}
+          </Pressable>
+        </Card>
+  ) : null;
+
   // Första veckan, day 1: only the check-in, so the start is calm.
   if (fw?.onlyCheckin && !settings.lowMode) {
     return (
       <Screen title="Dagsljus">
         <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
+        {levelCard}
         <Card tone="accent">
           <Text style={type.h2} accessibilityRole="header">Välkommen</Text>
           <P style={{ marginTop: space.xs }}>
@@ -346,24 +368,7 @@ export function HomeScreen() {
           plan step, sleep and rhythm, the day's routines and the check-in (27 November). */}
       <StatusHelp />
       {/* A yellow or red evening has a fixed place first, with the plan's first step when there is one (granskning 27 november). */}
-      {levelToday ? (
-        <Card tone={levelToday} style={{ marginTop: space.s }}>
-          <Pressable
-            onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
-            accessibilityRole="button"
-            accessibilityLabel={`I kväll: ${LEVEL_TEXT[levelToday]}.${todayStep ? ` Första steget i din plan: ${todayStep.text}` : ''}`}
-            accessibilityHint="Visar bedömningen"
-            style={{ minHeight: MIN_TOUCH }}
-          >
-            <Row style={{ alignItems: 'center' }}>
-              <Dot level={levelToday} size={20} />
-              <Text style={[type.h2, { color: levelColor(levelToday), flex: 1 }]}>I kväll: {LEVEL_TEXT[levelToday]}</Text>
-              <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa ›</Text>
-            </Row>
-            {todayStep ? <P style={{ marginTop: space.xs }}>Första steget i din plan: {todayStep.text}</P> : null}
-          </Pressable>
-        </Card>
-      ) : null}
+      {levelCard}
       <WeekSummary week={week} fontScale={fontScale} today={today} />
       {/* An ordinary night: the day's routines first. Something about the night or the watch: sleep first. */}
       {sleepFirst ? <SleepAndRhythm today={today} /> : null}

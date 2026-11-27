@@ -52,7 +52,7 @@ export function SleepAndRhythm({ today }: { today: string }) {
     lines.push({ text: `Senast hämtat ${formatDateSv(toDateKey(new Date(garmin.lastSyncAt)))} ${formatTime(garmin.lastSyncAt)}.`, warn: true });
   }
   const drop = sleepDrop(repo.measuredDays(), today);
-  if (drop) lines.push({ text: `De senaste tre nätterna sov du omkring ${dec(drop.recent)} timmar. Ditt vanliga snitt är ${dec(drop.usual)} timmar.`, strong: true });
+  if (drop) lines.push({ text: `Snitt de senaste tre nätterna: ${dec(drop.recent)} timmar. Ditt tidigare snitt: ${dec(drop.usual)} timmar.`, strong: true });
   if (a) {
     const head = rhythmHeadline(a);
     lines.push({ text: `Dygnsrytm: ${head.title}${head.detail ? `. ${head.detail}` : ''}`, strong: a.status === 'change' });

@@ -117,7 +117,7 @@ describe('what is known about a week (granskning 27 november)', () => {
   it('a Monday–Friday goal counts the same days in done and in goal: a Saturday walk is not a Monday', () => {
     // Week of 2 November: answered Monday 2 and Saturday 7, done only on Saturday.
     const ctx = [r('work', { kind: 'weekdays', days: [1, 2, 3, 4, 5] }), done('2026-11-02', 'other', false), done('2026-11-07', 'work', true)];
-    expect(routineWeeks(ctx, ['work'], TODAY, 1)[0].current).toMatchObject({ done: 0, goal: 1 });
+    expect(routineWeeks(ctx, ['work'], TODAY, 1)[0].current).toMatchObject({ done: 0, goal: 5, known: 1 });
   });
   it('a weekly goal with too few days answered is open, not missed; reached is reached', () => {
     const ctx = [r('walk', { kind: 'weekly', times: 3 }), done('2026-10-27', 'walk', true), done('2026-10-29', 'x', false)];
@@ -125,5 +125,18 @@ describe('what is known about a week (granskning 27 november)', () => {
     expect(w.past[0]).toMatchObject({ done: 1, goal: 3, answered: 2, judged: false });
     const full = [r('walk', { kind: 'weekly', times: 3 }), ...['2026-10-26', '2026-10-28', '2026-11-01'].map((d) => done(d, 'walk', true))];
     expect(routineWeeks(full, ['walk'], TODAY, 1)[0].past[0]).toMatchObject({ done: 3, goal: 3, judged: true });
+  });
+});
+
+describe('a daily goal means the whole week, in Trend as on Hem (granskning 27 november)', () => {
+  const r = (id: string) => ({ id, layer: 'grund', kind: 'routine', text: id, order: 0, approvedAt: '2026-11-01', plan: { polarity: 'both' }, routine: { track: true, reminder: null, frequency: { kind: 'daily' } } }) as unknown as ContextEntry;
+  it('done on the only evening registered is open, not 1 of 1; a registered evening without it is a miss', () => {
+    // Last week, 26 October – 1 November.
+    const only = routineWeeks([r('meds'), done('2026-10-26', 'meds', true)], ['meds'], TODAY, 1)[0].past[0];
+    expect(only).toMatchObject({ done: 1, goal: 7, known: 1, judged: false });
+    const missed = routineWeeks([r('meds'), done('2026-10-26', 'meds', true), done('2026-10-27', 'x', false)], ['meds'], TODAY, 1)[0].past[0];
+    expect(missed).toMatchObject({ done: 1, goal: 7, judged: true });
+    const all = routineWeeks([r('meds'), ...['26', '27', '28', '29', '30', '31'].map((d) => done(`2026-10-${d}`, 'meds', true)), done('2026-11-01', 'meds', true)], ['meds'], TODAY, 1)[0].past[0];
+    expect(all).toMatchObject({ done: 7, goal: 7, judged: true });
   });
 });

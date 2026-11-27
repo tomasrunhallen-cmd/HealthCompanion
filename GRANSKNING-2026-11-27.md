@@ -134,3 +134,11 @@ Personen fick en sömnnotis efter en natt på 8,4 timmar, eftersom notisen gäll
 | Garmin 400 lästes som nyckelfel | 400 på ett dataanrop: "Garmin kunde inte behandla begäran (fel 400). Nyckeln är troligen i ordning"; på tokenanropet fortfarande nyckelfel | `client.ts` |
 
 Kvar att prova på telefon: Prata med tangentbordet öppet och Hjälp nu (fokus i arket och efter stängning), Hem med stor text en röd dag utan plansteg, och Hem offline efter en uppmuntrande veckokommentar.
+
+## 10. Rättat efter granskningens andra svar 27 november
+
+| Fynd | Ändring | Var |
+|---|---|---|
+| Gul eller röd nivå doldes första användningsdagen | Förstadagsvyn visar samma nivåkort, med plansteg när det finns, före välkomstkortet. Kontrollerat i webbversionen (Playwright, påhittade data) med en röd första kväll med och utan plansteg | `HomeScreen.tsx` (`levelCard`) |
+| Trend kunde visa 1 av 1 kväll ✓ för en daglig rutin | Samma innebörd som på Hem: ett mål är nått först när avbockningarna bekräftar hela målet (sju kvällar, talet, alla planerade dagar). En vecka där målet varken är nått eller utom räckhåll är öppen: "Gjort den enda registrerade kvällen", "Gjort alla 3 registrerade kvällar". En registrerad kväll utan rutinen gör målet avgjort | `weekGoal` i `routineFrequency.ts`, `TrendScreen.tsx` |
+| Sömnmeningen kunde läsas som tre likartade nätter | "Snitt de senaste tre nätterna: 8 timmar. Ditt tidigare snitt: 9 timmar." | `SleepAndRhythm.tsx` |

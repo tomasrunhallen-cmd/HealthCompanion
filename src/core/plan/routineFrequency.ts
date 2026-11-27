@@ -148,29 +148,32 @@ export function countedDays(f: RoutineFrequency, days: DateKey[]): DateKey[] {
 export interface WeekCount {
   /** Times done that count towards the goal. */
   done: number;
-  /** What the goal asked for, of the days that can be judged. */
+  /** The whole goal of the week: 7 for every day, the number for a weekly goal, the planned days for weekdays. 0: nothing answered that week. */
   goal: number;
   /** Days that week with any routine answered. */
   answered: number;
+  /** Planned days with any routine answered: every answered day for a daily or weekly goal. */
+  known: number;
   /**
-   * The goal can be judged: reached, or missed for certain. A weekly goal with too few days
-   * answered to know is open, not missed (granskning 27 november).
+   * The goal can be judged: reached, or out of reach even if every unknown day had been done. A
+   * daily routine done on the only evening answered is open, not 1 of 1 (granskning 27 november).
    */
   judged: boolean;
 }
 
 /**
- * One calendar week, Monday to Sunday, for one routine against its goal (28 November). A day
- * without any answer asks for nothing: a daily goal is the evenings with answers, a weekday goal
- * the planned days among them, both in the count and in the goal; a weekly goal is its number once
- * the week has any answer.
+ * One calendar week, Monday to Sunday, for one routine against its whole goal (28 November). The
+ * same meaning as on Hem: a goal is reached only when the ticks confirm all of it. A day without
+ * any answer is unknown, never a miss; a weekday goal counts only its planned days, in the count
+ * and in the goal.
  */
-export function weekGoal(f: RoutineFrequency, answeredDays: DateKey[], doneDays: DateKey[], daysInWeek = 7): WeekCount {
+export function weekGoal(f: RoutineFrequency, answeredDays: DateKey[], doneDays: DateKey[]): WeekCount {
   const done = countedDays(f, doneDays).length;
-  const goal = f.kind === 'daily' ? answeredDays.length : f.kind === 'weekly' ? (answeredDays.length ? f.times : 0) : countedDays(f, answeredDays).length;
-  const unknown = Math.max(0, daysInWeek - answeredDays.length);
-  const judged = f.kind !== 'weekly' || done >= goal || done + unknown < goal;
-  return { done, goal, answered: answeredDays.length, judged };
+  const full = f.kind === 'daily' ? 7 : f.kind === 'weekly' ? f.times : f.days.length;
+  const known = f.kind === 'weekdays' ? countedDays(f, answeredDays).length : answeredDays.length;
+  const unknown = f.kind === 'weekdays' ? f.days.length - known : 7 - answeredDays.length;
+  const goal = answeredDays.length ? full : 0;
+  return { done, goal, answered: answeredDays.length, known, judged: done >= full || done + unknown < full };
 }
 
 export interface RoutineWeeks {
@@ -195,7 +198,7 @@ export function routineWeeks(entries: ContextEntry[], ids: string[], today: Date
     const doneDays = (start: DateKey, end: DateKey) => [...new Set(answers.filter((e) => e.routineId === routine.id && e.done && e.date! >= start && e.date! <= end).map((e) => e.date!))];
     const daysLeft = 7 - weekday(today);
     // This week the days still to come are unknown too: a weekly goal is open until it is reached or out of reach.
-    const now = weekGoal(frequency, inWeek(monday, today), doneDays(monday, today), 7);
+    const now = weekGoal(frequency, inWeek(monday, today), doneDays(monday, today));
     const past: RoutineWeeks['past'] = [];
     for (let w = 1; w <= weeks; w++) {
       const start = addDays(monday, -7 * w), end = addDays(start, 6);

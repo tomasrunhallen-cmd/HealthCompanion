@@ -294,14 +294,17 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
   const pct = goalSum ? Math.round((doneSum / goalSum) * 100) : null;
   const daysLeft = stats[0].current.daysLeft;
   const unit = (s: (typeof stats)[number], n: number) => (s.frequency.kind === 'daily' ? (n === 1 ? 'kväll' : 'kvällar') : s.frequency.kind === 'weekly' ? (n === 1 ? 'gång' : 'gånger') : n === 1 ? 'planerad dag' : 'planerade dagar');
-  // What is known, and no more: a weekly goal reached says so; one with too few days answered says what was registered.
-  const count = (s: (typeof stats)[number], w: { done: number; goal: number; answered: number; judged: boolean }, open = false) => {
-    if (s.frequency.kind === 'weekly') {
-      if (w.done >= w.goal) return `${w.done} ${unit(s, w.done)} · veckomålet nått ✓`;
-      if (!w.judged && !open) return `${w.done} ${unit(s, w.done)} registrerad${w.done === 1 ? '' : 'e'}, rutiner bockades av ${w.answered} ${w.answered === 1 ? 'dag' : 'dagar'}`;
-      return `${w.done} av ${w.goal} ${unit(s, w.goal)}${open ? ' hittills' : ''}`;
+  // What is known, and no more (granskning 27 november): a goal reached says so; one still open
+  // says what was done on the days registered; one out of reach says how far it came.
+  const count = (s: (typeof stats)[number], w: { done: number; goal: number; answered: number; known: number; judged: boolean }, current = false) => {
+    if (w.done >= w.goal) return `${w.done} ${unit(s, w.done)} · ${s.frequency.kind === 'weekly' ? 'veckomålet' : 'målet'} nått ✓`;
+    if (!w.judged) {
+      if (s.frequency.kind === 'weekly') return `${w.done} ${unit(s, w.done)} registrerad${w.done === 1 ? '' : 'e'}${current ? ' hittills' : `, rutiner bockades av ${w.answered} ${w.answered === 1 ? 'dag' : 'dagar'}`}`;
+      const day = s.frequency.kind === 'daily' ? 'kväll' : 'planerad dag';
+      const days = s.frequency.kind === 'daily' ? 'kvällar' : 'planerade dagar';
+      return w.known === 1 ? `Gjort den enda registrerade ${day === 'kväll' ? 'kvällen' : 'planerade dagen'}` : `Gjort alla ${w.known} registrerade ${days}`;
     }
-    return `${w.done} av ${w.goal} ${unit(s, w.goal)}${w.goal > 0 && w.done >= w.goal ? ' ✓' : ''}`;
+    return `${w.done} av ${w.goal} ${unit(s, w.goal)}`;
   };
   return (
     <>
