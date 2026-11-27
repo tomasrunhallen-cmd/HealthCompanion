@@ -91,7 +91,8 @@ export function routineStats(entries: ContextEntry[], today: DateKey, days = 14)
  */
 export function countedRoutineIds(entries: ContextEntry[], mode: PlanMode, from: DateKey, to: DateKey): string[] {
   const { daily, extra } = routinesToday(entries, mode);
-  const ids = new Set([...daily, ...extra].map((r) => r.id));
+  // A direction's routines count only while the person follows that direction: only then are they offered.
+  const ids = new Set([...daily, ...(mode ? extra : [])].map((r) => r.id));
   for (const e of entries) if (e.kind === 'routine_done' && e.done && e.routineId && e.date && e.date >= from && e.date <= to) ids.add(e.routineId);
   return routines(entries).map((r) => r.id).filter((id) => ids.has(id));
 }

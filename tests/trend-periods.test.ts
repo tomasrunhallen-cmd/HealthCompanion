@@ -5,6 +5,7 @@ import { addDays } from '../src/core/analysis/dates';
 import { bucketTrend, buildTrend, isoWeek, PERIOD_DAYS, PERIOD_GRAIN } from '../src/core/analysis/trend';
 import type { Assessment, ContextEntry, Entry } from '../src/core/domain/types';
 import { countedRoutineIds, routineShare } from '../src/core/plan/routines';
+import { routineGoals } from '../src/core/plan/routineFrequency';
 
 const TODAY = '2026-11-08'; // a Sunday, week 45
 
@@ -90,5 +91,18 @@ describe('the share of routines done, as Hem and Trend show it', () => {
     expect(routineShare(ctx, ids, '2026-11-02', '2026-11-08')).toEqual({ done: 3, possible: 4, evenings: 2 });
     // Following the up direction, its routine is offered and counts.
     expect(countedRoutineIds(ctx, { direction: 'up' }, '2026-11-02', '2026-11-08')).toEqual(['a', 'b', 'up1']);
+  });
+});
+
+describe('routines against their own goals (28 November)', () => {
+  it('a weekly goal is its number, a daily goal the evenings with answers, a direction routine only while followed', () => {
+    const r = (id: string, frequency: unknown, polarity = 'both') => ({ id, layer: 'grund', kind: 'routine', text: id, order: 0, approvedAt: '2026-11-01', plan: { polarity }, routine: { track: true, reminder: null, frequency } }) as unknown as ContextEntry;
+    const ticks = (id: string, ns: number[]) => ns.map((n) => done(addDays(TODAY, -n), id, true));
+    const ctx = [r('gym', { kind: 'weekly', times: 3 }), r('meds', { kind: 'daily' }), r('up1', { kind: 'daily' }, 'up'),
+      ...ticks('gym', [0, 2, 4, 5]), ...ticks('meds', [0, 1, 2, 3, 4, 5]), done(addDays(TODAY, -6), 'meds', false)];
+    const ids = countedRoutineIds(ctx, null, addDays(TODAY, -6), TODAY);
+    expect(ids).toEqual(['gym', 'meds']);
+    const g = routineGoals(ctx, ids, TODAY, 7);
+    expect(g.map((x) => [x.routine.id, x.done, x.goal])).toEqual([['gym', 4, 3], ['meds', 6, 7]]);
   });
 });

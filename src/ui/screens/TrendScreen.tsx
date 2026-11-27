@@ -8,6 +8,7 @@ import {
 import { MOOD_MAX, moodStep, moodText } from '../../core/analysis/mood';
 import { RULES } from '../../core/analysis/rules';
 import { countedRoutineIds, routineStats } from '../../core/plan/routines';
+import { frequencyOf, frequencyText, routineGoals } from '../../core/plan/routineFrequency';
 import { Button, Card, Dot, P, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -264,11 +265,12 @@ function countedRoutineStats(repo: ReturnType<typeof useRepo>, today: string, da
 function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; days: number }) {
   const repo = useRepo();
   const nav = useNav();
-  const stats = countedRoutineStats(repo, props.today, props.days);
-  // The same count as the rows below: every counted routine on every evening with an answer.
-  const done = stats.reduce((n, s) => n + s.done, 0);
-  const answered = stats.reduce((n, s) => n + s.answered, 0);
-  const evenings = stats[0]?.answered ?? 0;
+  const ctx = repo.contextEntries();
+  // Each routine against its own goal: every day, N times a week, or its weekdays (28 November).
+  const stats = routineGoals(ctx, countedRoutineStats(repo, props.today, props.days).map((s) => s.routine.id), props.today, props.days);
+  const done = stats.reduce((n, s) => n + Math.min(s.done, s.goal), 0);
+  const answered = stats.reduce((n, s) => n + s.goal, 0);
+  const reached = stats.filter((s) => s.goal > 0 && s.done >= s.goal).length;
   if (!stats.length) {
     return (
       <Card>
@@ -288,18 +290,25 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
   return (
     <>
       <Card>
-        <View accessible accessibilityLabel={`${pct} procent av rutinerna gjordes: ${done} avbockade av ${answered} möjliga, ${evenings} ${evenings === 1 ? 'kväll' : 'kvällar'}`}>
+        <View accessible accessibilityLabel={`${pct} procent av rutinmålen. ${reached} av ${stats.length} rutiner nådde sitt mål.`}>
           <Text style={[type.title, { color: colors.text }]}>{pct} %</Text>
-          <Text style={type.body}>av rutinerna gjordes</Text>
-          <Text style={type.small}>{`${done} avbockade av ${answered} möjliga: ${stats.length} ${stats.length === 1 ? 'rutin' : 'rutiner'} × ${evenings === 1 ? 'en kväll' : `${evenings} kvällar`} med avbockning. En kväll utan avstämning räknas inte som missad.`}</Text>
+          <Text style={type.body}>av rutinmålen</Text>
+          <Text style={type.small}>{`${reached} av ${stats.length} ${stats.length === 1 ? 'rutin' : 'rutiner'} nådde sitt mål. Varje rutin räknas mot sitt eget mål: varje dag, några gånger i veckan eller vissa dagar. En kväll utan avstämning räknas inte som missad.`}</Text>
         </View>
         {stats.map((s) => {
-          const share = s.answered ? s.done / s.answered : 0;
+          const share = s.goal ? Math.min(s.done / s.goal, 1) : 0;
+          const ok = s.goal > 0 && s.done >= s.goal;
+          const right = s.frequency.kind === 'weekly'
+            ? `${s.done} ${s.done === 1 ? 'gång' : 'gånger'} · mål ${s.goal}`
+            : `${s.done} av ${s.goal}`;
           return (
-            <View key={s.routine.id} style={{ marginTop: space.m }} accessible accessibilityLabel={`${s.routine.text}: ${s.done} av ${s.answered} kvällar`}>
+            <View key={s.routine.id} style={{ marginTop: space.m }} accessible accessibilityLabel={`${s.routine.text}, mål ${frequencyText(s.frequency)}: ${right}${ok ? ', målet nått' : ''}`}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.s }}>
-                <Text style={[type.body, { flexShrink: 1 }]}>{s.routine.text}</Text>
-                <Text style={[type.small, { fontWeight: '600', flexShrink: 0 }]}>{s.done} av {s.answered}</Text>
+                <View style={{ flexShrink: 1 }}>
+                  <Text style={type.body}>{s.routine.text}</Text>
+                  <Text style={type.small}>{`Mål: ${frequencyText(s.frequency)}`}</Text>
+                </View>
+                <Text style={[type.small, { fontWeight: '600', flexShrink: 0 }]}>{`${right}${ok ? ' ✓' : ''}`}</Text>
               </View>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, marginTop: space.xs, overflow: 'hidden' }}>
                 <View style={{ width: `${Math.round(share * 100)}%`, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
@@ -310,7 +319,7 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
       </Card>
       {props.buckets.length > 1 ? (
         <BarChart
-          title={`Andel hållna ${GRAIN_TEXT[props.grain]}`}
+          title={`Dagliga rutiner, andel gjorda ${GRAIN_TEXT[props.grain]}`}
           points={props.buckets.map((b) => ({ key: b.key, short: b.label, name: bucketName(b, props.grain), value: b.routines ? Math.round((b.routines.done / b.routines.answered) * 100) : null }))}
           unit="%"
           averaged={false}
@@ -342,7 +351,7 @@ export function TrendScreen() {
   const days = PERIOD_DAYS[period];
   const grain = PERIOD_GRAIN[period];
   const trend = useMemo(
-    () => buildTrend(repo.entries(), repo.assessments(), repo.allMeasuredDays(), today, days, repo.contextEntries(), countedRoutineStats(repo, today, days).map((r) => r.routine.id)),
+    () => buildTrend(repo.entries(), repo.assessments(), repo.allMeasuredDays(), today, days, repo.contextEntries(), countedRoutineStats(repo, today, days).filter((r) => frequencyOf(r.routine).kind === 'daily').map((r) => r.routine.id)),
     [repo, repo.revision, today, days],
   );
   const buckets = useMemo(() => bucketTrend(trend.days, grain), [trend, grain]);

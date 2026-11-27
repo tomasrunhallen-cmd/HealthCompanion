@@ -139,3 +139,34 @@ export function routineStatuses(entries: ContextEntry[], today: DateKey): Routin
 export function rankDue(statuses: RoutineStatus[], max = 3): RoutineStatus[] {
   return statuses.filter((s) => s.dueToday).sort((a, b) => b.urgency - a.urgency || a.routine.order - b.routine.order).slice(0, max);
 }
+
+/** A routine over a period against its own goal: what was done, and what the goal asked for. */
+export interface RoutineGoal {
+  routine: ContextEntry;
+  frequency: RoutineFrequency;
+  /** Days it was ticked. */
+  done: number;
+  /**
+   * What the goal asked for over the evenings with any answer: every day, each of them; a weekly
+   * goal, its number scaled to those evenings (7 evenings: the number); weekdays, the planned
+   * days among them. A day without the app asks for nothing.
+   */
+  goal: number;
+}
+
+export function routineGoals(entries: ContextEntry[], ids: string[], today: DateKey, days: number): RoutineGoal[] {
+  const from = addDays(today, -(days - 1));
+  const answers = entries.filter((e) => e.kind === 'routine_done' && e.date && e.date >= from && e.date <= today && e.done != null);
+  const dates = [...new Set(answers.map((e) => e.date!))];
+  const byId = new Map(routines(entries).map((r) => [r.id, r]));
+  return ids.map((id) => byId.get(id)).filter((r): r is ContextEntry => !!r).map((routine) => {
+    const frequency = frequencyOf(routine);
+    const done = new Set(answers.filter((e) => e.routineId === routine.id && e.done).map((e) => e.date)).size;
+    const goal = frequency.kind === 'daily'
+      ? dates.length
+      : frequency.kind === 'weekly'
+        ? (dates.length ? Math.max(1, Math.round((frequency.times * dates.length) / 7)) : 0)
+        : dates.filter((d) => frequency.days.includes(weekday(d))).length;
+    return { routine, frequency, done, goal };
+  });
+}
