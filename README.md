@@ -385,7 +385,7 @@ Stämningen skattas på en bipolär skala med sju steg:
 | −2 | Depression | Svårt att klara vardagen |
 | −1 | Nedstämdhet | Lägre än vanligt, klarar vardagen |
 | 0 | Balanserad | Som vanligt |
-| +1 | Glädje | Högre än vanligt, klarar vardagen |
+| +1 | Glädje | En bra dag, glad |
 | +2 | Uppvarvning | Svårt att bromsa, vardagen påverkas |
 | +3 | Akut mani | Klarar inte vardagen |
 

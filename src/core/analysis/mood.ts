@@ -21,7 +21,8 @@ export const MOOD_SCALE: readonly MoodStep[] = [
   { value: -2, label: 'Depression', hint: 'Svårt att klara vardagen' },
   { value: -1, label: 'Nedstämdhet', hint: 'Lägre än vanligt, klarar vardagen' },
   { value: 0, label: 'Balanserad', hint: 'Som vanligt' },
-  { value: 1, label: 'Glädje', hint: 'Högre än vanligt, klarar vardagen' },
+  // A good day is a good day: +1 gives no points and is not called raised (the person, 28 November).
+  { value: 1, label: 'Glädje', hint: 'En bra dag, glad' },
   { value: 2, label: 'Uppvarvning', hint: 'Svårt att bromsa, vardagen påverkas' },
   { value: 3, label: 'Akut mani', hint: 'Klarar inte vardagen' },
 ];
