@@ -264,7 +264,6 @@ function countedRoutineStats(repo: ReturnType<typeof useRepo>, today: string, da
 function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; days: number }) {
   const repo = useRepo();
   const nav = useNav();
-  const ctx = repo.contextEntries();
   const stats = countedRoutineStats(repo, props.today, props.days);
   // The same count as the rows below: every counted routine on every evening with an answer.
   const done = stats.reduce((n, s) => n + s.done, 0);
