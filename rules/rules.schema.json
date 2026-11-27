@@ -261,6 +261,7 @@
         "windowSpanNights",
         "shiftZ",
         "durationZ",
+        "shorterBelowHours",
         "activityZ",
         "singleShortZ",
         "irregularNights",
@@ -343,6 +344,7 @@
           "type": "number",
           "minimum": 0
         },
+        "shorterBelowHours": { "type": "number", "minimum": 0 },
         "activityZ": {
           "type": "number",
           "minimum": 0

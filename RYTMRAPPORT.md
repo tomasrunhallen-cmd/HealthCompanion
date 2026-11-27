@@ -113,7 +113,7 @@ Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från 26 m
 
 | Metod | Typ | Starter | Bedömbara | Fångade i förväg | Förvarning | 
 | --- | --- | --- | --- | --- | --- |
-| Sömnnotisen (i dag) | Uppvarvade | 1 | 1 | 1 av 1 (för få för en andel) | 2 dygn |
+| Sömnnotisen (i dag) | Uppvarvade | 1 | 1 | 0 av 1 (för få för en andel) | – |
 | Sömnnotisen (i dag) | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
 | Modellen, bara sömn | Uppvarvade | 1 | 1 | 1 av 1 (för få för en andel) | 1 dygn |
 | Modellen, bara sömn | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
@@ -122,7 +122,7 @@ Trösklarna sattes i rules/rules.json före utvärderingen. Testdelen från 26 m
 
 | Metod | Falsklarm | Avstod | 
 | --- | --- | --- |
-| Sömnnotisen (i dag) | 1,4 per 30 bedömda dagar, 1 per 30 kalenderdagar (6 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
+| Sömnnotisen (i dag) | 0,2 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
 | Modellen, bara sömn | 0,2 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
 | Modellen, sömn och puls | 0,2 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 130 bedömda av 172 dagar) | 0 av 172 dagar |
 
@@ -132,7 +132,7 @@ För få dokumenterade episoder i den här delen (2) för att säga något om hu
 
 | Metod | Typ | Starter | Bedömbara | Fångade i förväg | Förvarning | 
 | --- | --- | --- | --- | --- | --- |
-| Sömnnotisen (i dag) | Uppvarvade | 2 | 2 | 2 av 2 (för få för en andel) | 1–2 dygn (median 2) |
+| Sömnnotisen (i dag) | Uppvarvade | 2 | 2 | 1 av 2 (för få för en andel) | 1 dygn |
 | Sömnnotisen (i dag) | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
 | Modellen, bara sömn | Uppvarvade | 2 | 2 | 2 av 2 (för få för en andel) | 1–2 dygn (median 2) |
 | Modellen, bara sömn | Nedstämda | 1 | 1 | 0 av 1 (för få för en andel) | – |
@@ -141,7 +141,7 @@ För få dokumenterade episoder i den här delen (2) för att säga något om hu
 
 | Metod | Falsklarm | Avstod | 
 | --- | --- | --- |
-| Sömnnotisen (i dag) | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 103 bedömda av 172 dagar) | 11 av 172 dagar |
+| Sömnnotisen (i dag) | 0 per 30 bedömda dagar, 0 per 30 kalenderdagar (0 på 103 bedömda av 172 dagar) | 11 av 172 dagar |
 | Modellen, bara sömn | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 96 bedömda av 172 dagar) | 18 av 172 dagar |
 | Modellen, sömn och puls | 0,3 per 30 bedömda dagar, 0,2 per 30 kalenderdagar (1 på 96 bedömda av 172 dagar) | 18 av 172 dagar |
 <!-- simulerat:slut -->

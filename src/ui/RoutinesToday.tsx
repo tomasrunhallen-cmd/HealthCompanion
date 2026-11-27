@@ -124,7 +124,7 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
       </View>
       <View style={{ marginTop: space.xs }}>
         {/* One list, the day's suggestion first. Why it was suggested shows with the details. */}
-        {shownPicked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={open ? p.why : undefined} />)}
+        {shownPicked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
         {shownRest.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
       </View>
       {open && picked.length ? (

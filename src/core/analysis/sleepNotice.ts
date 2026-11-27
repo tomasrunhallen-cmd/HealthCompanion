@@ -10,6 +10,13 @@ export const NOTICE_NIGHTS = 3;
 const WINDOW_SLACK_MIN = 60;
 /** Nights needed for the person's own average. */
 const AVERAGE_MIN_NIGHTS = 5;
+/**
+ * A short night for the notice: at least this many hours under the person's own average, and
+ * under this many hours in all. A night of 8,4 h under an average of 8,6 is not short
+ * (the person's report, 27 November).
+ */
+export const SHORT_MARGIN_HOURS = 1;
+export const SHORT_MAX_HOURS = 7;
 
 export interface SleepNotice {
   reason: 'short' | 'window';
@@ -48,11 +55,11 @@ export function sleepNotice(
   const average = earlier.length >= AVERAGE_MIN_NIGHTS ? Math.round((earlier.reduce((a, b) => a + b, 0) / earlier.length) * 10) / 10 : null;
   const plan = opts.sleepRoutine ? ` Din plan säger: ”${opts.sleepRoutine}”.` : '';
 
-  if (average != null && days.every((d) => d!.sleepHours! < average)) {
+  if (average != null && days.every((d) => d!.sleepHours! <= average - SHORT_MARGIN_HOURS && d!.sleepHours! < SHORT_MAX_HOURS)) {
     return {
       reason: 'short', nights, average,
       title: 'Sömnen',
-      body: `Tredje natten i rad med kortare sömn än ditt snitt på ${String(average).replace('.', ',')} timmar.${plan}`,
+      body: `Tredje natten i rad med minst en timme kortare sömn än ditt snitt på ${String(average).replace('.', ',')} timmar.${plan}`,
     };
   }
   if (opts.window) {

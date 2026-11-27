@@ -340,10 +340,10 @@ export function HomeScreen() {
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
-      {/* What needs attention today decides what comes first (granskning 27 november): a week
-          when Hjälp nu was shown, then a yellow or red evening's first plan step, then the day's
-          routines, then the week, then sleep and rhythm, then the check-in. */}
+      {/* Hjälp nu when that week needs it; then the week's lights, a yellow or red evening's first
+          plan step, sleep and rhythm, the day's routines and the check-in (27 November). */}
       <StatusHelp />
+      <WeekSummary week={week} fontScale={fontScale} today={today} />
       {todayStep ? (
         <Card tone={todayAssessment!.level} style={{ marginTop: space.s }}>
           <Pressable
@@ -362,9 +362,8 @@ export function HomeScreen() {
           </Pressable>
         </Card>
       ) : null}
-      <RoutinesToday collapsible />
-      <WeekSummary week={week} fontScale={fontScale} today={today} />
       <SleepAndRhythm today={today} />
+      <RoutinesToday collapsible />
 
       {card ? (
         openCard === card.id ? (
@@ -428,18 +427,30 @@ export function HomeScreen() {
  */
 function WeekSummary({ week, fontScale, today }: { week: { date: string; level: Level | null; limited?: boolean }[]; fontScale: number; today: string }) {
   const repo = useRepo();
+  const [open, setOpen] = useState(false);
   const f = statusFacts(statusInput(repo));
   const best = f.tone !== 'plan' ? f.lines[0]?.text ?? null : null;
   const todayMissing = !week.find((d) => d.date === today)?.level;
   const earlierMissing = week.filter((d) => d.date !== today && !d.level).length;
-  // The empty ring is hard to read alone: say what it means, in words.
+  // The empty ring is hard to read alone: what it means, in words, with the comment.
   const ring = [todayMissing ? 'I dag: ingen avstämning än.' : null, earlierMissing ? `Tom ring: ingen avstämning${todayMissing ? ' den dagen' : ''}.` : null].filter(Boolean).join(' ');
+  const hasMore = !!(best || ring);
   return (
     <Card style={{ marginTop: space.s }}>
-      <Text style={type.h2} accessibilityRole="header">Senaste veckan</Text>
+      <Pressable
+        disabled={!hasMore}
+        onPress={() => setOpen((v) => !v)}
+        accessibilityRole={hasMore ? 'button' : 'header'}
+        accessibilityState={hasMore ? { expanded: open } : undefined}
+        accessibilityLabel={hasMore ? `Senaste veckan, ${open ? 'dölj kommentaren' : 'visa kommentaren'}` : 'Senaste veckan'}
+        style={{ flexDirection: 'row', alignItems: 'center', minHeight: MIN_TOUCH }}
+      >
+        <Text style={[type.h2, { flex: 1 }]}>Senaste veckan</Text>
+        {hasMore ? <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{open ? 'Dölj ▲' : 'Kommentar ▼'}</Text> : null}
+      </Pressable>
       <WeekRow week={week} fontScale={fontScale} />
-      {ring ? <Text style={[type.small, { marginTop: space.xs }]}>{ring}</Text> : null}
-      {best ? <Text style={[type.body, { marginTop: space.s }]}>{best}</Text> : null}
+      {open && ring ? <Text style={[type.small, { marginTop: space.xs }]}>{ring}</Text> : null}
+      {open && best ? <Text style={[type.body, { marginTop: space.s }]}>{best}</Text> : null}
     </Card>
   );
 }

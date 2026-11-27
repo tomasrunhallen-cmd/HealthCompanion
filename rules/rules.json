@@ -1,6 +1,6 @@
 {
   "$schema": "./rules.schema.json",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "points": {
     "earlySign": 1,
     "seriousSign": 2,
@@ -57,6 +57,7 @@
     "windowSpanNights": 4,
     "shiftZ": 1.5,
     "durationZ": 1.5,
+    "shorterBelowHours": 7,
     "activityZ": 1.0,
     "singleShortZ": 2.0,
     "irregularNights": 7,

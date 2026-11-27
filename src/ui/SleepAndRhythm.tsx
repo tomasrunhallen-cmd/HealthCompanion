@@ -51,7 +51,7 @@ export function SleepAndRhythm({ today }: { today: string }) {
     nav.push({ name: rhythmOn ? 'rhythm' : 'garmin' });
   };
   return (
-    <Card style={{ marginTop: space.s, paddingVertical: space.s }}>
+    <Card style={{ marginTop: space.s }}>
       <Pressable
         onPress={open}
         accessibilityRole="button"

@@ -101,6 +101,8 @@ export interface RhythmRules {
   shiftZ: number;
   /** Robust z for shorter or longer sleep. */
   durationZ: number;
+  /** Shorter sleep counts only when every night is also under this many hours (rules 1.11.0). */
+  shorterBelowHours: number;
   /** Robust z for activity later in the evening. */
   activityZ: number;
   /** One night this much shorter, alone: a single short night, not a change. */

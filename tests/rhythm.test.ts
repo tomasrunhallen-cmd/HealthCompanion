@@ -531,3 +531,21 @@ describe('sleep and stress for the last year, by themselves', () => {
     expect(calls).toBe(0);
   });
 });
+
+describe('shorter sleep must also be short (rules 1.11.0)', () => {
+  const T = '2026-11-27';
+  const nights = (usual: number, last: number[]) => {
+    const m: Record<string, import('../src/core/domain/types').MeasuredDay> = {};
+    for (let i = 0; i < 60; i++) {
+      const d = addDays(T, -i);
+      const h = i < last.length ? last[last.length - 1 - i] : usual + ((i % 3) - 1) * 0.1;
+      m[d] = { date: d, source: 'garmin', sleepHours: h, sleepStart: '23:00', sleepEnd: '07:00', deepMinutes: null, remMinutes: null, stressAvg: null, stressHighMinutes: null, bodyBatteryWake: null, fetchedAt: '' };
+    }
+    return m;
+  };
+  const changes = (m: ReturnType<typeof nights>) => detect(prepare(m, {}, addDays(T, -70), T), T, [], false).changes.map((c) => c.pattern);
+  it('8,4 h after a usual 9,4 h is not shorter sleep; 6 h after a usual 7,5 h is', () => {
+    expect(changes(nights(9.4, [8.4, 8.4, 8.4]))).not.toContain('shorter');
+    expect(changes(nights(7.5, [6, 6, 6]))).toContain('shorter');
+  });
+});

@@ -25,10 +25,12 @@ const opts = { window: { start: '22:30', end: '07:00' }, sleepRoutine: 'Sömn 22
 
 describe('Sömnnotis', () => {
   it('comes on the third short night in a row, with the plan\'s own sleep routine', () => {
-    const n = sleepNotice(nights([[6.5], [6], [6.8]]), T, opts);
+    const n = sleepNotice(nights([[6.2], [6], [6.4]]), T, opts);
     expect(n).toMatchObject({ reason: 'short', average: 7.5, nights: ['2026-11-02', '2026-11-03', '2026-11-04'] });
-    expect(n!.body).toBe('Tredje natten i rad med kortare sömn än ditt snitt på 7,5 timmar. Din plan säger: ”Sömn 22:30–07:00”.');
+    expect(n!.body).toBe('Tredje natten i rad med minst en timme kortare sömn än ditt snitt på 7,5 timmar. Din plan säger: ”Sömn 22:30–07:00”.');
     expect(sleepNotice(nights([[6.5], [7.6], [6.8]]), T, opts)).toBeNull();
+    // Only a little under the average is not short: 6,8 h under 7,5 (the person's report, 27 November).
+    expect(sleepNotice(nights([[6.2], [6], [6.8]]), T, { ...opts, window: null })).toBeNull();
   });
 
   it('comes on the third night in a row outside the sleep window, also across midnight', () => {
@@ -48,7 +50,7 @@ describe('Sömnnotis', () => {
   it('is saved once a day, shown on the home screen, and never changes the level', async () => {
     const repo = await repoWithPlan();
     await repo.updatePlanSettings({ sleepWindow: { start: '22:30', end: '07:00' } });
-    await repo.saveGarminDays(Object.values(nights([[6.5], [6], [6.8]])), T);
+    await repo.saveGarminDays(Object.values(nights([[6.2], [6], [6.4]])), T);
     const now = at(T, '12:00');
     const first = await checkSleepNotice(repo, now);
     expect(first).toMatchObject({ reason: 'short', date: T, notified: false });

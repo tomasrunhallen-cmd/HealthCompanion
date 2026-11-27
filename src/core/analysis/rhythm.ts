@@ -293,7 +293,8 @@ export function detect(p: Prepared, today: DateKey, episodes: EpisodeStart[], us
   const dates = last.map((n) => n.date);
   if (zOn.every((v) => v >= R.shiftZ)) changes.push({ pattern: 'later', nights: dates, values: last.map((n) => clockOfAxis(n.onset!)), usual: clockOfAxis(base.onset.mid) });
   if (zOn.every((v) => v <= -R.shiftZ)) changes.push({ pattern: 'earlier', nights: dates, values: last.map((n) => clockOfAxis(n.onset!)), usual: clockOfAxis(base.onset.mid) });
-  if (zH.every((v) => v <= -R.durationZ)) changes.push({ pattern: 'shorter', nights: dates, values: last.map((n) => `${h1(n.hours!)} h`), usual: `${h1(base.hours.mid)} h` });
+  // Shorter than usual, and short in itself: 8,4 h under an own 9 h is not shorter sleep (rules 1.11.0).
+  if (zH.every((v) => v <= -R.durationZ) && last.every((n) => n.hours! < R.shorterBelowHours)) changes.push({ pattern: 'shorter', nights: dates, values: last.map((n) => `${h1(n.hours!)} h`), usual: `${h1(base.hours.mid)} h` });
   if (zH.every((v) => v >= R.durationZ)) changes.push({ pattern: 'longer', nights: dates, values: last.map((n) => `${h1(n.hours!)} h`), usual: `${h1(base.hours.mid)} h` });
 
   // Irregular: falling asleep jumps far more from night to night than it usually does.
