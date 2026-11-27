@@ -10,43 +10,50 @@ const TODAY = '2026-11-26';
 const back = (n: number) => addDays(TODAY, -n);
 const green = (n: number, over: Partial<StatusDay> = {}): StatusDay => ({ date: back(n), level: 'green', akut: false, ...over });
 const daily = { kind: 'daily' as const };
-const R = [{ id: 'sleep', text: 'Sömn 23-07', frequency: daily }, { id: 'meds', text: 'Medicin', frequency: daily }, { id: 'walk', text: 'Kvällspromenad', frequency: { kind: 'weekly' as const, times: 3 } }];
-const all14 = Array.from({ length: 14 }, (_, i) => back(i));
+// TODAY is Thursday 26 November: this week is Monday 23 to today, last week 16–22, the week before 9–15.
+const d = (day: number) => `2026-11-${String(day).padStart(2, '0')}`;
+const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => d(a + i));
+const R = [{ id: 'sleep', text: 'Sömn 23-07', frequency: daily }, { id: 'meds', text: 'Medicin', frequency: daily }, { id: 'gym', text: 'Träning', frequency: { kind: 'weekly' as const, times: 3 } }];
+const answered = range(9, 26);
+const tick = (id: string, days: string[]) => days.map((date) => ({ date, routineId: id }));
 const ticks = [
-  ...[0, 1, 2, 4, 5].map((n) => ({ date: back(n), routineId: 'sleep' })), ...[8, 11].map((n) => ({ date: back(n), routineId: 'sleep' })),
-  ...all14.map((date) => ({ date, routineId: 'meds' })),
-  ...[1, 3, 5, 8, 10, 12].map((n) => ({ date: back(n), routineId: 'walk' })),
+  ...tick('sleep', [d(17), d(18), d(19), d(20), d(21), d(10), d(12)]),
+  ...tick('meds', answered),
+  ...tick('gym', [d(23), d(24), d(25), d(17)]),
 ];
 const input = (over: Partial<StatusInput> = {}): StatusInput => ({
-  today: TODAY, days: Array.from({ length: 14 }, (_, i) => green(i)), routines: R, ticks, answeredDates: all14, events: [], upward: false, ...over,
+  today: TODAY, days: Array.from({ length: 18 }, (_, i) => green(i)), routines: R, ticks, answeredDates: answered, events: [], upward: false, ...over,
 });
 const texts = (i: StatusInput) => statusFacts(i).lines.map((l) => l.text);
 
-describe('each sentence is a fixed fact', () => {
-  it('a routine come going, a goal confirmed both weeks, in the app\'s own words', () => {
+describe('each sentence is a fixed fact, by calendar week', () => {
+  it('come going last week, a goal confirmed both full weeks, a weekly goal already reached this week', () => {
     expect(texts(input())).toEqual([
-      '”Sömn 23-07” har kommit igång: fem kvällar den senaste veckan, mot två kvällar veckan innan.',
-      'Du nådde ditt mål för ”Medicin”, varje dag, båda veckorna.',
-      'Du nådde ditt mål för ”Kvällspromenad”, 3 gånger i veckan, båda veckorna.',
+      '”Sömn 23-07” kom igång förra veckan: fem kvällar, mot två kvällar veckan innan.',
+      'Du nådde ditt mål för ”Medicin”, varje dag, både förra veckan och veckan innan.',
+      'Du har redan nått veckans mål för ”Träning”, 3 gånger i veckan.',
     ]);
   });
 
-  it('"kommit igång" needs more confirmed times and enough evenings, not only a higher share', () => {
-    const sparse = input({
-      routines: [R[0]], ticks: [{ date: back(9), routineId: 'sleep' }, { date: back(11), routineId: 'sleep' }, { date: back(2), routineId: 'sleep' }],
-      answeredDates: [back(8), back(9), back(10), back(11), back(2)],
-    });
-    expect(texts(sparse).join(' ')).not.toContain('kommit igång');
+  it('"kom igång" needs more confirmed times and enough evenings, not only a higher share', () => {
+    const sparse = input({ routines: [R[0]], ticks: tick('sleep', [d(10), d(12), d(18)]), answeredDates: [d(9), d(10), d(11), d(12), d(18)] });
+    expect(texts(sparse).join(' ')).not.toContain('kom igång');
   });
 
   it('a daily goal "both weeks" only when the ticks confirm the whole goal, not one evening a week', () => {
-    const once = input({ routines: [R[1]], ticks: [{ date: back(1), routineId: 'meds' }, { date: back(8), routineId: 'meds' }], answeredDates: [back(1), back(8)] });
+    const once = input({ routines: [R[1]], ticks: tick('meds', [d(11), d(18)]), answeredDates: [d(11), d(18)] });
     expect(texts(once).join(' ')).not.toContain('nådde ditt mål');
   });
 
-  it('what was done is said plainly, also without a change', () => {
+  it('what was done this week is said plainly', () => {
     const walk = [{ id: 'walk', text: 'Kvällspromenad', frequency: { kind: 'weekly' as const, times: 4 } }];
-    expect(texts(input({ routines: walk, ticks: [1, 3, 5, 8, 10, 12].map((n) => ({ date: back(n), routineId: 'walk' })) }))).toEqual(['Du gjorde ”Kvällspromenad” tre gånger den senaste veckan.']);
+    expect(texts(input({ routines: walk, ticks: tick('walk', [d(23), d(25), d(26), d(17)]) }))).toEqual(['Du har gjort ”Kvällspromenad” tre gånger den här veckan.']);
+  });
+
+  it('a weekday goal, Monday to Friday, can be reached without the weekend', () => {
+    const work = [{ id: 'work', text: 'Sluta jobb i tid', frequency: { kind: 'weekdays' as const, days: [1, 2, 3, 4, 5] } }];
+    const f = texts(input({ routines: work, ticks: tick('work', [...range(16, 20), ...range(9, 13)]) }));
+    expect(f).toEqual(['Du nådde ditt mål för ”Sluta jobb i tid”, mån, tis, ons, tor och fre, både förra veckan och veckan innan.']);
   });
 
   it('after an event: the check-ins there are, all green; the person reads what it means', () => {
@@ -83,8 +90,8 @@ describe('the state decides', () => {
       { id: `e_${date}`, date, createdAt: `${date}T20:00:00.000Z`, kind: 'checkin', transcript: '', mood: 0, energy: 5, wordsPerMinute: null, sleepHours: null, sleepSource: null, stressAvg: null } as never,
       { id: `a_${date}`, entryId: `e_${date}`, date, createdAt: '', level, points: 0, signals: [], sentence: '', method: 'wordmatch', model: null, promptId: null, promptVersion: null, baseline: { wordsPerMinute: null, stressAvg: null, greenDays: 0 }, ...(akut ? { akut: true } : {}) } as never,
     );
-    for (let i = 0; i < 14; i++) await repo.addContextEntry({ kind: 'routine_done', text: 'Medicin', origin: 'user', date: back(i), routineId: meds.id, done: true } as never, false);
-    for (let i = 1; i < 14; i++) await save(back(i), 'green');
+    for (let i = 0; i < 20; i++) await repo.addContextEntry({ kind: 'routine_done', text: 'Medicin', origin: 'user', date: back(i), routineId: meds.id, done: true } as never, false);
+    for (let i = 1; i < 20; i++) await save(back(i), 'green');
     expect(statusFacts(statusInput(repo, now))).toMatchObject({ tone: 'open', lines: [{ kind: 'kept' }] });
     await save(TODAY, 'red');
     expect(statusFacts(statusInput(repo, now)).tone).toBe('quiet');

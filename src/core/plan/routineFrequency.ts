@@ -140,33 +140,47 @@ export function rankDue(statuses: RoutineStatus[], max = 3): RoutineStatus[] {
   return statuses.filter((s) => s.dueToday).sort((a, b) => b.urgency - a.urgency || a.routine.order - b.routine.order).slice(0, max);
 }
 
-/** A routine over a period against its own goal: what was done, and what the goal asked for. */
-export interface RoutineGoal {
-  routine: ContextEntry;
-  frequency: RoutineFrequency;
-  /** Days it was ticked. */
-  done: number;
-  /**
-   * What the goal asked for over the evenings with any answer: every day, each of them; a weekly
-   * goal, its number scaled to those evenings (7 evenings: the number); weekdays, the planned
-   * days among them. A day without the app asks for nothing.
-   */
-  goal: number;
+/**
+ * One calendar week, Monday to Sunday, for one routine against its goal (28 November). A day
+ * without any answer asks for nothing: a daily goal is the evenings with answers, a weekday goal
+ * the planned days among them; a weekly goal is its number once the week has any answer.
+ */
+export function weekGoal(f: RoutineFrequency, answeredDays: DateKey[], done: number): { done: number; goal: number } {
+  const goal = f.kind === 'daily'
+    ? answeredDays.length
+    : f.kind === 'weekly'
+      ? (answeredDays.length ? f.times : 0)
+      : answeredDays.filter((d) => f.days.includes(weekday(d))).length;
+  return { done, goal };
 }
 
-export function routineGoals(entries: ContextEntry[], ids: string[], today: DateKey, days: number): RoutineGoal[] {
-  const from = addDays(today, -(days - 1));
+export interface RoutineWeeks {
+  routine: ContextEntry;
+  frequency: RoutineFrequency;
+  /** This week so far, Monday to today, and the days left after today. */
+  current: { done: number; goal: number; daysLeft: number };
+  /** Full calendar weeks before this one, newest first. A week without any answer is left out. */
+  past: { from: DateKey; done: number; goal: number }[];
+}
+
+/** Each routine week by week: this week so far and up to `weeks` full weeks before it. */
+export function routineWeeks(entries: ContextEntry[], ids: string[], today: DateKey, weeks: number): RoutineWeeks[] {
+  const monday = weekStart(today);
+  const from = addDays(monday, -7 * weeks);
   const answers = entries.filter((e) => e.kind === 'routine_done' && e.date && e.date >= from && e.date <= today && e.done != null);
-  const dates = [...new Set(answers.map((e) => e.date!))];
+  const answered = [...new Set(answers.map((e) => e.date!))];
   const byId = new Map(routines(entries).map((r) => [r.id, r]));
+  const inWeek = (start: DateKey, end: DateKey) => answered.filter((d) => d >= start && d <= end);
   return ids.map((id) => byId.get(id)).filter((r): r is ContextEntry => !!r).map((routine) => {
     const frequency = frequencyOf(routine);
-    const done = new Set(answers.filter((e) => e.routineId === routine.id && e.done).map((e) => e.date)).size;
-    const goal = frequency.kind === 'daily'
-      ? dates.length
-      : frequency.kind === 'weekly'
-        ? (dates.length ? Math.max(1, Math.round((frequency.times * dates.length) / 7)) : 0)
-        : dates.filter((d) => frequency.days.includes(weekday(d))).length;
-    return { routine, frequency, done, goal };
+    const ticked = (start: DateKey, end: DateKey) => new Set(answers.filter((e) => e.routineId === routine.id && e.done && e.date! >= start && e.date! <= end).map((e) => e.date)).size;
+    const now = weekGoal(frequency, inWeek(monday, today), ticked(monday, today));
+    const past: RoutineWeeks['past'] = [];
+    for (let w = 1; w <= weeks; w++) {
+      const start = addDays(monday, -7 * w), end = addDays(start, 6);
+      const g = weekGoal(frequency, inWeek(start, end), ticked(start, end));
+      if (g.goal) past.push({ from: start, ...g });
+    }
+    return { routine, frequency, current: { ...now, daysLeft: 7 - (weekday(today)) }, past };
   });
 }

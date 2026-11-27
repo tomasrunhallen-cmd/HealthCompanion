@@ -5,7 +5,7 @@ import { addDays } from '../src/core/analysis/dates';
 import { bucketTrend, buildTrend, isoWeek, PERIOD_DAYS, PERIOD_GRAIN } from '../src/core/analysis/trend';
 import type { Assessment, ContextEntry, Entry } from '../src/core/domain/types';
 import { countedRoutineIds, routineShare } from '../src/core/plan/routines';
-import { routineGoals } from '../src/core/plan/routineFrequency';
+import { routineWeeks } from '../src/core/plan/routineFrequency';
 
 const TODAY = '2026-11-08'; // a Sunday, week 45
 
@@ -95,14 +95,19 @@ describe('the share of routines done, as Hem and Trend show it', () => {
 });
 
 describe('routines against their own goals (28 November)', () => {
-  it('a weekly goal is its number, a daily goal the evenings with answers, a direction routine only while followed', () => {
+  it('calendar weeks: a weekly goal is its number, a daily goal the evenings with answers, weekdays only their days', () => {
     const r = (id: string, frequency: unknown, polarity = 'both') => ({ id, layer: 'grund', kind: 'routine', text: id, order: 0, approvedAt: '2026-11-01', plan: { polarity }, routine: { track: true, reminder: null, frequency } }) as unknown as ContextEntry;
     const ticks = (id: string, ns: number[]) => ns.map((n) => done(addDays(TODAY, -n), id, true));
     const ctx = [r('gym', { kind: 'weekly', times: 3 }), r('meds', { kind: 'daily' }), r('up1', { kind: 'daily' }, 'up'),
       ...ticks('gym', [0, 2, 4, 5]), ...ticks('meds', [0, 1, 2, 3, 4, 5]), done(addDays(TODAY, -6), 'meds', false)];
     const ids = countedRoutineIds(ctx, null, addDays(TODAY, -6), TODAY);
     expect(ids).toEqual(['gym', 'meds']);
-    const g = routineGoals(ctx, ids, TODAY, 7);
-    expect(g.map((x) => [x.routine.id, x.done, x.goal])).toEqual([['gym', 4, 3], ['meds', 6, 7]]);
+    // TODAY is a Sunday: this calendar week is Monday 2 to Sunday 8 November, its last day.
+    const w = routineWeeks(ctx, ids, TODAY, 1);
+    expect(w.map((x) => [x.routine.id, x.current.done, x.current.goal, x.current.daysLeft])).toEqual([['gym', 4, 3, 0], ['meds', 6, 7, 0]]);
+    expect(w.every((x) => x.past.length === 0)).toBe(true);
+    // A weekday goal, Monday to Friday: the weekend asks for nothing.
+    const work = [r('work', { kind: 'weekdays', days: [1, 2, 3, 4, 5] }), ...ctx.filter((e) => e.kind !== 'routine'), ...ticks('work', [2, 3, 4])];
+    expect(routineWeeks(work, ['work'], TODAY, 1)[0].current).toEqual({ done: 3, goal: 5, daysLeft: 0 });
   });
 });

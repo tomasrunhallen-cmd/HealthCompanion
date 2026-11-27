@@ -2,7 +2,7 @@
 // no language model and nothing stored, so the card follows a new check-in at once
 // (core/plan/status.ts, granskning 26 november).
 
-import { addDays, eveningDateKey } from '../core/analysis/dates';
+import { addDays, eveningDateKey, weekStart } from '../core/analysis/dates';
 import { frequencyOf } from '../core/plan/routineFrequency';
 import { countedRoutineIds } from '../core/plan/routines';
 import type { StatusInput } from '../core/plan/status';
@@ -10,7 +10,8 @@ import type { Repository } from '../storage/repository';
 
 export function statusInput(repo: Repository, now = new Date()): StatusInput {
   const today = eveningDateKey(now);
-  const from = addDays(today, -13);
+  // This calendar week and the two full weeks before it.
+  const from = addDays(weekStart(today), -14);
   const stopped = new Set(repo.assessments().filter((a) => a.akut).map((a) => a.entryId));
   const days = repo.history()
     .filter((h) => h.entry.date >= from && h.entry.date <= today)

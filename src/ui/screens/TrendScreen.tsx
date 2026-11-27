@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { addDays, eveningDateKey, formatDateSv } from '../../core/analysis/dates';
+import { addDays, eveningDateKey, formatDateSv, weekStart } from '../../core/analysis/dates';
 import {
   bucketTrend, buildTrend, GRAIN_TEXT, PERIOD_DAYS, PERIOD_GRAIN, PERIOD_LABEL, PERIODS,
   type Grain, type TrendBucket, type TrendDay, type TrendPeriod,
@@ -8,7 +8,7 @@ import {
 import { MOOD_MAX, moodStep, moodText } from '../../core/analysis/mood';
 import { RULES } from '../../core/analysis/rules';
 import { countedRoutineIds, routineStats } from '../../core/plan/routines';
-import { frequencyOf, frequencyText, routineGoals } from '../../core/plan/routineFrequency';
+import { frequencyOf, frequencyText, routineWeeks } from '../../core/plan/routineFrequency';
 import { Button, Card, Dot, P, Screen, Section, Segmented } from '../components';
 import { useNav } from '../nav';
 import { useRepo } from '../state';
@@ -266,11 +266,10 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
   const repo = useRepo();
   const nav = useNav();
   const ctx = repo.contextEntries();
-  // Each routine against its own goal: every day, N times a week, or its weekdays (28 November).
-  const stats = routineGoals(ctx, countedRoutineStats(repo, props.today, props.days).map((s) => s.routine.id), props.today, props.days);
-  const done = stats.reduce((n, s) => n + Math.min(s.done, s.goal), 0);
-  const answered = stats.reduce((n, s) => n + s.goal, 0);
-  const reached = stats.filter((s) => s.goal > 0 && s.done >= s.goal).length;
+  // Calendar weeks, Monday to Sunday (28 November): this week so far, and the full weeks before it
+  // in the period. Each routine against its own goal; a day without the app asks for nothing.
+  const fullWeeks = Math.max(1, Math.round(props.days / 7));
+  const stats = routineWeeks(ctx, countedRoutineStats(repo, props.today, props.days).map((s) => s.routine.id), props.today, fullWeeks);
   if (!stats.length) {
     return (
       <Card>
@@ -279,40 +278,57 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
       </Card>
     );
   }
-  if (!answered) {
+  const goalSum = stats.reduce((n, s) => n + s.past.reduce((m, w) => m + w.goal, 0), 0);
+  if (!goalSum && !stats.some((s) => s.current.goal)) {
     return (
       <Card>
         <P muted>Inga rutiner avbockade under perioden. Du bockar av dem i kvällens avstämning.</P>
       </Card>
     );
   }
-  const pct = Math.round((done / answered) * 100);
+  const doneSum = stats.reduce((n, s) => n + s.past.reduce((m, w) => m + Math.min(w.done, w.goal), 0), 0);
+  const lastMonday = addDays(weekStart(props.today), -7);
+  const last = stats.map((s) => s.past.find((w) => w.from === lastMonday)).filter((w): w is NonNullable<typeof w> => !!w);
+  const lastReached = last.filter((w) => w.done >= w.goal).length;
+  const pct = goalSum ? Math.round((doneSum / goalSum) * 100) : null;
+  const daysLeft = stats[0].current.daysLeft;
+  const unit = (s: (typeof stats)[number], n: number) => (s.frequency.kind === 'daily' ? (n === 1 ? 'kväll' : 'kvällar') : s.frequency.kind === 'weekly' ? (n === 1 ? 'gång' : 'gånger') : n === 1 ? 'planerad dag' : 'planerade dagar');
+  const count = (s: (typeof stats)[number], w: { done: number; goal: number }) => `${w.done} av ${w.goal} ${unit(s, w.goal)}${w.goal > 0 && w.done >= w.goal ? ' ✓' : ''}`;
   return (
     <>
       <Card>
-        <View accessible accessibilityLabel={`${pct} procent av rutinmålen. ${reached} av ${stats.length} rutiner nådde sitt mål.`}>
-          <Text style={[type.title, { color: colors.text }]}>{pct} %</Text>
-          <Text style={type.body}>av rutinmålen</Text>
-          <Text style={type.small}>{`${reached} av ${stats.length} ${stats.length === 1 ? 'rutin' : 'rutiner'} nådde sitt mål. Varje rutin räknas mot sitt eget mål: varje dag, några gånger i veckan eller vissa dagar. En kväll utan avstämning räknas inte som missad.`}</Text>
-        </View>
+        {pct != null ? (
+          <View accessible accessibilityLabel={fullWeeks === 1 ? `Förra veckan nådde ${lastReached} av ${last.length} rutiner sitt mål.` : `${pct} procent av veckomålen de senaste ${fullWeeks} hela veckorna.`}>
+            {fullWeeks === 1 ? (
+              <>
+                <Text style={[type.title, { color: colors.text }]}>{lastReached} av {last.length}</Text>
+                <Text style={type.body}>rutiner nådde sitt mål förra veckan</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[type.title, { color: colors.text }]}>{pct} %</Text>
+                <Text style={type.body}>{`av veckomålen de senaste ${fullWeeks} hela veckorna`}</Text>
+              </>
+            )}
+            <Text style={type.small}>Veckor räknas måndag till söndag, och varje rutin mot sitt eget mål. En kväll utan avstämning räknas inte som missad.</Text>
+          </View>
+        ) : null}
+        <Text style={[type.body, { fontWeight: '600', marginTop: pct != null ? space.m : 0 }]}>{`Den här veckan${daysLeft ? `, ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagar'} kvar` : ''}`}</Text>
         {stats.map((s) => {
-          const share = s.goal ? Math.min(s.done / s.goal, 1) : 0;
-          const ok = s.goal > 0 && s.done >= s.goal;
-          const right = s.frequency.kind === 'weekly'
-            ? `${s.done} ${s.done === 1 ? 'gång' : 'gånger'} · mål ${s.goal}`
-            : `${s.done} av ${s.goal}`;
+          const share = s.current.goal ? Math.min(s.current.done / s.current.goal, 1) : 0;
+          const prev = s.past.find((w) => w.from === lastMonday);
+          const reached = s.past.filter((w) => w.done >= w.goal).length;
+          const history = fullWeeks === 1 ? (prev ? `Förra veckan: ${count(s, prev)}` : null) : s.past.length ? `Målet nått ${reached} av ${s.past.length} hela veckor` : null;
+          const now = s.current.goal ? `Den här veckan: ${count(s, s.current)}` : 'Den här veckan: inget att bocka av än';
           return (
-            <View key={s.routine.id} style={{ marginTop: space.m }} accessible accessibilityLabel={`${s.routine.text}, mål ${frequencyText(s.frequency)}: ${right}${ok ? ', målet nått' : ''}`}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.s }}>
-                <View style={{ flexShrink: 1 }}>
-                  <Text style={type.body}>{s.routine.text}</Text>
-                  <Text style={type.small}>{`Mål: ${frequencyText(s.frequency)}`}</Text>
-                </View>
-                <Text style={[type.small, { fontWeight: '600', flexShrink: 0 }]}>{`${right}${ok ? ' ✓' : ''}`}</Text>
-              </View>
+            <View key={s.routine.id} style={{ marginTop: space.m }} accessible accessibilityLabel={`${s.routine.text}, mål ${frequencyText(s.frequency)}. ${now}.${history ? ` ${history}.` : ''}`}>
+              <Text style={type.body}>{s.routine.text}</Text>
+              <Text style={type.small}>{`Mål: ${frequencyText(s.frequency)}`}</Text>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, marginTop: space.xs, overflow: 'hidden' }}>
                 <View style={{ width: `${Math.round(share * 100)}%`, height: 6, borderRadius: 3, backgroundColor: colors.accent }} />
               </View>
+              <Text style={[type.small, { marginTop: 2 }]}>{now}</Text>
+              {history ? <Text style={type.small}>{history}</Text> : null}
             </View>
           );
         })}
