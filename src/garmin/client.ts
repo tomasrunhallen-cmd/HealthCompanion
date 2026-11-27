@@ -33,7 +33,7 @@ export type GarminFetch = (
   init: { method: string; headers: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
 
-export type GarminErrorKind = 'auth' | 'session' | 'not_exposed' | 'rate_limit' | 'server' | 'network' | 'timeout' | 'bad_answer';
+export type GarminErrorKind = 'auth' | 'request' | 'session' | 'not_exposed' | 'rate_limit' | 'server' | 'network' | 'timeout' | 'bad_answer';
 
 /**
  * The web version's own Garmin function answers 401 with this body when the person is not
@@ -322,9 +322,12 @@ export class GarminClient {
     }
   }
 
-  private fail(status: number, body = ''): GarminError {
+  private fail(status: number, body = '', token = false): GarminError {
     // The app's own sign-in has run out: Garmin's key is fine and must not be made again.
     if (status === 401 && body.trim() === SIGN_IN_REQUIRED) return new GarminError('session', SESSION_MESSAGE, status);
+    // A 400 on a data request is about the request (a range of 29 days, 26 November), not the key:
+    // saying the key was refused would have the person replace one that works (granskning 27 november).
+    if (status === 400 && !token) return new GarminError('request', 'Garmin kunde inte behandla begäran (fel 400). Nyckeln är troligen i ordning; försök igen senare.', status);
     if (status === 400 || status === 401 || status === 403) {
       return new GarminError('auth', 'Garmin godtog inte nyckeln. Den kan ha gått ut eller tagits bort. Skapa en ny i Garmin Connect.', status);
     }
@@ -341,7 +344,7 @@ export class GarminClient {
       method: 'POST',
       headers: { Accept: '*/*', Authorization: `ApiKey ${this.opts.apiKey.trim()}` },
     });
-    if (!res.ok) throw this.fail(res.status, res.body);
+    if (!res.ok) throw this.fail(res.status, res.body, true);
     const value = res.body.trim().replace(/^"|"$/g, '');
     this.token = { value, expiresAt: jwtExpiryMs(value) };
     return value;

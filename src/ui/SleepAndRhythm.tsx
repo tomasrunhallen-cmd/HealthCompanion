@@ -9,6 +9,7 @@ import { addDays, formatDateSv, formatTime, toDateKey } from '../core/analysis/d
 import { FROM_SOURCE } from '../core/analysis/sources';
 import { latestRhythm, markRhythmSeen, planStepFor, rhythmCard, rhythmMode } from '../services/rhythm';
 import { NOTICE_KEY, todaysSleepNotice } from '../services/sleepNotice';
+import { sleepDrop } from '../core/analysis/sleepNotice';
 import { Button, Card, Tag } from './components';
 import { useNav } from './nav';
 import { rhythmHeadline } from './RhythmToday';
@@ -16,6 +17,16 @@ import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
 
 const dec = (n: number) => String(Math.round(n * 10) / 10).replace('.', ',');
+
+/** Something about the night or the watch that needs attention today: then the card comes before the routines. */
+export function sleepAttention(repo: ReturnType<typeof useRepo>, today: string): boolean {
+  const garmin = repo.garminStatus();
+  const night = repo.measuredDay(today);
+  const a = rhythmMode(repo) !== 'off' ? latestRhythm(repo) : null;
+  if (a?.status === 'change' || todaysSleepNotice(repo)) return true;
+  if (garmin.connected && (!night || garmin.lastError || (garmin.lastSyncAt && toDateKey(new Date(garmin.lastSyncAt)) < addDays(today, -1)))) return true;
+  return !!sleepDrop(repo.measuredDays(), today);
+}
 
 export function SleepAndRhythm({ today }: { today: string }) {
   const repo = useRepo();
@@ -40,6 +51,8 @@ export function SleepAndRhythm({ today }: { today: string }) {
   else if (garmin.connected && garmin.lastSyncAt && toDateKey(new Date(garmin.lastSyncAt)) < addDays(today, -1)) {
     lines.push({ text: `Senast hämtat ${formatDateSv(toDateKey(new Date(garmin.lastSyncAt)))} ${formatTime(garmin.lastSyncAt)}.`, warn: true });
   }
+  const drop = sleepDrop(repo.measuredDays(), today);
+  if (drop) lines.push({ text: `De senaste tre nätterna sov du omkring ${dec(drop.recent)} timmar. Ditt vanliga snitt är ${dec(drop.usual)} timmar.`, strong: true });
   if (a) {
     const head = rhythmHeadline(a);
     lines.push({ text: `Dygnsrytm: ${head.title}${head.detail ? `. ${head.detail}` : ''}`, strong: a.status === 'change' });

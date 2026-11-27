@@ -125,6 +125,13 @@ describe('Garmin client', () => {
     await expect(c.days('2026-10-23', '2026-10-30')).rejects.toMatchObject({ kind: 'auth', message: expect.stringContaining('Garmin godtog inte nyckeln') });
   });
 
+  it('a 400 on a data request is about the request, not the key; on the token it is the key', async () => {
+    const data400: GarminFetch = async (url) => ({ ok: url.endsWith(GARMIN_TOKEN_PATH), status: url.endsWith(GARMIN_TOKEN_PATH) ? 200 : 400, text: async () => (url.endsWith(GARMIN_TOKEN_PATH) ? jwt(Date.now() / 1000 + 86400) : '') });
+    await expect(new GarminClient({ apiKey: 'k', fetch: data400 }).get('/x')).rejects.toMatchObject({ kind: 'request', message: expect.stringContaining('Nyckeln är troligen i ordning') });
+    const token400 = new GarminClient({ apiKey: 'k', fetch: garminFetch({ token: { status: 400, body: '' } }) });
+    await expect(token400.accessToken()).rejects.toMatchObject({ kind: 'auth' });
+  });
+
   it('gets a new token once when a data call answers 401', async () => {
     let n = 0;
     const f: GarminFetch = async (url) => {

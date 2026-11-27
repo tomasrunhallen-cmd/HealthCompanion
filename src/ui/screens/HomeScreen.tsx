@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SleepAndRhythm } from '../SleepAndRhythm';
+import { SleepAndRhythm, sleepAttention } from '../SleepAndRhythm';
 import { statusFacts } from '../../core/plan/status';
 import { statusInput } from '../../services/status';
 import { StatusHelp } from '../StatusToday';
@@ -62,7 +62,9 @@ export function HomeScreen() {
   const sleepNote = rhythmNow?.status === 'change' ? null : todaysSleepNotice(repo);
   const fw = firstWeekState(repo);
   // A yellow or red evening with a step in the plan: that step comes before the routines.
-  const todayStep = todayAssessment && todayAssessment.level !== 'green' ? firstStep(todayAssessment.level, plan) : null;
+  const levelToday = todayAssessment && todayAssessment.level !== 'green' ? todayAssessment.level : null;
+  const todayStep = levelToday ? firstStep(levelToday, plan) : null;
+  const sleepFirst = sleepAttention(repo, today);
   const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   // Days saved while the watch lagged, whose level would change with the values it synced later.
@@ -343,27 +345,30 @@ export function HomeScreen() {
       {/* Hjälp nu when that week needs it; then the week's lights, a yellow or red evening's first
           plan step, sleep and rhythm, the day's routines and the check-in (27 November). */}
       <StatusHelp />
-      <WeekSummary week={week} fontScale={fontScale} today={today} />
-      {todayStep ? (
-        <Card tone={todayAssessment!.level} style={{ marginTop: space.s }}>
+      {/* A yellow or red evening has a fixed place first, with the plan's first step when there is one (granskning 27 november). */}
+      {levelToday ? (
+        <Card tone={levelToday} style={{ marginTop: space.s }}>
           <Pressable
             onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
             accessibilityRole="button"
-            accessibilityLabel={`I kväll: ${LEVEL_TEXT[todayAssessment!.level]}. Första steget i din plan: ${todayStep.text}`}
+            accessibilityLabel={`I kväll: ${LEVEL_TEXT[levelToday]}.${todayStep ? ` Första steget i din plan: ${todayStep.text}` : ''}`}
             accessibilityHint="Visar bedömningen"
             style={{ minHeight: MIN_TOUCH }}
           >
             <Row style={{ alignItems: 'center' }}>
-              <Dot level={todayAssessment!.level} size={20} />
-              <Text style={[type.h2, { color: levelColor(todayAssessment!.level), flex: 1 }]}>I kväll: {LEVEL_TEXT[todayAssessment!.level]}</Text>
+              <Dot level={levelToday} size={20} />
+              <Text style={[type.h2, { color: levelColor(levelToday), flex: 1 }]}>I kväll: {LEVEL_TEXT[levelToday]}</Text>
               <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa ›</Text>
             </Row>
-            <P style={{ marginTop: space.xs }}>Första steget i din plan: {todayStep.text}</P>
+            {todayStep ? <P style={{ marginTop: space.xs }}>Första steget i din plan: {todayStep.text}</P> : null}
           </Pressable>
         </Card>
       ) : null}
-      <SleepAndRhythm today={today} />
+      <WeekSummary week={week} fontScale={fontScale} today={today} />
+      {/* An ordinary night: the day's routines first. Something about the night or the watch: sleep first. */}
+      {sleepFirst ? <SleepAndRhythm today={today} /> : null}
       <RoutinesToday collapsible />
+      {sleepFirst ? null : <SleepAndRhythm today={today} />}
 
       {card ? (
         openCard === card.id ? (
@@ -393,7 +398,7 @@ export function HomeScreen() {
 
       {/* Kvällens avstämning, folded to the buttons; once done, the evening's level and a way back to it. */}
       <Card tone="accent" style={{ paddingTop: space.m, paddingBottom: space.xs }}>
-        {todayAssessment && !todayStep ? (
+        {todayAssessment && !levelToday ? (
           <Pressable
             onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
             accessibilityRole="button"

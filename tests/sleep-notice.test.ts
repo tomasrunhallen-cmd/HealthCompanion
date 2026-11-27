@@ -61,3 +61,15 @@ describe('Sömnnotis', () => {
     expect(assessment.signals.some((s) => /snitt/.test(s.label))).toBe(false);
   });
 });
+
+describe('the own change in sleep length, shown without a notice (granskning 27 november)', () => {
+  it('three nights about an hour or more under the usual, also above 7 hours', async () => {
+    const { sleepDrop } = jest.requireActual('../src/core/analysis/sleepNotice') as typeof import('../src/core/analysis/sleepNotice');
+    const m: Record<string, MeasuredDay> = {};
+    for (let i = 3; i < 25; i++) m[addDays(T, -i)] = night(addDays(T, -i), 9);
+    for (let i = 0; i < 3; i++) m[addDays(T, -i)] = night(addDays(T, -i), 7.5);
+    expect(sleepDrop(m, T)).toEqual({ recent: 7.5, usual: 9 });
+    for (let i = 0; i < 3; i++) m[addDays(T, -i)] = night(addDays(T, -i), 8.4);
+    expect(sleepDrop(m, T)).toBeNull();
+  });
+});

@@ -17,7 +17,7 @@
 
 import { addDays, formatDateSv, weekStart } from '../analysis/dates';
 import type { DateKey, Level, RoutineFrequency } from '../domain/types';
-import { frequencyText, weekGoal } from './routineFrequency';
+import { countedDays, frequencyText, weekGoal } from './routineFrequency';
 
 export interface StatusDay {
   date: DateKey;
@@ -107,14 +107,16 @@ export function statusFacts(input: StatusInput): StatusFacts {
   ];
   if (tone === 'plan') return { tone, lines: [], basis };
 
-  const ticked = (id: string, from: DateKey, to: DateKey) => new Set(input.ticks.filter((t) => t.routineId === id && within(t.date, from, to)).map((t) => t.date)).size;
+  // Only the days that count towards the goal: a Saturday is not a Monday–Friday routine's (granskning 27 november).
+  const tickedDays = (id: string, from: DateKey, to: DateKey) => [...new Set(input.ticks.filter((t) => t.routineId === id && within(t.date, from, to)).map((t) => t.date))];
   /** The whole goal of a full week, whatever was answered. */
   const fullGoal = (f: RoutineFrequency) => (f.kind === 'daily' ? 7 : f.kind === 'weekly' ? f.times : f.days.length);
   const times = (f: RoutineFrequency, n: number) => (f.kind === 'daily' ? `${num(n)} ${n === 1 ? 'kväll' : 'kvällar'}` : `${num(n)} ${n === 1 ? 'gång' : 'gånger'}`);
 
   const started: StatusLine[] = [], kept: StatusLine[] = [], reached: StatusLine[] = [], did: (StatusLine & { n: number })[] = [];
   for (const r of input.routines) {
-    const now = ticked(r.id, monday, today), last = ticked(r.id, lastFrom, lastTo), before = ticked(r.id, beforeFrom, beforeTo);
+    const nowDays = tickedDays(r.id, monday, today), lastDays = tickedDays(r.id, lastFrom, lastTo), beforeDays = tickedDays(r.id, beforeFrom, beforeTo);
+    const [now, last, before] = [nowDays, lastDays, beforeDays].map((ds) => countedDays(r.frequency, ds).length);
     const goal = fullGoal(r.frequency);
     // Kept: the ticks confirm the whole goal both of the latest full weeks.
     if (goal && last >= goal && before >= goal) {
@@ -126,7 +128,7 @@ export function statusFacts(input: StatusInput): StatusFacts {
       reached.push({ kind: 'reached', text: `Du har redan nått veckans mål för ”${r.text}”, ${frequencyText(r.frequency)}.` });
       continue;
     }
-    const gLast = weekGoal(r.frequency, evLast, last).goal, gBefore = weekGoal(r.frequency, evBefore, before).goal;
+    const gLast = weekGoal(r.frequency, evLast, lastDays).goal, gBefore = weekGoal(r.frequency, evBefore, beforeDays).goal;
     const enough = r.frequency.kind !== 'daily' || (evLast.length >= P.minEvenings && evBefore.length >= P.minEvenings);
     const share = gLast ? Math.min(last / gLast, 1) : 0, shareBefore = gBefore ? Math.min(before / gBefore, 1) : 0;
     if (tone === 'open' && enough && gLast && gBefore && last >= before + P.startedMoreTimes && share >= P.startedShare && share >= shareBefore + P.startedGain) {

@@ -121,3 +121,16 @@ Personen fick en sömnnotis efter en natt på 8,4 timmar, eftersom notisen gäll
 - Garmins fältnamn för lätt sömn och vaken tid är inte officiellt dokumenterade.
 - En rutin utan valt mål räknas som daglig om dess ord inte säger något annat; "Sluta jobb i tid" behöver *Vissa dagar mån–fre* för att helgen inte ska räknas.
 - Krypteringslösenordet i webbversionen går inte att återställa eller byta; skyddet i dag är den krypterade säkerhetskopian under *Säkerhetskopiera appen*.
+
+## 9. Rättat efter granskningens svar 27 november
+
+| Fynd | Ändring | Var |
+|---|---|---|
+| En röd kväll utan plansteg hamnade långt ner | Gul och röd nivå har en fast plats överst, med plansteget när det finns | `HomeScreen.tsx` |
+| Rutiner före sömn en vanlig natt | Sömnkortet kommer först bara när något behöver uppmärksamhet (`sleepAttention`) | `SleepAndRhythm.tsx` |
+| Veckodagsmål: lördag räknades mot mån–fre | Samma dagar i täljare och nämnare (`countedDays`, `weekGoal`) | `routineFrequency.ts`, `status.ts` |
+| Gles registrering såg ut som missat veckomål | En vecka som inte går att avgöra är öppen: "1 gång registrerad, rutiner bockades av 2 dagar"; nått mål heter "veckomålet nått" | `routineFrequency.ts`, `TrendScreen.tsx` |
+| Tydlig personlig sömnförändring över 7 timmar syntes inte | "De senaste tre nätterna sov du omkring 7,5 timmar. Ditt vanliga snitt är 9 timmar." i sömnkortet, utan notis och poäng (`sleepDrop`) | `sleepNotice.ts`, `SleepAndRhythm.tsx` |
+| Garmin 400 lästes som nyckelfel | 400 på ett dataanrop: "Garmin kunde inte behandla begäran (fel 400). Nyckeln är troligen i ordning"; på tokenanropet fortfarande nyckelfel | `client.ts` |
+
+Kvar att prova på telefon: Prata med tangentbordet öppet och Hjälp nu (fokus i arket och efter stängning), Hem med stor text en röd dag utan plansteg, och Hem offline efter en uppmuntrande veckokommentar.

@@ -108,6 +108,22 @@ describe('routines against their own goals (28 November)', () => {
     expect(w.every((x) => x.past.length === 0)).toBe(true);
     // A weekday goal, Monday to Friday: the weekend asks for nothing.
     const work = [r('work', { kind: 'weekdays', days: [1, 2, 3, 4, 5] }), ...ctx.filter((e) => e.kind !== 'routine'), ...ticks('work', [2, 3, 4])];
-    expect(routineWeeks(work, ['work'], TODAY, 1)[0].current).toEqual({ done: 3, goal: 5, daysLeft: 0 });
+    expect(routineWeeks(work, ['work'], TODAY, 1)[0].current).toMatchObject({ done: 3, goal: 5, daysLeft: 0 });
+  });
+});
+
+describe('what is known about a week (granskning 27 november)', () => {
+  const r = (id: string, frequency: unknown) => ({ id, layer: 'grund', kind: 'routine', text: id, order: 0, approvedAt: '2026-11-01', plan: { polarity: 'both' }, routine: { track: true, reminder: null, frequency } }) as unknown as ContextEntry;
+  it('a Monday–Friday goal counts the same days in done and in goal: a Saturday walk is not a Monday', () => {
+    // Week of 2 November: answered Monday 2 and Saturday 7, done only on Saturday.
+    const ctx = [r('work', { kind: 'weekdays', days: [1, 2, 3, 4, 5] }), done('2026-11-02', 'other', false), done('2026-11-07', 'work', true)];
+    expect(routineWeeks(ctx, ['work'], TODAY, 1)[0].current).toMatchObject({ done: 0, goal: 1 });
+  });
+  it('a weekly goal with too few days answered is open, not missed; reached is reached', () => {
+    const ctx = [r('walk', { kind: 'weekly', times: 3 }), done('2026-10-27', 'walk', true), done('2026-10-29', 'x', false)];
+    const [w] = routineWeeks(ctx, ['walk'], TODAY, 1);
+    expect(w.past[0]).toMatchObject({ done: 1, goal: 3, answered: 2, judged: false });
+    const full = [r('walk', { kind: 'weekly', times: 3 }), ...['2026-10-26', '2026-10-28', '2026-11-01'].map((d) => done(d, 'walk', true))];
+    expect(routineWeeks(full, ['walk'], TODAY, 1)[0].past[0]).toMatchObject({ done: 3, goal: 3, judged: true });
   });
 });

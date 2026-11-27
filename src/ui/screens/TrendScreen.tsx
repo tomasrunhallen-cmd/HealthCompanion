@@ -278,7 +278,8 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
       </Card>
     );
   }
-  const goalSum = stats.reduce((n, s) => n + s.past.reduce((m, w) => m + w.goal, 0), 0);
+  // Only weeks that can be judged: an open week (too few days answered to know) is neither reached nor missed.
+  const goalSum = stats.reduce((n, s) => n + s.past.filter((w) => w.judged).reduce((m, w) => m + w.goal, 0), 0);
   if (!goalSum && !stats.some((s) => s.current.goal)) {
     return (
       <Card>
@@ -286,14 +287,22 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
       </Card>
     );
   }
-  const doneSum = stats.reduce((n, s) => n + s.past.reduce((m, w) => m + Math.min(w.done, w.goal), 0), 0);
+  const doneSum = stats.reduce((n, s) => n + s.past.filter((w) => w.judged).reduce((m, w) => m + Math.min(w.done, w.goal), 0), 0);
   const lastMonday = addDays(weekStart(props.today), -7);
-  const last = stats.map((s) => s.past.find((w) => w.from === lastMonday)).filter((w): w is NonNullable<typeof w> => !!w);
+  const last = stats.map((s) => s.past.find((w) => w.from === lastMonday)).filter((w): w is NonNullable<typeof w> => !!w && w.judged);
   const lastReached = last.filter((w) => w.done >= w.goal).length;
   const pct = goalSum ? Math.round((doneSum / goalSum) * 100) : null;
   const daysLeft = stats[0].current.daysLeft;
   const unit = (s: (typeof stats)[number], n: number) => (s.frequency.kind === 'daily' ? (n === 1 ? 'kväll' : 'kvällar') : s.frequency.kind === 'weekly' ? (n === 1 ? 'gång' : 'gånger') : n === 1 ? 'planerad dag' : 'planerade dagar');
-  const count = (s: (typeof stats)[number], w: { done: number; goal: number }) => `${w.done} av ${w.goal} ${unit(s, w.goal)}${w.goal > 0 && w.done >= w.goal ? ' ✓' : ''}`;
+  // What is known, and no more: a weekly goal reached says so; one with too few days answered says what was registered.
+  const count = (s: (typeof stats)[number], w: { done: number; goal: number; answered: number; judged: boolean }, open = false) => {
+    if (s.frequency.kind === 'weekly') {
+      if (w.done >= w.goal) return `${w.done} ${unit(s, w.done)} · veckomålet nått ✓`;
+      if (!w.judged && !open) return `${w.done} ${unit(s, w.done)} registrerad${w.done === 1 ? '' : 'e'}, rutiner bockades av ${w.answered} ${w.answered === 1 ? 'dag' : 'dagar'}`;
+      return `${w.done} av ${w.goal} ${unit(s, w.goal)}${open ? ' hittills' : ''}`;
+    }
+    return `${w.done} av ${w.goal} ${unit(s, w.goal)}${w.goal > 0 && w.done >= w.goal ? ' ✓' : ''}`;
+  };
   return (
     <>
       <Card>
@@ -317,9 +326,13 @@ function Routines(props: { buckets: TrendBucket[]; grain: Grain; today: string; 
         {stats.map((s) => {
           const share = s.current.goal ? Math.min(s.current.done / s.current.goal, 1) : 0;
           const prev = s.past.find((w) => w.from === lastMonday);
-          const reached = s.past.filter((w) => w.done >= w.goal).length;
-          const history = fullWeeks === 1 ? (prev ? `Förra veckan: ${count(s, prev)}` : null) : s.past.length ? `Målet nått ${reached} av ${s.past.length} hela veckor` : null;
-          const now = s.current.goal ? `Den här veckan: ${count(s, s.current)}` : 'Den här veckan: inget att bocka av än';
+          const judged = s.past.filter((w) => w.judged);
+          const open = s.past.length - judged.length;
+          const reached = judged.filter((w) => w.done >= w.goal).length;
+          const history = fullWeeks === 1
+            ? (prev ? `Förra veckan: ${count(s, prev)}` : null)
+            : s.past.length ? `Målet nått ${reached} av ${judged.length} hela veckor${open ? `, ${open} ${open === 1 ? 'vecka' : 'veckor'} för glest registrerade` : ''}` : null;
+          const now = s.current.goal ? `Den här veckan: ${count(s, s.current, true)}` : 'Den här veckan: inget att bocka av än';
           return (
             <View key={s.routine.id} style={{ marginTop: space.m }} accessible accessibilityLabel={`${s.routine.text}, mål ${frequencyText(s.frequency)}. ${now}.${history ? ` ${history}.` : ''}`}>
               <Text style={type.body}>{s.routine.text}</Text>

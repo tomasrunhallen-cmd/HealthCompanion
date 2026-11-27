@@ -83,3 +83,19 @@ export function sleepRoutineText(routines: { text: string }[]): string | null {
   const sleep = routines.filter((r) => /sömn|sova|sover|lägg(a|er) mig|sängen/i.test(r.text));
   return (sleep.find((r) => /\d{1,2}[:.]\d{2}\s*(?:[–—-]|till)\s*\d{1,2}[:.]\d{2}/.test(r.text)) ?? sleep[0])?.text ?? null;
 }
+
+/**
+ * The person's own change in sleep length, shown without a notice or points (granskning 27
+ * november): the latest three nights about an hour or more under the 28 nights before. Information,
+ * not an alarm, also above 7 hours.
+ */
+export function sleepDrop(measured: Record<DateKey, Pick<MeasuredDay, 'sleepHours'>>, today: DateKey): { recent: number; usual: number } | null {
+  const recent = [0, 1, 2].map((i) => measured[addDays(today, -i)]?.sleepHours).filter((h): h is number => h != null);
+  const before: number[] = [];
+  for (let i = 3; i < 31; i++) { const h = measured[addDays(today, -i)]?.sleepHours; if (h != null) before.push(h); }
+  if (recent.length < 3 || before.length < 14) return null;
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const r = mean(recent), u = mean(before);
+  return u - r >= 1 ? { recent: Math.round(r * 2) / 2, usual: Math.round(u * 2) / 2 } : null;
+}
+
