@@ -15,7 +15,6 @@ import { routineStatuses } from '../core/plan/routineFrequency';
 import type { DaySuggestion } from '../core/plan/daySuggestion';
 import { daySuggestion, makeDaySuggestion, staleForSleep } from '../services/daySuggestion';
 import { Button, Card, P, Row, Tag } from './components';
-import { RoutineWeekLines } from './StatusToday';
 import { useRepo } from './state';
 import { colors, MIN_TOUCH, space, type } from './theme';
 
@@ -25,7 +24,7 @@ export function RoutineRow({ r, done, onSet, detail }: { r: ContextEntry; done: 
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: on }}
-      accessibilityLabel={detail ? `${r.text}. ${detail}` : r.text}
+      accessibilityLabel={`${r.text}${on ? ', klar' : ''}${detail ? `. ${detail}` : ''}`}
       onPress={() => onSet(on ? null : true)}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: MIN_TOUCH, paddingVertical: space.xs }}
     >
@@ -36,6 +35,8 @@ export function RoutineRow({ r, done, onSet, detail }: { r: ContextEntry; done: 
         <Text style={type.body}>{r.text}</Text>
         {detail ? <Text style={type.small}>{detail}</Text> : null}
       </View>
+      {/* Done is said in words too, not by the filled box alone. */}
+      {on ? <Text style={[type.small, { color: colors.green, fontWeight: '600' }]}>✓ Klar</Text> : null}
     </Pressable>
   );
 }
@@ -107,42 +108,31 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
   const counted = [...picked.map((p) => p.r), ...rest, ...(mode ? extra : [])];
   const done = counted.filter((r) => log.get(r.id) === true).length;
   const follow = (direction: 'up' | 'down') => repo.updateSettings({ planMode: { direction, since: today } });
-  // Folded: the suggestion, or without one the first two routines.
-  const shownPicked = open ? picked : picked.slice(0, foldedMax ?? picked.length);
-  const shownRest = open ? rest : picked.length ? [] : rest.slice(0, foldedMax ?? 2);
+  // Folded: a short list for today, the suggestion first; the rest, the reasons and the AI mark one tap away.
+  const folded = foldedMax ?? 3;
+  const shownPicked = open ? picked : picked.slice(0, folded);
+  const shownRest = open ? rest : rest.slice(0, Math.max(0, folded - shownPicked.length));
   const hidden = counted.length - shownPicked.length - shownRest.length;
 
   return (
     <Card>
-      <Pressable
-        disabled={!collapsible}
-        onPress={() => setOpen(!open)}
-        accessibilityRole={collapsible ? 'button' : 'header'}
-        accessibilityState={collapsible ? { expanded: open } : undefined}
-        accessibilityLabel={`Rutiner i dag, ${done} av ${counted.length} gjorda`}
-        accessibilityHint={collapsible ? (open ? 'Fäller ihop' : 'Visar alla rutiner i dag') : undefined}
-        style={{ flexDirection: 'row', alignItems: 'center', minHeight: collapsible ? MIN_TOUCH : undefined }}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={type.h2}>Rutiner i dag</Text>
-          <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
-            {all.length ? `${done} av ${counted.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
-          </Text>
-        </View>
-        {collapsible ? <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{open ? 'Färre ▲' : hidden > 0 ? `Alla ${counted.length} ▼` : '▼'}</Text> : null}
-      </Pressable>
-      {collapsible ? <RoutineWeekLines open={open} /> : null}
-      {picked.length ? (
-        <View style={{ marginTop: space.s }}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text style={type.label}>FÖRESLAGET I DAG</Text>
-            {suggestion?.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
-          </Row>
-          {shownPicked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
-          {shownRest.length ? <Text style={[type.label, { marginTop: space.m }]}>ÖVRIGA I DAG</Text> : null}
-        </View>
+      <View accessible accessibilityRole="header" accessibilityLabel={`Rutiner i dag, ${done} av ${counted.length} gjorda`}>
+        <Text style={type.h2}>Rutiner i dag</Text>
+        <Text style={[type.small, { marginTop: 2 }]} accessibilityLiveRegion="polite">
+          {all.length ? `${done} av ${counted.length} gjorda` : 'Inga dagliga rutiner i planen än.'}
+        </Text>
+      </View>
+      <View style={{ marginTop: space.xs }}>
+        {/* One list, the day's suggestion first. Why it was suggested shows with the details. */}
+        {shownPicked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={open ? p.why : undefined} />)}
+        {shownRest.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+      </View>
+      {open && picked.length ? (
+        <Row style={{ marginTop: space.xs, alignItems: 'center' }}>
+          <Text style={[type.small, { flexShrink: 1 }]}>{picked.length === 1 ? 'Den första är föreslagen för i dag.' : `De ${picked.length} första är föreslagna för i dag.`}</Text>
+          {suggestion?.method === 'llm' ? <Tag label="Formulerat av AI" /> : null}
+        </Row>
       ) : null}
-      {shownRest.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
       {open && restingCount ? (
         <Text style={[type.small, { marginTop: space.xs }]}>
           {restingCount === 1 ? 'En rutin' : `${restingCount} rutiner`} är klara för veckan eller inte planerade i dag.
@@ -171,6 +161,9 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
             {hasDown ? <Button kind="ghost" title={`Följ planen vid ${polarityWord('down', ps)}`} onPress={() => follow('down')} /> : null}
           </Row>
         )
+      ) : null}
+      {collapsible && (hidden > 0 || open) ? (
+        <Button kind="ghost" title={open ? 'Visa färre' : `Visa alla rutiner (${counted.length})`} onPress={() => setOpen(!open)} />
       ) : null}
     </Card>
   );

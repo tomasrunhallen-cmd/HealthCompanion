@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { SleepAndRhythm } from '../SleepAndRhythm';
+import { statusFacts } from '../../core/plan/status';
+import { statusInput } from '../../services/status';
 import { StatusHelp } from '../StatusToday';
-import { countedRoutineIds, routineShare } from '../../core/plan/routines';
 import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { displaySentence, firstStep } from '../../core/analysis/assess';
-import { weekCounts } from '../../core/analysis/levelWords';
 import { lowModeSupport } from '../../core/analysis/lowMode';
 import { limitedGreen } from '../../core/analysis/coverage';
 import { addDays, eveningDateKey, formatDateSv, formatDateSvTitle } from '../../core/analysis/dates';
@@ -26,7 +27,6 @@ import { firstWeekState, markFirstWeek } from '../../services/firstWeek';
 import { NOTICE_KEY, todaysSleepNotice } from '../../services/sleepNotice';
 import { remeasurePending } from '../../services/remeasure';
 import { latestRhythm, rhythmMode } from '../../services/rhythm';
-import { RhythmToday } from '../RhythmToday';
 import { findingTopic } from '../../core/analysis/moodPatterns';
 import { patternCard } from '../../services/moodPatterns';
 import { rereadDays } from '../../core/analysis/recompute';
@@ -35,6 +35,7 @@ import { useDialog, useRepo } from '../state';
 import { colors, LEVEL_TEXT, levelColor, MIN_TOUCH, space, type } from '../theme';
 
 const HOME_LATER_KEY = 'homeLater';
+const LEVEL_WORD: Record<Level, string> = { green: 'grön nivå', yellow: 'gul nivå', red: 'röd nivå' };
 
 export function HomeScreen() {
   const repo = useRepo();
@@ -60,6 +61,8 @@ export function HomeScreen() {
   const rhythmNow = rhythmMode(repo) !== 'off' ? latestRhythm(repo) : null;
   const sleepNote = rhythmNow?.status === 'change' ? null : todaysSleepNotice(repo);
   const fw = firstWeekState(repo);
+  // A yellow or red evening with a step in the plan: that step comes before the routines.
+  const todayStep = todayAssessment && todayAssessment.level !== 'green' ? firstStep(todayAssessment.level, plan) : null;
   const tomorrow = adviceForTomorrow(repo.contextEntries(), today);
   const showSuggestions = suggestionsOnHome(settings.suggestionPace, today);
   // Days saved while the watch lagged, whose level would change with the values it synced later.
@@ -168,7 +171,6 @@ export function HomeScreen() {
     ...tomorrow.map((t) => ({ kind: 'tomorrow' as const, id: `tomorrow_${t.date}_${t.event}` })),
     ...remeasured.map((r) => ({ kind: 'remeasure' as const, id: `remeasure_${r.entry.id}` })),
     reread ? { kind: 'reread' as const, id: `reread_${reread}` } : null,
-    sleepNote ? { kind: 'sleepNotice' as const, id: 'sleepNotice' } : null,
     fw?.weekPicture ? { kind: 'weekPicture' as const, id: 'weekPicture' } : null,
     fw?.offerSleepSource ? { kind: 'sleepSource' as const, id: 'sleepSource' } : null,
     pattern ? { kind: 'pattern' as const, id: pattern.id } : null,
@@ -338,12 +340,31 @@ export function HomeScreen() {
   return (
     <Screen title="Dagsljus">
       <Eyebrow>{formatDateSvTitle(today)}</Eyebrow>
-      {/* A week when Hjälp nu was shown: where help is, first. */}
+      {/* What needs attention today decides what comes first (granskning 27 november): a week
+          when Hjälp nu was shown, then a yellow or red evening's first plan step, then the day's
+          routines, then the week, then sleep and rhythm, then the check-in. */}
       <StatusHelp />
-      {/* Senaste veckan, Dygnsrytm, Rutiner i dag (with the week's routines in it), Kvällens avstämning. */}
+      {todayStep ? (
+        <Card tone={todayAssessment!.level} style={{ marginTop: space.s }}>
+          <Pressable
+            onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
+            accessibilityRole="button"
+            accessibilityLabel={`I kväll: ${LEVEL_TEXT[todayAssessment!.level]}. Första steget i din plan: ${todayStep.text}`}
+            accessibilityHint="Visar bedömningen"
+            style={{ minHeight: MIN_TOUCH }}
+          >
+            <Row style={{ alignItems: 'center' }}>
+              <Dot level={todayAssessment!.level} size={20} />
+              <Text style={[type.h2, { color: levelColor(todayAssessment!.level), flex: 1 }]}>I kväll: {LEVEL_TEXT[todayAssessment!.level]}</Text>
+              <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>Visa ›</Text>
+            </Row>
+            <P style={{ marginTop: space.xs }}>Första steget i din plan: {todayStep.text}</P>
+          </Pressable>
+        </Card>
+      ) : null}
+      <RoutinesToday collapsible />
       <WeekSummary week={week} fontScale={fontScale} today={today} />
-      <RhythmToday />
-      <RoutinesToday collapsible foldedMax={rhythmNow ? 1 : undefined} />
+      <SleepAndRhythm today={today} />
 
       {card ? (
         openCard === card.id ? (
@@ -373,7 +394,7 @@ export function HomeScreen() {
 
       {/* Kvällens avstämning, folded to the buttons; once done, the evening's level and a way back to it. */}
       <Card tone="accent" style={{ paddingTop: space.m, paddingBottom: space.xs }}>
-        {todayAssessment ? (
+        {todayAssessment && !todayStep ? (
           <Pressable
             onPress={() => nav.push({ name: 'result', entryId: todayEntry!.id })}
             accessibilityRole="button"
@@ -401,33 +422,24 @@ export function HomeScreen() {
 }
 
 /**
- * The last seven days at the top of Hem: each day's level (a tap opens the day), and one line
- * with the levels counted, the span of the mood, and the share of routines kept.
+ * The last seven days: each day's level, by symbol and colour, and under them one line, the most
+ * useful observation of the week in the app's own words (core/plan/status.ts). The mood and the
+ * share of routines are on Trend, where they can be explained (granskning 27 november).
  */
 function WeekSummary({ week, fontScale, today }: { week: { date: string; level: Level | null; limited?: boolean }[]; fontScale: number; today: string }) {
   const repo = useRepo();
-  const from = week[0].date;
-  const counts = { green: 0, yellow: 0, red: 0 } as Record<Level, number>;
-  for (const d of week) if (d.level) counts[d.level]++;
-  const limited = week.filter((d) => d.limited).length;
-  const missing = week.filter((d) => !d.level).length;
-  const moods = repo.entries().filter((e) => e.date >= from && e.date <= today && e.mood != null).map((e) => e.mood!);
-  const ctx = repo.contextEntries();
-  const share = routineShare(ctx, countedRoutineIds(ctx, repo.settings().planMode ?? null, from, today), from, today);
-  const kept = share ? Math.round((share.done / share.possible) * 100) : null;
-  const signedMood = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
-  const lo = moods.length ? Math.min(...moods) : null;
-  const hi = moods.length ? Math.max(...moods) : null;
-  const parts = [
-    weekCounts(counts, missing, limited),
-    lo != null ? `stämning ${lo === hi ? signedMood(lo) : `${signedMood(lo)} till ${signedMood(hi!)}`}` : null,
-    kept != null ? `rutiner ${kept}\u00a0%` : null,
-  ].filter(Boolean);
+  const f = statusFacts(statusInput(repo));
+  const best = f.tone !== 'plan' ? f.lines[0]?.text ?? null : null;
+  const todayMissing = !week.find((d) => d.date === today)?.level;
+  const earlierMissing = week.filter((d) => d.date !== today && !d.level).length;
+  // The empty ring is hard to read alone: say what it means, in words.
+  const ring = [todayMissing ? 'I dag: ingen avstämning än.' : null, earlierMissing ? `Tom ring: ingen avstämning${todayMissing ? ' den dagen' : ''}.` : null].filter(Boolean).join(' ');
   return (
-    <Card>
+    <Card style={{ marginTop: space.s }}>
       <Text style={type.h2} accessibilityRole="header">Senaste veckan</Text>
       <WeekRow week={week} fontScale={fontScale} />
-      <Text style={[type.small, { marginTop: space.s }]}>{parts.join(' · ')}</Text>
+      {ring ? <Text style={[type.small, { marginTop: space.xs }]}>{ring}</Text> : null}
+      {best ? <Text style={[type.body, { marginTop: space.s }]}>{best}</Text> : null}
     </Card>
   );
 }
@@ -446,7 +458,7 @@ function WeekRow({ week, fontScale }: { week: { date: string; level: Level | nul
             disabled={!e}
             onPress={() => e && nav.push({ name: 'result', entryId: e.id })}
             accessibilityRole={e ? 'button' : 'text'}
-            accessibilityLabel={`${formatDateSv(d.date)}: ${d.level ? LEVEL_TEXT[d.level] : 'ingen avstämning'}${d.limited ? ', begränsat underlag' : ''}`}
+            accessibilityLabel={`${formatDateSv(d.date)}, ${d.level ? LEVEL_WORD[d.level] : 'ingen avstämning'}${d.limited ? ', begränsat underlag' : ''}`}
             accessibilityHint={e ? 'Visar bedömningen' : undefined}
             style={({ pressed }) => ({ alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 40, minHeight: 44, opacity: pressed ? 0.5 : 1 })}
           >
