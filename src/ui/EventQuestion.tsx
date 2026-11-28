@@ -21,17 +21,25 @@ export function EventQuestion() {
   const [opened, setOpened] = useState(false);
   const asked = !askAboutEvents(eventsAskedAt(repo), today);
   if (asked && !added.length && !opened) {
-    return <Button kind="ghost" title="Lägg till en kommande händelse" hint="Till exempel en resa eller en flytt. Appen påminner om din plan dagen innan." onPress={() => setOpened(true)} />;
+    return <Button kind="ghost" title="Lägg till en händelse" hint="Något stort som hänt eller är på gång, till exempel en resa eller en flytt." onPress={() => setOpened(true)} />;
   }
+  // A larger event that has happened counts as much as one ahead: the days after it are worth seeing (28 November).
+  const past = Array.from({ length: 7 }, (_, i) => addDays(today, i - 7));
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i + 1));
   const label = (d: string) => `${WEEKDAY[new Date(`${d}T12:00:00`).getDay()]} ${Number(d.slice(8))}`;
 
   return (
     <Card>
-      <Text style={type.h2} accessibilityRole="header">Något stort på gång kommande veckan?</Text>
+      <Text style={type.h2} accessibilityRole="header">Något stort som hänt eller är på gång?</Text>
       <Text style={type.small}>Valfritt</Text>
       {added.map((a) => <P key={a} style={{ marginTop: space.xs }}>{`✓ ${a}`}</P>)}
-      <Field value={text} onChangeText={setText} placeholder="Till exempel: resa till Berlin" accessibilityLabel="Händelse" style={{ marginTop: space.s }} />
+      <Field value={text} onChangeText={setText} placeholder="Till exempel: flytten, resa till Berlin" accessibilityLabel="Händelse" style={{ marginTop: space.s }} />
+      <Text style={[type.small, { marginTop: space.xs }]}>Har hänt</Text>
+      <Row style={{ gap: 6 }}>
+        {past.map((d) => <Chip key={d} label={label(d)} selected={date === d} onPress={() => setDate(d)} />)}
+        <Chip label="i dag" selected={date === today} onPress={() => setDate(today)} />
+      </Row>
+      <Text style={[type.small, { marginTop: space.xs }]}>Kommer</Text>
       <Row style={{ gap: 6 }}>
         {days.map((d) => <Chip key={d} label={label(d)} selected={date === d} onPress={() => setDate(d)} />)}
       </Row>

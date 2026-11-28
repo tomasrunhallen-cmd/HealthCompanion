@@ -96,23 +96,30 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
   const picked = (suggestion?.date === today ? suggestion.items : [])
     .map((i) => ({ ...i, r: daily.find((d) => d.id === i.routineId) }))
     .filter((i): i is typeof i & { r: ContextEntry } => !!i.r);
-  // Not today: a weekday routine on another day, or a weekly goal already reached (unless ticked today).
+  // Not today: only a weekday routine on a day it is not planned (unless ticked today). A weekly
+  // goal already reached stays, so a walk more than the goal can still be ticked (28 November);
+  // it is shown last, and does not count in "X av Y gjorda" until it is ticked.
   const notToday = (r: ContextEntry) => {
     const st = status.get(r.id);
-    return !!st && !st.dueToday && !st.doneToday;
+    return !!st && st.frequency.kind === 'weekdays' && !st.dueToday && !st.doneToday;
   };
-  const rest = daily.filter((r) => !picked.some((p) => p.r.id === r.id) && !notToday(r));
+  const weekDone = (r: ContextEntry) => {
+    const st = status.get(r.id);
+    return !!st && st.frequency.kind === 'weekly' && !st.dueToday && !st.doneToday;
+  };
+  const rest = daily.filter((r) => !picked.some((p) => p.r.id === r.id) && !notToday(r))
+    .sort((a, b) => Number(weekDone(a)) - Number(weekDone(b)));
   const restingCount = daily.filter(notToday).length;
 
   const set = (r: ContextEntry) => (v: boolean | null) => void setRoutineDone(repo, today, r, v);
-  const counted = [...picked.map((p) => p.r), ...rest, ...(mode ? extra : [])];
+  const counted = [...picked.map((p) => p.r), ...rest.filter((r) => !weekDone(r)), ...(mode ? extra : [])];
   const done = counted.filter((r) => log.get(r.id) === true).length;
   const follow = (direction: 'up' | 'down') => repo.updateSettings({ planMode: { direction, since: today } });
   // Folded: a short list for today, the suggestion first; the rest, the reasons and the AI mark one tap away.
   const folded = foldedMax ?? 3;
   const shownPicked = open ? picked : picked.slice(0, folded);
   const shownRest = open ? rest : rest.slice(0, Math.max(0, folded - shownPicked.length));
-  const hidden = counted.length - shownPicked.length - shownRest.length;
+  const hidden = picked.length + rest.length - shownPicked.length - shownRest.length;
 
   return (
     <Card>
@@ -125,7 +132,7 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
       <View style={{ marginTop: space.xs }}>
         {/* One list, the day's suggestion first. Why it was suggested shows with the details. */}
         {shownPicked.map((p) => <RoutineRow key={p.r.id} r={p.r} done={log.get(p.r.id)} onSet={set(p.r)} detail={p.why} />)}
-        {shownRest.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} />)}
+        {shownRest.map((r) => <RoutineRow key={r.id} r={r} done={log.get(r.id)} onSet={set(r)} detail={weekDone(r) ? 'Veckans mål är redan nått' : undefined} />)}
       </View>
       {open && picked.length ? (
         <Row style={{ marginTop: space.xs, alignItems: 'center' }}>
@@ -135,7 +142,7 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
       ) : null}
       {open && restingCount ? (
         <Text style={[type.small, { marginTop: space.xs }]}>
-          {restingCount === 1 ? 'En rutin' : `${restingCount} rutiner`} är klara för veckan eller inte planerade i dag.
+          {restingCount === 1 ? 'En rutin' : `${restingCount} rutiner`} är inte planerade i dag.
         </Text>
       ) : null}
 
@@ -163,7 +170,7 @@ export function RoutinesToday({ compact = false, collapsible = false, foldedMax 
         )
       ) : null}
       {collapsible && (hidden > 0 || open) ? (
-        <Button kind="ghost" title={open ? 'Visa färre' : `Visa alla rutiner (${counted.length})`} onPress={() => setOpen(!open)} />
+        <Button kind="ghost" title={open ? 'Visa färre' : `Visa alla rutiner (${picked.length + rest.length})`} onPress={() => setOpen(!open)} />
       ) : null}
     </Card>
   );
