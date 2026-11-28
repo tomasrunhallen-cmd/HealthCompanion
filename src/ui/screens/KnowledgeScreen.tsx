@@ -34,6 +34,9 @@ function EntryRow({ e }: { e: ContextEntry }) {
   const dialog = useDialog();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(e.text);
+  // An event's day can be changed too, for one added on the wrong day (28 November).
+  const [date, setDate] = useState(e.date ?? '');
+  const dateOk = e.kind !== 'event' || /^\d{4}-\d{2}-\d{2}$/.test(date);
   const isAkut = e.kind === 'akut';
   const detail = [
     ORIGIN_TEXT[e.origin],
@@ -55,16 +58,18 @@ function EntryRow({ e }: { e: ContextEntry }) {
           multiline
           style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: space.s, fontSize: 16, color: colors.text, backgroundColor: colors.surface }}
         />
+        {e.kind === 'event' ? <Field label="DATUM (ÅÅÅÅ-MM-DD)" value={date} onChangeText={setDate} placeholder="2026-11-20" hint={dateOk ? undefined : 'Skriv datumet som 2026-11-20.'} /> : null}
         <Row>
           <Button
             title="Spara"
+            disabled={!dateOk}
             onPress={async () => {
               // Editing makes it the user's own words.
-              await repo.updateContextEntry(e.id, { text: text.trim(), origin: e.origin === 'correction' ? 'correction' : 'user', approvedAt: new Date().toISOString() });
+              await repo.updateContextEntry(e.id, { text: text.trim(), origin: e.origin === 'correction' ? 'correction' : 'user', approvedAt: new Date().toISOString(), ...(e.kind === 'event' ? { date } : {}) });
               setEditing(false);
             }}
           />
-          <Button kind="ghost" title="Avbryt" onPress={() => { setText(e.text); setEditing(false); }} />
+          <Button kind="ghost" title="Avbryt" onPress={() => { setText(e.text); setDate(e.date ?? ''); setEditing(false); }} />
         </Row>
       </View>
     );
