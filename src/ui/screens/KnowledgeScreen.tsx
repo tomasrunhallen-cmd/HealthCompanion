@@ -29,6 +29,28 @@ function short(iso: string | null | undefined): string {
   return iso ? formatDateSv(iso.slice(0, 10)) : '';
 }
 
+/** A kind with many rows, folded to its name and count; open, the newest 30. */
+function FoldedKind({ kind, rows }: { kind: ContextKind; rows: ContextEntry[] }) {
+  const [open, setOpen] = useState(false);
+  const shown = rows.slice(0, 30);
+  return (
+    <View style={{ marginBottom: space.s }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${KIND_TEXT[kind]}, ${rows.length}`}
+        onPress={() => setOpen((v) => !v)}
+        style={{ minHeight: MIN_TOUCH, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      >
+        <Text style={type.label}>{`${KIND_TEXT[kind].toUpperCase()} (${rows.length})`}</Text>
+        <Text style={[type.small, { color: colors.accent, fontWeight: '600' }]}>{open ? 'Dölj ▲' : 'Visa ▼'}</Text>
+      </Pressable>
+      {open ? shown.map((e) => <EntryRow key={e.id} e={e} />) : null}
+      {open && rows.length > shown.length ? <Text style={type.small}>{`De ${shown.length} senaste av ${rows.length}.`}</Text> : null}
+    </View>
+  );
+}
+
 function EntryRow({ e }: { e: ContextEntry }) {
   const repo = useRepo();
   const dialog = useDialog();
@@ -257,15 +279,18 @@ export function KnowledgeScreen() {
             ) : null}
             <Card>
               {kinds.length === 0 ? <P muted>Inget här än.</P> : null}
-              {kinds.map((k) => (
-                <View key={k} style={{ marginBottom: space.s }}>
-                  <Text style={type.label}>{KIND_TEXT[k].toUpperCase()}</Text>
-                  {entries
-                    .filter((e) => e.kind === k)
-                    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.order - b.order)
-                    .map((e) => <EntryRow key={e.id} e={e} />)}
-                </View>
-              ))}
+              {kinds.map((k) => {
+                const rows = entries.filter((e) => e.kind === k).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.order - b.order);
+                // Under Dagligt the many daily answers are folded, so the events stand out (28 November).
+                return layer === 'dagligt' && k !== 'event'
+                  ? <FoldedKind key={k} kind={k} rows={rows} />
+                  : (
+                    <View key={k} style={{ marginBottom: space.s }}>
+                      <Text style={type.label}>{KIND_TEXT[k].toUpperCase()}</Text>
+                      {rows.map((e) => <EntryRow key={e.id} e={e} />)}
+                    </View>
+                  );
+              })}
               <AddEntry layer={layer} />
             </Card>
             {layer === 'dagligt' ? (
