@@ -1,4 +1,5 @@
-// "Något stort på gång kommande veckan?" Once a week, last in the check-in. One tap for a day.
+// "Något stort på gång kommande veckan?" Asked once a week, last in the check-in; the other weeks
+// a button opens the same form, so an event can always be added (28 November). One tap for a day.
 
 import React, { useState } from 'react';
 import { Text } from 'react-native';
@@ -17,7 +18,11 @@ export function EventQuestion() {
   const [text, setText] = useState('');
   const [date, setDate] = useState(addDays(today, 1));
   const [added, setAdded] = useState<string[]>([]);
-  if (!askAboutEvents(eventsAskedAt(repo), today) && !added.length) return null;
+  const [opened, setOpened] = useState(false);
+  const asked = !askAboutEvents(eventsAskedAt(repo), today);
+  if (asked && !added.length && !opened) {
+    return <Button kind="ghost" title="Lägg till en kommande händelse" hint="Till exempel en resa eller en flytt. Appen påminner om din plan dagen innan." onPress={() => setOpened(true)} />;
+  }
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i + 1));
   const label = (d: string) => `${WEEKDAY[new Date(`${d}T12:00:00`).getDay()]} ${Number(d.slice(8))}`;
 
@@ -37,7 +42,7 @@ export function EventQuestion() {
           setAdded((all) => [...all, `${text.trim()}, ${formatDateSv(date)}`]);
           setText('');
         }} />
-        <Button kind="ghost" title={added.length ? 'Klar' : 'Inget just nu'} onPress={async () => { await markEventsAsked(repo, today); setAdded([]); }} />
+        <Button kind="ghost" title={added.length ? 'Klar' : 'Inget just nu'} onPress={async () => { await markEventsAsked(repo, today); setAdded([]); setOpened(false); }} />
       </Row>
     </Card>
   );
